@@ -1,0 +1,50 @@
+﻿<UserControl
+    x:Class="Snet.Windows.Controls.button.ButtonControl"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="clr-namespace:Snet.Windows.Controls.button"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:ui="http://materialdesigninxaml.net/winfx/xaml/themes">
+    <Button
+        Padding="8,0,8,0"
+        ui:ButtonAssist.CornerRadius="{Binding CornerRadius, RelativeSource={RelativeSource AncestorType=UserControl}}"
+        BorderThickness="0"
+        Command="{Binding Command, RelativeSource={RelativeSource AncestorType=UserControl}}"
+        IsEnabled="{Binding IsEnabled, RelativeSource={RelativeSource AncestorType=UserControl}}"
+        Style="{StaticResource MaterialDesignRaisedButton}"
+        Visibility="{Binding Visibility, RelativeSource={RelativeSource AncestorType=UserControl}}">
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="auto" />
+                <ColumnDefinition Width="8" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <Grid Grid.Column="0">
+                <!--  左侧的图标 (MaterialDesign PackIcon)  -->
+                <Image
+                    Width="15"
+                    Height="15"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Source="{Binding Icon, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                    Stretch="Fill" />
+            </Grid>
+            <Grid Grid.Column="2">
+                <!--  右侧的文字  -->
+                <TextBlock
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    FontFamily="{Binding FontFamily, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                    FontSize="{Binding FontSize, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                    FontStretch="{Binding FontStretch, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                    FontStyle="{Binding FontStyle, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                    FontWeight="{Binding FontWeight, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                    Text="{Binding Content, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                    TextAlignment="Center" />
+            </Grid>
+
+        </Grid>
+    </Button>
+</UserControl>

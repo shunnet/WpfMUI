@@ -1,0 +1,13 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!--  你好  -->
+    <DrawingImage x:Key="Hello">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="{DynamicResource ImageColor}" Geometry="M162.56692373 62h185.05592578v185.05592666H162.56692373z" />
+                <GeometryDrawing Brush="{DynamicResource ImageColor}" Geometry="M726.27825253 62h185.05592579v185.05592666h-185.05592579z" />
+                <GeometryDrawing Brush="{DynamicResource ImageColor}" Geometry="M536.94741641 961.99373164A475.48648125 475.48648125 0 0 1 62.02507256 487.04004687h109.17315527a365.77426113 365.77426113 0 1 0 731.54852315 0h109.17315527a475.48648125 475.48648125 0 0 1-474.97248984 474.95368477z" />
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+</ResourceDictionary>

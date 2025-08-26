@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net8.0-windows;net9.0-windows</TargetFrameworks>
+    <AccelerateBuildsInVisualStudio>True</AccelerateBuildsInVisualStudio>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Version>25.234.1</Version>
+    <Authors>Shun</Authors>
+    <UseWPF>True</UseWPF>
+    <AuthorsName>Shun</AuthorsName>
+    <CompanyName>Snet</CompanyName>
+    <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    <PackageProjectUrl>https://shunnet.top</PackageProjectUrl>
+    <Product>Windows</Product>
+    <Description>界面组件：Controls（控件、图表、转换器、模型、枚举、处理、消息、多语言）</Description>
+    <PackageIcon>Icon.png</PackageIcon>
+    <PackageOutputPath Condition="'$(Configuration)' == 'Release'">../../publish/Release</PackageOutputPath>
+    <PackageOutputPath Condition="'$(Configuration)' == 'Debug'">../../publish/Debug</PackageOutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <Content Include="Icon.png">
+      <PackagePath>
+      </PackagePath>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="ScottPlot.WPF" Version="5.0.55" />
+    <PackageReference Include="WPF-UI" Version="4.0.3" />
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.3405.78" />
+    <PackageReference Include="Snet.Windows.Core" Version="25.234.1" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Update="Language.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Language.resx</DependentUpon>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Update="Language.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Language.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+  </ItemGroup>
+</Project>

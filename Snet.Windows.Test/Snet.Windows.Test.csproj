@@ -1,0 +1,40 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<OutputType>WinExe</OutputType>
+		<TargetFramework>net9.0-windows</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<UseWPF>true</UseWPF>
+		<SatelliteResourceLanguages>zh-Hans;en</SatelliteResourceLanguages>
+		<ApplicationIcon>Icon.ico</ApplicationIcon>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<None Remove="Icon.ico" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\Snet.Windows.Controls\Snet.Windows.Controls.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Resource Include="Icon.ico" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Compile Update="Language.Designer.cs">
+			<DesignTime>True</DesignTime>
+			<AutoGen>True</AutoGen>
+			<DependentUpon>Language.resx</DependentUpon>
+		</Compile>
+	</ItemGroup>
+
+	<ItemGroup>
+		<EmbeddedResource Update="Language.resx">
+			<Generator>ResXFileCodeGenerator</Generator>
+			<LastGenOutput>Language.Designer.cs</LastGenOutput>
+		</EmbeddedResource>
+	</ItemGroup>
+
+</Project>

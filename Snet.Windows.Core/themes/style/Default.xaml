@@ -1,0 +1,96 @@
+﻿<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:o="http://schemas.microsoft.com/winfx/2006/xaml/presentation/options"
+    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+
+    <!--  顶部的圆角控制  -->
+    <CornerRadius x:Key="TopCornerRadius" />
+    <!--  底部的圆角控制  -->
+    <CornerRadius x:Key="DownCornerRadius" />
+    <!--  关闭按钮的圆角控制  -->
+    <CornerRadius x:Key="CloseCornerRadius" />
+    <!--  窗口整体圆角控制  -->
+    <CornerRadius x:Key="WindowCornerRadius" />
+    <!--  统一圆角值  -->
+    <sys:Double x:Key="WindowCornerRadius_Double">6</sys:Double>
+
+    <!--  标题高度  -->
+    <sys:Double x:Key="TitleHeight">35</sys:Double>
+    <!--  标题的字体大小  -->
+    <sys:Double x:Key="TitleFontSize">14</sys:Double>
+    <!--  标题字体是否需要加粗  -->
+    <FontWeight x:Key="TitleFontWeight">Normal</FontWeight>
+    <!--  语言图片宽度  -->
+    <sys:Double x:Key="LanguageImageWidth">15</sys:Double>
+    <!--  皮肤设置图片宽度  -->
+    <sys:Double x:Key="SkinImageWidth">16</sys:Double>
+    <!--  最小化图片宽度  -->
+    <sys:Double x:Key="MinimizeImageWidth">15</sys:Double>
+    <!--  原始图片宽度  -->
+    <sys:Double x:Key="NormalImageWidth">15</sys:Double>
+    <!--  最大化图片宽度  -->
+    <sys:Double x:Key="MaximizeImageWidth">15</sys:Double>
+    <!--  关闭图片宽度  -->
+    <sys:Double x:Key="CloseImageWidth">14</sys:Double>
+    <!--  版本的高度  -->
+    <sys:Double x:Key="VerHeight">25</sys:Double>
+    <!--  版本号的字体大小  -->
+    <sys:Double x:Key="VerCodeFontSize">12</sys:Double>
+    <!--  版本号字体是否需要加粗  -->
+    <FontWeight x:Key="VerCodeFontWeight">Bold</FontWeight>
+    <!--  所有字体样式  -->
+    <FontFamily x:Key="AllFontFamily">微软雅黑</FontFamily>
+    <!--  标题的LineHeight  -->
+    <sys:Double x:Key="TitleLineHeight">15</sys:Double>
+    <!--  版本的LineHeight  -->
+    <sys:Double x:Key="VerLineHeight">25</sys:Double>
+
+    <!--  LOGO图标位置偏移  -->
+    <Thickness
+        x:Key="LogoImageMargin"
+        Bottom="5"
+        Left="5"
+        Right="5"
+        Top="5" />
+
+    <!--  版本图标位置偏移  -->
+    <Thickness
+        x:Key="VerImageMargin"
+        Bottom="5"
+        Left="5"
+        Right="5"
+        Top="5" />
+
+    <!--  窗体关闭按钮的鼠标悬浮背景色  -->
+    <SolidColorBrush x:Key="CloseButtonMouseOverBackground" Color="#4DB01E2A" />
+    <!--  窗体关闭按钮的鼠标悬浮背景色  -->
+    <SolidColorBrush x:Key="CloseButtonPressedBackground" Color="#99B01E2A" />
+    <!--  窗体默认按钮的鼠标悬浮背景色  -->
+    <SolidColorBrush x:Key="ButtonMouseOverBackground" Color="#33868686" />
+    <!--  窗体默认按钮的鼠标悬浮背景色  -->
+    <SolidColorBrush x:Key="ButtonPressedBackground" Color="#80868686" />
+    <!--  版本号的字体颜色  -->
+    <SolidColorBrush x:Key="VerCodeForeground" Color="#B01E2A" />
+
+    <!--  背景图片  -->
+    <DrawingBrush
+        x:Key="BackgroundPicture"
+        o:Freeze="True"
+        Opacity=".2"
+        RenderOptions.CacheInvalidationThresholdMaximum="2.0"
+        RenderOptions.CacheInvalidationThresholdMinimum="0.1"
+        RenderOptions.CachingHint="Cache"
+        Stretch="Uniform"
+        TileMode="Tile"
+        Viewport="0,0,157,157"
+        ViewportUnits="Absolute">
+        <DrawingBrush.Drawing>
+            <ImageDrawing
+                o:Freeze="True"
+                ImageSource="pack://application:,,,/Snet.Windows.Core;component/resources/BackgroundPicture.png"
+                Rect="0,0,157,157" />
+        </DrawingBrush.Drawing>
+    </DrawingBrush>
+
+</ResourceDictionary>

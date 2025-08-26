@@ -1,0 +1,35 @@
+﻿// --------------------------------------------------------------------------------------------------------------------
+// <copyright file="HorizontalAlignmentAttribute.cs" company="Snet.Windows.Controls.property.core">
+//   Copyright (c) 2014 Snet.Windows.Controls.property.core contributors
+// </copyright>
+// <summary>
+//   Specifies the horizontal alignment.
+// </summary>
+// --------------------------------------------------------------------------------------------------------------------
+
+namespace Snet.Windows.Controls.property.core.DataAnnotations
+{
+    using System;
+
+    /// <summary>
+    /// Specifies the horizontal alignment.
+    /// </summary>
+    [AttributeUsage(AttributeTargets.Property)]
+    public class HorizontalAlignmentAttribute : Attribute
+    {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="HorizontalAlignmentAttribute" /> class.
+        /// </summary>
+        /// <param name="alignment">The alignment.</param>
+        public HorizontalAlignmentAttribute(HorizontalAlignment alignment)
+        {
+            this.HorizontalAlignment = alignment;
+        }
+
+        /// <summary>
+        /// Gets or sets the horizontal alignment.
+        /// </summary>
+        /// <value>The horizontal alignment.</value>
+        public HorizontalAlignment HorizontalAlignment { get; set; }
+    }
+}

@@ -1,0 +1,29 @@
+﻿<UserControl
+    x:Class="Snet.Windows.Controls.textbox.TextBoxControl"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="clr-namespace:Snet.Windows.Controls.textbox"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:ui="http://materialdesigninxaml.net/winfx/xaml/themes">
+    <Grid>
+        <Image
+            Width="15"
+            Height="15"
+            HorizontalAlignment="Left"
+            Source="{Binding Icon, RelativeSource={RelativeSource AncestorType=UserControl}}"
+            Stretch="Fill" />
+        <TextBox
+            Margin="20,-10,0,0"
+            ui:HintAssist.Foreground="{DynamicResource MaterialDesign.Brush.Secondary}"
+            ui:HintAssist.Hint="{Binding Hint, RelativeSource={RelativeSource AncestorType=UserControl}}"
+            ui:TextFieldAssist.DecorationVisibility="Collapsed"
+            ui:TextFieldAssist.UnderlineBrush="{DynamicResource MaterialDesign.Brush.Primary}"
+            BorderBrush="{DynamicResource MaterialDesign.Brush.Primary}"
+            BorderThickness="0,0,0,1"
+            Foreground="{DynamicResource MaterialDesign.Brush.Secondary}"
+            Style="{StaticResource MaterialDesignFloatingHintTextBox}"
+            Text="{Binding Text, RelativeSource={RelativeSource AncestorType=UserControl}}"
+            TextOptions.TextFormattingMode="Display" />
+    </Grid>
+</UserControl>
