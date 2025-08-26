@@ -4,7 +4,7 @@
     <AccelerateBuildsInVisualStudio>True</AccelerateBuildsInVisualStudio>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Version>25.234.1</Version>
+    <Version>25.238.1</Version>
     <Authors>Shun</Authors>
     <UseWPF>True</UseWPF>
     <AuthorsName>Shun</AuthorsName>
@@ -14,8 +14,6 @@
     <Product>Windows</Product>
     <Description>界面组件：Controls（控件、图表、转换器、模型、枚举、处理、消息、多语言）</Description>
     <PackageIcon>Icon.png</PackageIcon>
-    <PackageOutputPath Condition="'$(Configuration)' == 'Release'">../../publish/Release</PackageOutputPath>
-    <PackageOutputPath Condition="'$(Configuration)' == 'Debug'">../../publish/Debug</PackageOutputPath>
   </PropertyGroup>
   <ItemGroup>
     <Content Include="Icon.png">
@@ -24,10 +22,10 @@
     </Content>
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="ScottPlot.WPF" Version="5.0.55" />
+    <PackageReference Include="ScottPlot.WPF" Version="5.0.56" />
     <PackageReference Include="WPF-UI" Version="4.0.3" />
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.3405.78" />
-    <PackageReference Include="Snet.Windows.Core" Version="25.234.1" />
+    <PackageReference Include="Snet.Windows.Core" Version="25.238.1" />
   </ItemGroup>
   <ItemGroup>
     <Compile Update="Language.Designer.cs">

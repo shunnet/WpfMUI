@@ -1,5 +1,10 @@
 # <img src="https://api.shunnet.top/pic/shun.png" height=24> WpfMUI
 
+### NuGet
+```
+> dotnet add package Snet.Windows.Controls
+```
+
 ### 致谢
 https://shunnet.top \
 https://github.com/scottplot/scottplot \

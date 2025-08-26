@@ -15,7 +15,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\Snet.Windows.Controls\Snet.Windows.Controls.csproj" />
+	  <PackageReference Include="Snet.Windows.Controls" Version="25.238.1" />
 	</ItemGroup>
 
 	<ItemGroup>

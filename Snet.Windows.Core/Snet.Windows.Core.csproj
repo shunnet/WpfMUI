@@ -4,7 +4,7 @@
     <AccelerateBuildsInVisualStudio>True</AccelerateBuildsInVisualStudio>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Version>25.234.1</Version>
+    <Version>25.238.1</Version>
     <Authors>Shun</Authors>
     <UseWPF>True</UseWPF>
     <AuthorsName>Shun</AuthorsName>
@@ -14,8 +14,6 @@
     <Product>Windows</Product>
     <Description>界面组件：Core（核心部件、模型、枚举、处理、Mvvm、绑定、通知、资源、模板）</Description>
     <PackageIcon>Icon.png</PackageIcon>
-    <PackageOutputPath Condition="'$(Configuration)' == 'Release'">../../publish/Release</PackageOutputPath>
-    <PackageOutputPath Condition="'$(Configuration)' == 'Debug'">../../publish/Debug</PackageOutputPath>
   </PropertyGroup>
   <ItemGroup>
     <Content Include="Icon.png">
@@ -26,7 +24,7 @@
   <ItemGroup>
     <PackageReference Include="MaterialDesignThemes" Version="5.2.1" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
-    <PackageReference Include="Snet.Core" Version="25.234.1" />
+    <PackageReference Include="Snet.Core" Version="25.238.1" />
     <PackageReference Include="System.Management" Version="9.0.8" />
   </ItemGroup>
   <ItemGroup>
