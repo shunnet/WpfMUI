@@ -300,7 +300,7 @@ namespace Snet.Windows.Controls.property.wpf
 
         /// <summary>
         /// Iterates over <see cref="PropertyDescriptorCollection"/> and determines whether the value of <see cref="System.ComponentModel.BrowsableAttribute"/>
-        /// or <see cref="DataAnnotations.BrowsableAttribute"/>, for those <see cref="PropertyDescriptor"/>s with such Attributes, is exclusively <see cref="true"/>
+        /// or <see cref="Snet.Windows.Controls.property.core.DataAnnotations.BrowsableAttribute"/>, for those <see cref="PropertyDescriptor"/>s with such Attributes, is exclusively <see cref="true"/>
         /// </summary>
         /// <param name="propertyDescriptors">The collection of property descriptors.</param>
         /// <returns>
