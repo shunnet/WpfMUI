@@ -5,6 +5,7 @@ using Snet.Windows.Core.@enum;
 using System.IO;
 using System.Windows;
 using System.Windows.Media;
+using Wpf.Ui.Appearance;
 using Application = System.Windows.Application;
 using Color = System.Windows.Media.Color;
 using ColorConverter = System.Windows.Media.ColorConverter;
@@ -59,15 +60,6 @@ namespace Snet.Windows.Core.handler
 
         #region 私有方法
         private static PaletteHelper paletteHelper = new PaletteHelper();
-        /// <summary>
-        /// 修改当前主题样式（由调用者指定修改内容）
-        /// </summary>
-        private static void ModifyTheme(Action<Theme> modificationAction)
-        {
-            Theme theme = paletteHelper.GetTheme();
-            modificationAction?.Invoke(theme);
-            paletteHelper.SetTheme(theme);
-        }
         /// <summary>
         /// 修改当前主题样式（由调用者指定修改内容） 
         /// </summary>
@@ -144,64 +136,76 @@ namespace Snet.Windows.Core.handler
             ReplaceResources(newResourceDictionary, oldResourceDictionary);
 
             // 修改 MaterialDesign 主题
-            UpdateMaterialDesignThemeAsync(skinType);
+            _ = UpdateMaterialDesignThemeAsync(skinType);
+
+            // 修改 Wpf.Ui 主题
+            _ = UpdateWpfUIAsync(skinType);
 
             //是否通知
             if (notice)
             {
-                // 通知事件订阅者
-                OnSkinEventHandler(skinType, new EventSkinResult(true, Snet.Core.handler.LanguageHandler.GetLanguageValue("皮肤设置成功", new("Snet.Windows.Controls", "Language", "Snet.Windows.Controls.dll")), skinType));
+                OnSkinEventHandler(skinType == SkinType.Dark ? "#505050" : "#F6F6F6", new EventSkinResult(true, Snet.Core.handler.LanguageHandler.GetLanguageValue("皮肤设置成功", new("Snet.Windows.Controls", "Language", "Snet.Windows.Controls.dll")), skinType));
             }
 
             // 持久化保存皮肤设置
-            SaveAsync(skinType);
+            _ = SaveAsync(skinType);
         }
 
         /// <summary>
-        /// 替换资源（线程安全、最小化 UI 闪烁）<br/>
-        /// 注意：不支持异步调用，此操作必须在 UI 线程上执行。
+        /// 替换全局资源（线程安全、最小化 UI 闪烁）
+        /// ⚠ 必须在 UI 线程执行，禁止异步调用
         /// </summary>
         /// <param name="newDict">新资源</param>
         /// <param name="oldDict">旧资源</param>
-        public static void ReplaceResources(ResourceDictionary newDict, ResourceDictionary oldDict)
+        public static void ReplaceResources(ResourceDictionary newDict, ResourceDictionary? oldDict)
         {
             var app = Application.Current;
             if (app == null || newDict == null) return;
 
-            // UI线程执行
+            // 确保在 UI 线程执行
             if (!app.Dispatcher.CheckAccess())
             {
                 app.Dispatcher.Invoke(() => ReplaceResources(newDict, oldDict));
                 return;
             }
 
-            // 已存在相同资源，不需要替换
-            if (oldDict != null && newDict.Source == oldDict.Source)
+            var dictionaries = app.Resources.MergedDictionaries;
+            var newSource = newDict.Source;
+
+            // 如果新旧相同，直接返回
+            if (oldDict != null && newSource == oldDict.Source)
                 return;
 
-            var dictionaries = app.Resources.MergedDictionaries;
-
-            // 先移除旧资源（若存在）
-            if (oldDict != null)
+            // 移除旧资源（若存在）
+            if (oldDict?.Source != null)
             {
-                var existing = dictionaries.FirstOrDefault(d => d.Source == oldDict.Source);
-                if (existing != null)
+                for (int i = dictionaries.Count - 1; i >= 0; i--)
                 {
-                    dictionaries.Remove(existing);
+                    if (dictionaries[i].Source == oldDict.Source)
+                    {
+                        dictionaries.RemoveAt(i);
+                        break; // 找到就退出
+                    }
                 }
             }
 
-            // 如果已存在相同资源地址，不重复添加
-            if (!dictionaries.Any(d => d.Source == newDict.Source))
+            // 添加新资源（避免重复）
+            if (newSource != null)
             {
+                for (int i = 0; i < dictionaries.Count; i++)
+                {
+                    if (dictionaries[i].Source == newSource)
+                        return; // 已存在，直接退出
+                }
                 dictionaries.Add(newDict);
             }
         }
 
+
         /// <summary>
         /// 修改主题模板
         /// </summary>
-        /// <param name="skinType"></param>
+        /// <param name="skinType">皮肤</param>
         public static async Task UpdateMaterialDesignThemeAsync(SkinType skinType)
         {
             await ModifyThemeAsync(theme =>
@@ -226,6 +230,16 @@ namespace Snet.Windows.Core.handler
                      }
                  });
              });
+        }
+
+        /// <summary>
+        /// 修改主题模板
+        /// </summary>
+        /// <param name="skinType">皮肤</param>
+        public static Task UpdateWpfUIAsync(SkinType skinType)
+        {
+            ApplicationThemeManager.Apply(skinType == SkinType.Dark ? ApplicationTheme.Dark : ApplicationTheme.Light);
+            return Task.CompletedTask;
         }
 
         /// <summary>

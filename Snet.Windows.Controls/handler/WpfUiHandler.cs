@@ -4,7 +4,6 @@ using Snet.Unility;
 using Snet.Windows.Core.@enum;
 using Snet.Windows.Core.handler;
 using System.Windows;
-using System.Windows.Controls;
 using Wpf.Ui.Controls;
 
 namespace Snet.Windows.Controls.handler
@@ -17,52 +16,49 @@ namespace Snet.Windows.Controls.handler
         /// <summary>
         /// WPFUI的皮肤处理
         /// </summary>
-        /// <param name="grid">表格</param>
+        /// <param name="app">容器</param>
         /// <param name="skin">皮肤</param>
-        public static async Task WpfUI_SkinUpdate(this Grid grid, SkinType? skin)
+        public static void WpfUI_SkinUpdate(this FrameworkElement app, SkinType? skin)
         {
-            await grid.Dispatcher.InvokeAsync(() =>
+            //设置默认样式
+            skin ??= SkinType.Dark;
+            //格式
+            string format = "pack://application:,,,/Wpf.Ui;component/Resources/Theme/{0}.xaml";
+            //白天资源
+            string light = string.Format(format, "Light");
+            //黑夜资源
+            string dark = string.Format(format, "Dark");
+
+            // 新的资源地址
+            string newResource = string.Format(format, skin);
+
+            //新的资源对象
+            ResourceDictionary newResourceDictionary = new ResourceDictionary { Source = new Uri(newResource, UriKind.RelativeOrAbsolute) };
+
+            //检索的旧资源对象
+            ResourceDictionary oldResourceDictionary = default;
+
+            //检索资源
+            foreach (var item in Application.Current.Resources.MergedDictionaries)
             {
-                //设置默认样式
-                skin ??= SkinType.Dark;
-
-                //格式
-                string format = "pack://application:,,,/Wpf.Ui;component/Resources/Theme/{0}.xaml";
-
-                // 新的资源地址
-                string newResource = string.Format(format, skin);
-
-                //新的资源对象
-                ResourceDictionary newResourceDictionary = new ResourceDictionary { Source = new Uri(newResource, UriKind.RelativeOrAbsolute) };
-
-                //检索的旧资源对象
-                ResourceDictionary oldResourceDictionary = default;
-
-                //检索资源
-                foreach (var item in Application.Current.Resources.MergedDictionaries)
+                if (item.Source != null)
                 {
-                    if (item.Source != null)
+                    switch (skin)
                     {
-                        string light = string.Format(format, "Light");
-                        string dark = string.Format(format, "Dark");
-
-                        switch (skin)
-                        {
-                            case SkinType.Dark:
-                                if (item.Source.AbsoluteUri == light)
-                                    oldResourceDictionary = item;
-                                break;
-                            case SkinType.Light:
-                                if (item.Source.AbsoluteUri == dark)
-                                    oldResourceDictionary = item;
-                                break;
-                        }
+                        case SkinType.Dark:
+                            if (item.Source.AbsoluteUri == light)
+                                oldResourceDictionary = item;
+                            break;
+                        case SkinType.Light:
+                            if (item.Source.AbsoluteUri == dark)
+                                oldResourceDictionary = item;
+                            break;
                     }
                 }
+            }
 
-                // 替换资源
-                grid.ReplaceResources(newResourceDictionary, oldResourceDictionary);
-            }, System.Windows.Threading.DispatcherPriority.Loaded);
+            // 替换资源
+            app.ReplaceResources(newResourceDictionary, oldResourceDictionary);
         }
 
         /// <summary>
@@ -71,8 +67,14 @@ namespace Snet.Windows.Controls.handler
         /// <param name="app">grid控件</param>
         /// <param name="newDict">新资源</param>
         /// <param name="oldDict">旧资源</param>
-        private static void ReplaceResources(this Grid app, ResourceDictionary newDict, ResourceDictionary oldDict)
+        private static void ReplaceResources(this FrameworkElement app, ResourceDictionary newDict, ResourceDictionary oldDict)
         {
+            // 确保在 UI 线程执行
+            if (!app.Dispatcher.CheckAccess())
+            {
+                app.Dispatcher.Invoke(() => ReplaceResources(app, newDict, oldDict));
+                return;
+            }
             app.Resources.BeginInit();
             try
             {
@@ -94,8 +96,8 @@ namespace Snet.Windows.Controls.handler
         /// WPFUI的皮肤处理
         /// </summary>
         /// <param name="skin">皮肤</param>
-        /// <param name="grid">表格</param>
-        public static async Task WpfUI_SkinUpdate(this SkinType? skin, Grid grid) => await WpfUI_SkinUpdate(grid, skin);
+        /// <param name="app">容器</param>
+        public static void WpfUI_SkinUpdate(this SkinType? skin, FrameworkElement app) => WpfUI_SkinUpdate(app, skin);
 
         /// <summary>
         /// 创建汉堡菜单的控件
@@ -138,8 +140,9 @@ namespace Snet.Windows.Controls.handler
         /// <param name="navigation">汉堡菜单对象</param>
         /// <param name="type">默认打开的界面</param>
         /// <param name="model">语言模型</param>
+        /// <param name="containerName">获取包裹汉堡菜单的容器名称</param>
         /// <param name="autoZoom">设置一个值，窗体大于此值则自动打开菜单，反之隐藏，0 不使用此功能</param>
-        public static void SelectNavigationViewDefaultItem(this Window window, NavigationView navigation, Type type, LanguageModel model, int autoZoom)
+        public static void SelectNavigationViewDefaultItem(this Window window, NavigationView navigation, Type type, LanguageModel model, string containerName, int autoZoom = 0)
         {
             //窗体加载完成后设置默认打开界面
             window.Loaded += (object sender, System.Windows.RoutedEventArgs e)
@@ -152,17 +155,46 @@ namespace Snet.Windows.Controls.handler
                     => navigation.IsPaneOpen = e.NewSize.Width > autoZoom;
             }
 
-            //获取包裹汉堡菜单的Grid
-            Grid? grid = window.FindName("NavigationViewControlsGrid") as Grid;
+            //获取包裹汉堡菜单的容器名称
+            FrameworkElement? app = window.FindName(containerName) as FrameworkElement;
+            if (app != null)
+            {
+                // 确保 Resources 存在
+                if (app.Resources == null)
+                    app.Resources = new ResourceDictionary();
 
+                // 添加资源字典
+                app.Resources.MergedDictionaries.Add(
+                    new ResourceDictionary
+                    {
+                        Source = new Uri("pack://application:,,,/Wpf.Ui;component/Resources/Theme/Dark.xaml", UriKind.Absolute)
+                    });
+
+                app.Resources.MergedDictionaries.Add(
+                    new ResourceDictionary
+                    {
+                        Source = new Uri("pack://application:,,,/Wpf.Ui;component/Resources/Wpf.Ui.xaml", UriKind.Absolute)
+                    });
+            }
             //设置汉堡菜单皮肤
-            SkinHandler.OnSkinEventAsync += async (object? sender, Windows.Core.data.EventSkinResult e)
-                => await grid?.WpfUI_SkinUpdate(e.Skin);
+            SkinHandler.OnSkinEvent += (object? sender, Windows.Core.data.EventSkinResult e)
+                => app?.WpfUI_SkinUpdate(e.Skin);
 
             //语言切换
-            Snet.Core.handler.LanguageHandler.OnLanguageEventAsync += (object? sender, Snet.Model.data.EventLanguageResult e)
-                => LanguageHandler_OnLanguageEventAsync(sender, e, navigation, model);
+            Snet.Core.handler.LanguageHandler.OnLanguageEventAsync += async (object? sender, Snet.Model.data.EventLanguageResult e)
+                => await LanguageHandler_OnLanguageEventAsync(sender, e, navigation, model);
+
+            //让其只触发一次
+            bool SelectionChanged = false;
+            //当数据源发送变化则触发
+            navigation.SelectionChanged += async (NavigationView sender, RoutedEventArgs args) =>
+            {
+                if (SelectionChanged) return;
+                SelectionChanged = true;
+                await LanguageHandler_OnLanguageEventAsync(sender, null, navigation, model);
+            };
         }
+
 
         /// <summary>
         /// 语言切换通知事件
@@ -214,9 +246,10 @@ namespace Snet.Windows.Controls.handler
         /// <param name="window">窗口</param>
         /// <param name="type">默认打开的界面</param>
         /// <param name="model">语言模型</param>
-        /// <<param name="autoZoom">设置一个值，窗体大于此值则自动打开菜单，反之隐藏，0 不使用此功能</param>
-        public static void SelectNavigationViewDefaultItem(this NavigationView navigation, Window window, Type type, LanguageModel model, int autoZoom)
-            => SelectNavigationViewDefaultItem(window, navigation, type, model, autoZoom);
+        /// <param name="containerName">获取包裹汉堡菜单的容器名称</param>
+        /// <param name="autoZoom">设置一个值，窗体大于此值则自动打开菜单，反之隐藏，0 不使用此功能</param>
+        public static void SelectNavigationViewDefaultItem(this NavigationView navigation, Window window, Type type, LanguageModel model, string containerName, int autoZoom = 0)
+            => SelectNavigationViewDefaultItem(window, navigation, type, model, containerName, autoZoom);
 
 
     }

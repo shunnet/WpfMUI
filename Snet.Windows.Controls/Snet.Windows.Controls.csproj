@@ -4,7 +4,7 @@
     <AccelerateBuildsInVisualStudio>True</AccelerateBuildsInVisualStudio>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Version>25.247.1</Version>
+    <Version>25.251.2</Version>
     <Authors>Shun</Authors>
     <UseWPF>True</UseWPF>
     <AuthorsName>Shun</AuthorsName>
@@ -23,9 +23,9 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="ScottPlot.WPF" Version="5.0.56" />
-    <PackageReference Include="WPF-UI" Version="4.0.3" />
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.3405.78" />
-    <PackageReference Include="Snet.Windows.Core" Version="25.247.1" />
+    <PackageReference Include="Snet.Windows.Core" Version="25.251.2" />
+    <PackageReference Include="AvalonEdit" Version="6.3.1.120" />
   </ItemGroup>
   <ItemGroup>
     <Compile Update="Language.Designer.cs">
