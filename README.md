@@ -34,8 +34,7 @@
 2. 🧩 [CommunityToolkit.Mvvm](https://github.com/CommunityToolkit/dotnet) – MVVM 框架支持  
 3. 🛠️ **Snet.Core** – 内部工具库，提供快捷方法与抽象类  
 4. 📈 [ScottPlot.WPF](https://github.com/ScottPlot/ScottPlot) – 高性能图表库  
-5. 🖥️ [WPF-UI](https://github.com/lepoco/wpfui) – 菜单控件支持  
-6. 🌐 [Microsoft.Web.WebView2](https://learn.microsoft.com/en-us/microsoft-edge/webview2/) – 内嵌网页支持  
+5. 🖥️ [WPF-UI](https://github.com/lepoco/wpfui) – 菜单控件支持   
 
 
 ## 📦 安装方式  
