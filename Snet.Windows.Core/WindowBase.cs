@@ -135,47 +135,95 @@ namespace Snet.Windows.Core
         #endregion
 
         #region 事件
+        // 标记是否正在进行边框修复，防止重复进入逻辑
         private bool _isResizing;
+
+        // 缓存 WindowChrome 对象，避免每次重复获取
+        private WindowChrome _chrome;
+
         /// <summary>
-        /// 窗体大小改变，仅在变大时处理白边修复
+        /// 移除窗口边框（设置玻璃框架厚度为 0）并动态计算恢复延迟
+        /// </summary>
+        /// <param name="e">窗口尺寸变化事件参数</param>
+        /// <returns>恢复边框前需要延迟的时间（毫秒）</returns>
+        private int RemoveBorderAndCalcDelay(SizeChangedEventArgs e)
+        {
+            // 确保 _chrome 已初始化
+            _chrome ??= WindowChrome.GetWindowChrome(this);
+
+            // 临时移除边框，防止出现白边
+            _chrome.GlassFrameThickness = new Thickness(0);
+
+            // 根据尺寸变化幅度动态调整延迟时间（变化越大，延迟越长）
+            double sizeDelta = Math.Max(
+                Math.Abs(e.NewSize.Width - e.PreviousSize.Width),
+                Math.Abs(e.NewSize.Height - e.PreviousSize.Height)
+            );
+
+            // 延迟时间范围限制在 [100ms, 150ms]，防止过短或过长
+            return (int)Math.Clamp(sizeDelta * 0.5, 100, 150);
+        }
+
+        /// <summary>
+        /// 恢复窗口边框（设置玻璃框架厚度为 1）
+        /// </summary>
+        private void RestoreBorder()
+        {
+            _chrome ??= WindowChrome.GetWindowChrome(this);
+            _chrome.GlassFrameThickness = new Thickness(1);
+        }
+
+        /// <summary>
+        /// 窗口大小改变事件，仅在窗口“放大”时触发白边修复逻辑
         /// </summary>
         private void OnSizeChanged(object sender, SizeChangedEventArgs e)
         {
-            if (_isResizing)
+            // 若是缩小或尺寸未变化，则无需处理
+            if (e.NewSize.Width <= e.PreviousSize.Width &&
+                e.NewSize.Height <= e.PreviousSize.Height)
                 return;
-            if (e.NewSize.Width <= e.PreviousSize.Width && e.NewSize.Height <= e.PreviousSize.Height)
+
+            // 若当前已经在修复过程中，则直接返回，避免重复进入
+            if (_isResizing)
                 return;
 
             _isResizing = true;
 
-            // 先取消边框和玻璃区，防止白边
-            WindowChrome.GetWindowChrome(this).GlassFrameThickness = new Thickness(0);
+            // 先移除边框并计算动态延迟时间
+            int delay = RemoveBorderAndCalcDelay(e);
 
+            // 使用后台任务延迟恢复边框
             _ = Task.Run(async () =>
             {
                 try
                 {
-                    // 等待一段时间，确保窗口大小调整完成
-                    await Task.Delay(135);
+                    // 等待一段时间，确保窗口调整已完成
+                    await Task.Delay(delay);
 
-                    // 在 UI 线程恢复边框
+                    // 回到 UI 线程执行边框恢复操作
                     await Dispatcher.InvokeAsync(() =>
                     {
-                        // 避免窗口已关闭后再访问
-                        if (!IsLoaded) return;
+                        // 若窗口已关闭或未加载，则直接退出
+                        if (!IsLoaded)
+                        {
+                            _isResizing = false;
+                            return;
+                        }
 
-                        // 恢复边框和玻璃区
-                        WindowChrome.GetWindowChrome(this).GlassFrameThickness = new Thickness(1);
+                        // 恢复边框，修复白边问题
+                        RestoreBorder();
 
                         _isResizing = false;
                     });
                 }
                 catch
                 {
+                    // 出现异常时保证状态恢复，避免死锁
                     _isResizing = false;
                 }
             });
         }
+
 
         /// <summary>
         /// 窗体加载完成
@@ -627,89 +675,102 @@ namespace Snet.Windows.Core
 
         #region 窗口消息处理（双击放大缩小、单击长按移动）
 
-        private double _dpiX = 1.0, _dpiY = 1.0;
+        // DPI 缩放比例（默认 96 DPI = 1.0）
+        private double _dpiX = 1.0;
+        private double _dpiY = 1.0;
+
+        // 获取窗口所在显示器的选项常量
+        private const int MONITOR_DEFAULTTONEAREST = 2;
 
         /// <summary>
-        /// 更新当前窗口的 DPI 缩放比（建议在 SourceInitialized 或 Loaded 中调用）
+        /// 更新当前窗口的 DPI 缩放比例
         /// </summary>
         private void UpdateDpi()
         {
-            var dpi = VisualTreeHelper.GetDpi(this);
-            _dpiX = dpi.DpiScaleX;
-            _dpiY = dpi.DpiScaleY;
+            try
+            {
+                var dpi = VisualTreeHelper.GetDpi(this);
+                _dpiX = dpi.DpiScaleX;
+                _dpiY = dpi.DpiScaleY;
+            }
+            catch
+            {
+                _dpiX = _dpiY = 1.0; // 获取失败则回退为默认值
+            }
         }
 
+        /// <summary>
+        /// 窗口消息处理过程
+        /// </summary>
         private IntPtr WindowProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
         {
-            const int WM_EXITSIZEMOVE = 0x0232;
-            const int WM_GETMINMAXINFO = 0x0024;
-            if (msg == WM_GETMINMAXINFO)
+            const int WM_GETMINMAXINFO = 0x0024; // 限制窗口最小/最大大小
+            const int WM_EXITSIZEMOVE = 0x0232;  // 窗口结束移动或调整大小
+
+            switch (msg)
             {
-                WmGetMinMaxInfo(hwnd, lParam);
-                handled = true;
-            }
-            if (msg == WM_EXITSIZEMOVE)
-            {
-                UpdateSnapState(hwnd); // 这里才去判断是否贴边
+                case WM_GETMINMAXINFO:
+                    handled = WmGetMinMaxInfo(hwnd, lParam);
+                    break;
+                case WM_EXITSIZEMOVE:
+                    UpdateSnapState(hwnd);
+                    break;
             }
             return IntPtr.Zero;
         }
 
         /// <summary>
-        /// 检测窗口是否已经贴顶且高度等于工作区域高度，
-        /// 如果是，则主动设置窗口状态为 Maximized，用于解决贴边但未最大化时系统视觉圆角被移除的问题。
+        /// 检测窗口是否贴顶且高度等于工作区域高度<br/>
+        /// 若符合则强制最大化，修复 Win11 圆角丢失问题
         /// </summary>
-        /// <param name="hwnd">窗口句柄</param>
         private void UpdateSnapState(IntPtr hwnd)
         {
-            // 获取当前窗口所在的显示器（如果在多显示器环境中）
             IntPtr monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
-            if (monitor == IntPtr.Zero)
-                return;
+            if (monitor == IntPtr.Zero) return;
 
-            // 获取显示器的工作区域（排除任务栏、停靠栏）
             MONITORINFO mi = new MONITORINFO { cbSize = Marshal.SizeOf<MONITORINFO>() };
-            if (!GetMonitorInfo(monitor, mi))
-                return;
+            if (!GetMonitorInfo(monitor, mi)) return;
 
             int workHeight = mi.rcWork.bottom - mi.rcWork.top;
-            double winHeight = this.Height;
-            double height = workHeight - winHeight;
-            if (height <= 2)
-            {
-                this.WindowState = WindowState.Maximized;
-            }
+            double winHeight = ActualHeight;
+
+            // 容差 2 像素，避免浮点精度误差
+            if (Math.Abs(workHeight - winHeight) <= 2.0)
+                WindowState = WindowState.Maximized;
         }
 
         /// <summary>
-        /// 处理最大化限制和最小尺寸限制（支持 DPI 缩放）
+        /// 处理 WM_GETMINMAXINFO 消息，限制窗口大小并支持 DPI 缩放
         /// </summary>
-        private void WmGetMinMaxInfo(IntPtr hwnd, IntPtr lParam)
+        private bool WmGetMinMaxInfo(IntPtr hwnd, IntPtr lParam)
         {
             IntPtr monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+            if (monitor == IntPtr.Zero) return false;
 
-            MONITORINFO monitorInfo = new MONITORINFO { cbSize = Marshal.SizeOf<MONITORINFO>() };
-            if (!GetMonitorInfo(monitor, monitorInfo))
-                return;
+            MONITORINFO mi = new MONITORINFO { cbSize = Marshal.SizeOf<MONITORINFO>() };
+            if (!GetMonitorInfo(monitor, mi)) return false;
 
-            var mmi = Marshal.PtrToStructure<MINMAXINFO>(lParam);
+            MINMAXINFO mmi = Marshal.PtrToStructure<MINMAXINFO>(lParam);
 
-            RECT rcWorkArea = monitorInfo.rcWork;
-            RECT rcMonitorArea = monitorInfo.rcMonitor;
+            RECT rcWork = mi.rcWork;
+            RECT rcMonitor = mi.rcMonitor;
 
-            // 设置最大化位置（排除任务栏区域）
-            mmi.ptMaxPosition.x = rcWorkArea.left - rcMonitorArea.left;
-            mmi.ptMaxPosition.y = rcWorkArea.top - rcMonitorArea.top;
+            // 设置最大化时的位置（相对于显示器左上角）
+            mmi.ptMaxPosition.x = Math.Abs(rcWork.left - rcMonitor.left);
+            mmi.ptMaxPosition.y = Math.Abs(rcWork.top - rcMonitor.top);
 
-            mmi.ptMaxSize.x = rcWorkArea.right - rcWorkArea.left;
-            mmi.ptMaxSize.y = rcWorkArea.bottom - rcWorkArea.top - 1;
+            // 设置最大化时的大小（工作区大小，排除任务栏）
+            mmi.ptMaxSize.x = Math.Abs(rcWork.right - rcWork.left);
+            mmi.ptMaxSize.y = Math.Abs(rcWork.bottom - rcWork.top) - 1;
 
-            // 最小宽高，支持 DPI 缩放（_dpiX/_dpiY 已缓存）
-            mmi.ptMinTrackSize.x = (int)(this.MinWidth * _dpiX);
-            mmi.ptMinTrackSize.y = (int)(this.MinHeight * _dpiY);
+            // 设置窗口最小可缩放大小（考虑 DPI 缩放）
+            mmi.ptMinTrackSize.x = (int)(MinWidth * _dpiX);
+            mmi.ptMinTrackSize.y = (int)(MinHeight * _dpiY);
 
-            Marshal.StructureToPtr(mmi, lParam, false);
+            Marshal.StructureToPtr(mmi, lParam, true);
+            return true;
         }
+
 
         #endregion
 

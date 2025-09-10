@@ -4,7 +4,7 @@
     <AccelerateBuildsInVisualStudio>True</AccelerateBuildsInVisualStudio>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Version>25.252.1</Version>
+    <Version>25.253.1</Version>
     <Authors>Shun</Authors>
     <UseWPF>True</UseWPF>
     <AuthorsName>Shun</AuthorsName>
@@ -23,7 +23,7 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="ScottPlot.WPF" Version="5.0.56" />
-    <PackageReference Include="Snet.Windows.Core" Version="25.252.1" />
+    <PackageReference Include="Snet.Windows.Core" Version="25.253.1" />
     <PackageReference Include="AvalonEdit" Version="6.3.1.120" />
   </ItemGroup>
   <ItemGroup>
