@@ -310,8 +310,7 @@ namespace Snet.Windows.Controls.handler
 
                 // 设置整行默认前景色
                 Brush defaultBrush = _defaultBrushProvider() ?? Brushes.Black;
-                ChangeLinePart(line.Offset, line.EndOffset, e =>
-                    e.TextRunProperties.SetForegroundBrush(defaultBrush));
+                ChangeLinePart(line.Offset, line.EndOffset, e => e.TextRunProperties.SetForegroundBrush(defaultBrush));
 
                 // 扫描行中的单词token
                 int i = 0;

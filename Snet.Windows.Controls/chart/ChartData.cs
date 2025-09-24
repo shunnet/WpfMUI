@@ -155,7 +155,7 @@ namespace Snet.Windows.Controls.chart
                     }
                     else
                     {
-                        LogHelper.Verbose(message: $"{model.SN} {v} exceed limit value", filename: "chart\\Source.log");
+                        LogHelper.Verbose(message: $"{model.SN} {v} exceed limit value", foldername: "Chart\\Source");
                     }
                 }
                 else if (!double.IsNaN(model.MaxValue) && double.IsNaN(model.MinValue))
@@ -167,7 +167,7 @@ namespace Snet.Windows.Controls.chart
                     }
                     else
                     {
-                        LogHelper.Verbose(message: $"{model.SN} {v} exceed max value", filename: "chart\\Source.log");
+                        LogHelper.Verbose(message: $"{model.SN} {v} exceed max value", foldername: "Chart\\Source");
                     }
                 }
                 else if (double.IsNaN(model.MaxValue) && !double.IsNaN(model.MinValue))
@@ -179,7 +179,7 @@ namespace Snet.Windows.Controls.chart
                     }
                     else
                     {
-                        LogHelper.Verbose(message: $"{model.SN} {v} exceed min value", filename: "chart\\Source.log");
+                        LogHelper.Verbose(message: $"{model.SN} {v} exceed min value", foldername: "Chart\\Source");
                     }
                 }
                 else

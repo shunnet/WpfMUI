@@ -4,7 +4,7 @@
     <AccelerateBuildsInVisualStudio>True</AccelerateBuildsInVisualStudio>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Version>25.253.1</Version>
+    <Version>25.267.1</Version>
     <Authors>Shun</Authors>
     <UseWPF>True</UseWPF>
     <AuthorsName>Shun</AuthorsName>
@@ -25,7 +25,7 @@
     <PackageReference Include="WPF-UI" Version="4.0.3" />
     <PackageReference Include="MaterialDesignThemes" Version="5.2.1" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
-    <PackageReference Include="Snet.Core" Version="25.253.1" />
+    <PackageReference Include="Snet.Core" Version="25.267.1" />
     <PackageReference Include="System.Management" Version="9.0.9" />
   </ItemGroup>
   <ItemGroup>
