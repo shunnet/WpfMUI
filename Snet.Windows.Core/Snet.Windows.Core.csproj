@@ -4,7 +4,7 @@
     <AccelerateBuildsInVisualStudio>True</AccelerateBuildsInVisualStudio>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Version>25.267.1</Version>
+    <Version>25.271.1</Version>
     <Authors>Shun</Authors>
     <UseWPF>True</UseWPF>
     <AuthorsName>Shun</AuthorsName>
@@ -13,19 +13,20 @@
     <PackageProjectUrl>https://shunnet.top</PackageProjectUrl>
     <Product>Windows</Product>
     <Description>界面组件：Core（核心部件、模型、枚举、处理、Mvvm、绑定、通知、资源、模板）</Description>
-    <PackageIcon>Icon.png</PackageIcon>
+    <PackageIcon>icon.png</PackageIcon>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
   <ItemGroup>
-    <Content Include="Icon.png">
-      <PackagePath>
-      </PackagePath>
-    </Content>
+    <None Include="..\icon.png" Pack="true" PackagePath="\" />
+    <None Include="..\README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="WPF-UI" Version="4.0.3" />
     <PackageReference Include="MaterialDesignThemes" Version="5.2.1" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
-    <PackageReference Include="Snet.Core" Version="25.267.1" />
+    <PackageReference Include="Snet.Core" Version="25.271.1" />
     <PackageReference Include="System.Management" Version="9.0.9" />
   </ItemGroup>
   <ItemGroup>

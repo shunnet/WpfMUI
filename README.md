@@ -1,4 +1,4 @@
-# <img src="https://api.shunnet.top/pic/shun.png" height="32"> WpfMUI  
+# <img src="https://api.shunnet.top/pic/nuget.png" height="32"> WpfMUI  
 
 > 🎨 **基于 WPF 的现代化自定义界面库**  
 > 内置常用控件与界面基础架构，助力快速开发 🚀  
@@ -57,13 +57,13 @@ dotnet add package Snet.Windows.Controls
 
 ## 📜 许可证  
 
-![License: GPL v3 or later](https://img.shields.io/badge/License-GPLv3+-blue.svg)  
+![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)  
 
-本项目基于 **GPL v3 或更高版本** 开源。  
-请阅读 [LICENSE](LICENSE.txt) 获取完整条款。  
+本项目基于 **MIT** 开源。  
+请阅读 [LICENSE](LICENSE) 获取完整条款。  
 ⚠️ 软件按 “原样” 提供，作者不对使用后果承担责任。  
 
 
-## 🌍 演示  
+## 🌍 查阅  
 
-👉 [点击查看演示地址](https://shunnet.top/7EUf6)  
+👉 [点击跳转](https://shunnet.top/7EUf6)  

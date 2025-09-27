@@ -3,7 +3,7 @@ using ICSharpCode.AvalonEdit.CodeCompletion;
 using ICSharpCode.AvalonEdit.Document;
 using ICSharpCode.AvalonEdit.Editing;
 using ICSharpCode.AvalonEdit.Rendering;
-using Snet.Unility;
+using Snet.Utility;
 using Snet.Windows.Controls.data;
 using Snet.Windows.Core.handler;
 using System.Windows;

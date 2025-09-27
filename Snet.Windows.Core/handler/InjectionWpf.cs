@@ -1,5 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-using Snet.Unility;
+using Snet.Utility;
 using System.Collections.Concurrent;
 
 namespace Snet.Windows.Core.handler

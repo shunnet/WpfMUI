@@ -4,7 +4,7 @@
     <AccelerateBuildsInVisualStudio>True</AccelerateBuildsInVisualStudio>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Version>25.267.1</Version>
+    <Version>25.271.1</Version>
     <Authors>Shun</Authors>
     <UseWPF>True</UseWPF>
     <AuthorsName>Shun</AuthorsName>
@@ -13,17 +13,18 @@
     <PackageProjectUrl>https://shunnet.top</PackageProjectUrl>
     <Product>Windows</Product>
     <Description>界面组件：Controls（控件、图表、转换器、模型、枚举、处理、消息、多语言）</Description>
-    <PackageIcon>Icon.png</PackageIcon>
+    <PackageIcon>icon.png</PackageIcon>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
   <ItemGroup>
-    <Content Include="Icon.png">
-      <PackagePath>
-      </PackagePath>
-    </Content>
+    <None Include="..\icon.png" Pack="true" PackagePath="\" />
+    <None Include="..\README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="ScottPlot.WPF" Version="5.0.56" />
-    <PackageReference Include="Snet.Windows.Core" Version="25.267.1" />
+    <PackageReference Include="Snet.Windows.Core" Version="25.271.1" />
     <PackageReference Include="AvalonEdit" Version="6.3.1.120" />
   </ItemGroup>
   <ItemGroup>

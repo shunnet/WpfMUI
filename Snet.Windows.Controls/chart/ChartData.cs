@@ -1,7 +1,7 @@
 ﻿using ScottPlot.Plottables;
 using ScottPlot.WPF;
 using Snet.Log;
-using Snet.Unility;
+using Snet.Utility;
 using System.Text.Json.Serialization;
 
 namespace Snet.Windows.Controls.chart
