@@ -27,10 +27,8 @@
     <sys:Double x:Key="SkinImageWidth">16</sys:Double>
     <!--  最小化图片宽度  -->
     <sys:Double x:Key="MinimizeImageWidth">15</sys:Double>
-    <!--  原始图片宽度  -->
-    <sys:Double x:Key="NormalImageWidth">15</sys:Double>
-    <!--  最大化图片宽度  -->
-    <sys:Double x:Key="MaximizeImageWidth">15</sys:Double>
+    <!--  最大化 / 原始图片宽度  -->
+    <sys:Double x:Key="MaximizeNormalImageWidth">15</sys:Double>
     <!--  关闭图片宽度  -->
     <sys:Double x:Key="CloseImageWidth">14</sys:Double>
     <!--  版本的高度  -->

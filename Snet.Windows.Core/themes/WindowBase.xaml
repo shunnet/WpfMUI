@@ -201,9 +201,9 @@
                                             Stretch="Uniform" />
                                     </StackPanel>
                                 </Button>
-                                <!--  原始  -->
+                                <!--  最大化 / 原始  -->
                                 <Button
-                                    x:Name="PART_NormalButton"
+                                    x:Name="PART_MaximizeNormalButton"
                                     Grid.Column="5"
                                     Width="40"
                                     Height="{DynamicResource TitleHeight}"
@@ -237,49 +237,8 @@
                                     </Button.Template>
                                     <StackPanel Orientation="Horizontal">
                                         <Image
-                                            Width="{DynamicResource NormalImageWidth}"
-                                            Source="{DynamicResource Normal}"
-                                            Stretch="Uniform" />
-                                    </StackPanel>
-                                </Button>
-                                <!--  最大化  -->
-                                <Button
-                                    x:Name="PART_MaximizeButton"
-                                    Grid.Column="5"
-                                    Width="40"
-                                    Height="{DynamicResource TitleHeight}"
-                                    Padding="0"
-                                    ui:ButtonAssist.CornerRadius="0"
-                                    BorderThickness="0"
-                                    Style="{DynamicResource MaterialDesignFlatButton}"
-                                    WindowChrome.IsHitTestVisibleInChrome="True">
-                                    <Button.Template>
-                                        <ControlTemplate TargetType="Button">
-                                            <Grid>
-                                                <Border
-                                                    x:Name="BgBorder"
-                                                    Background="Transparent"
-                                                    BorderThickness="0">
-                                                    <ContentPresenter
-                                                        HorizontalAlignment="Center"
-                                                        VerticalAlignment="Center"
-                                                        RecognizesAccessKey="True" />
-                                                </Border>
-                                            </Grid>
-                                            <ControlTemplate.Triggers>
-                                                <Trigger Property="IsMouseOver" Value="True">
-                                                    <Setter TargetName="BgBorder" Property="Background" Value="{DynamicResource ButtonMouseOverBackground}" />
-                                                </Trigger>
-                                                <Trigger Property="IsPressed" Value="True">
-                                                    <Setter TargetName="BgBorder" Property="Background" Value="{DynamicResource ButtonPressedBackground}" />
-                                                </Trigger>
-                                            </ControlTemplate.Triggers>
-                                        </ControlTemplate>
-                                    </Button.Template>
-                                    <StackPanel Orientation="Horizontal">
-                                        <Image
-                                            Width="{DynamicResource MaximizeImageWidth}"
-                                            Source="{DynamicResource Max}"
+                                            x:Name="PART_MaximizeNormalImage"
+                                            Width="{DynamicResource MaximizeNormalImageWidth}"
                                             Stretch="Uniform" />
                                     </StackPanel>
                                 </Button>
@@ -401,28 +360,45 @@
                     </Grid>
                     <!--  控件模板触发器  -->
                     <ControlTemplate.Triggers>
+
+                        <!--  ResizeMode = NoResize  -->
                         <Trigger Property="ResizeMode" Value="NoResize">
                             <Setter TargetName="PART_MinimizeButton" Property="Visibility" Value="Collapsed" />
-                            <Setter TargetName="PART_MaximizeButton" Property="Visibility" Value="Collapsed" />
-                            <Setter TargetName="PART_NormalButton" Property="Visibility" Value="Collapsed" />
+                            <Setter TargetName="PART_MaximizeNormalButton" Property="Visibility" Value="Collapsed" />
                         </Trigger>
+
+                        <!--  ResizeMode = CanMinimize  -->
                         <Trigger Property="ResizeMode" Value="CanMinimize">
-                            <Setter TargetName="PART_MaximizeButton" Property="Visibility" Value="Collapsed" />
-                            <Setter TargetName="PART_NormalButton" Property="Visibility" Value="Collapsed" />
+                            <Setter TargetName="PART_MinimizeButton" Property="Visibility" Value="Visible" />
+                            <Setter TargetName="PART_MaximizeNormalButton" Property="Visibility" Value="Collapsed" />
                         </Trigger>
+
+                        <!--  ResizeMode = CanResize  -->
+                        <Trigger Property="ResizeMode" Value="CanResize">
+                            <Setter TargetName="PART_MinimizeButton" Property="Visibility" Value="Visible" />
+                            <Setter TargetName="PART_MaximizeNormalButton" Property="Visibility" Value="Visible" />
+                        </Trigger>
+
+                        <!--  窗口最大化  -->
                         <Trigger Property="WindowState" Value="Maximized">
+                            <Setter TargetName="PART_MaximizeNormalImage" Property="Source" Value="{DynamicResource Normal}" />
                             <Setter TargetName="PART_Caption" Property="CornerRadius" Value="0" />
                             <Setter TargetName="PART_Ver" Property="CornerRadius" Value="0" />
-                            <Setter TargetName="PART_MaximizeButton" Property="Visibility" Value="Collapsed" />
                         </Trigger>
+
+                        <!--  窗口还原  -->
                         <Trigger Property="WindowState" Value="Normal">
-                            <Setter TargetName="PART_NormalButton" Property="Visibility" Value="Collapsed" />
+                            <Setter TargetName="PART_MaximizeNormalImage" Property="Source" Value="{DynamicResource Max}" />
                             <Setter TargetName="PART_CloseButton" Property="ui:ButtonAssist.CornerRadius" Value="{DynamicResource CloseCornerRadius}" />
                         </Trigger>
+
+                        <!--  没有图标  -->
                         <Trigger Property="Icon" Value="{x:Null}">
                             <Setter TargetName="PART_CaptionText" Property="Margin" Value="10,0,0,0" />
                             <Setter TargetName="PART_Icon" Property="Visibility" Value="Collapsed" />
                         </Trigger>
+
+                        <!--  版本区隐藏时调整 ClientArea 圆角  -->
                         <DataTrigger Binding="{Binding ElementName=PART_Ver, Path=Visibility}" Value="Collapsed">
                             <Setter TargetName="PART_ClientArea" Property="CornerRadius" Value="{DynamicResource DownCornerRadius}" />
                         </DataTrigger>

@@ -62,9 +62,8 @@ namespace Snet.Windows.Core
         #region 控件字段
 
         private Button? closeButton;         // 关闭按钮
-        private Button? maximizeButton;     // 最大化按钮
+        private Button? maximizeNormalButton;     // 最大化还原按钮
         private Button? minimizeButton;      // 最小化按钮
-        private Button? normalButton;        // 还原按钮
         private TextBlock? systemVer;            // 系统版本标签
         private FrameworkElement? ver;       // 版本元素
 
@@ -135,11 +134,14 @@ namespace Snet.Windows.Core
         #endregion
 
         #region 事件
+
+        #region 解决屏幕缩放白边问题
+        // 缓存 WindowChrome 对象，避免每次重复获取
+        private WindowChrome _chrome;
+
         // 标记是否正在进行边框修复，防止重复进入逻辑
         private bool _isResizing;
 
-        // 缓存 WindowChrome 对象，避免每次重复获取
-        private WindowChrome _chrome;
 
         /// <summary>
         /// 移除窗口边框（设置玻璃框架厚度为 0）并动态计算恢复延迟
@@ -161,7 +163,7 @@ namespace Snet.Windows.Core
             );
 
             // 延迟时间范围限制在 [100ms, 150ms]，防止过短或过长
-            return (int)Math.Clamp(sizeDelta * 0.5, 100, 150);
+            return (int)Math.Clamp(sizeDelta * 0.5, 100, 200);
         }
 
         /// <summary>
@@ -223,7 +225,7 @@ namespace Snet.Windows.Core
                 }
             });
         }
-
+        #endregion
 
         /// <summary>
         /// 窗体加载完成
@@ -362,7 +364,7 @@ namespace Snet.Windows.Core
         public override void OnApplyTemplate()
         {
             base.OnApplyTemplate();
-            LoadAnimation(LoadAnimationEnabled);
+            _ = LoadAnimationAsync(LoadAnimationEnabled);
             InitializeTemplateControls();
         }
 
@@ -381,54 +383,113 @@ namespace Snet.Windows.Core
         #region 私有方法
 
         /// <summary>
-        /// 动画启动
+        /// 动画启动（并行动画，真正异步等待）
         /// </summary>
-        /// <param name="status">状态</param>
-        public async Task LoadAnimation(bool status)
+        /// <param name="status">是否启用动画</param>
+        /// <param name="cancellationToken">可选的取消标记</param>
+        public async Task LoadAnimationAsync(bool status, CancellationToken cancellationToken = default)
         {
-            if (status)
-            {
-                if (GetTemplateChild("PART_ClientArea") is UIElement clientArea && GetTemplateChild("PART_LoadAnimation") is UIElement animationArea)
-                {
-                    // 确保一开始动画区域是可见的，客户端区域是隐藏的
-                    animationArea.Opacity = 1;
-                    animationArea.Visibility = Visibility.Visible;
+            if (!status) return;
 
-                    clientArea.Opacity = 0;
-                    clientArea.Visibility = Visibility.Visible; // opacity 为 0 时不会显示实际内容
-                    clientArea.IsEnabled = false;
-                    // 创建 clientArea 的淡入动画
-                    var clientFadeIn = new DoubleAnimation
-                    {
-                        From = 0,
-                        To = 1,
-                        Duration = TimeSpan.FromMilliseconds(2000),
-                        FillBehavior = FillBehavior.HoldEnd
-                    };
+            // 1. 获取模板中的元素
+            if (GetTemplateChild("PART_ClientArea") is not UIElement clientArea ||
+                GetTemplateChild("PART_LoadAnimation") is not UIElement animationArea)
+                return;
 
-                    // 创建 animationArea 的淡出动画
-                    var animationFadeOut = new DoubleAnimation
-                    {
-                        From = 1,
-                        To = 0,
-                        Duration = TimeSpan.FromMilliseconds(2000),
-                        FillBehavior = FillBehavior.Stop
-                    };
+            // 2. 初始化状态
+            animationArea.Opacity = 1;
+            animationArea.Visibility = Visibility.Visible;
 
-                    animationFadeOut.Completed += (s, e) =>
-                    {
-                        // 动画完成后真正隐藏 animationArea
-                        animationArea.Visibility = Visibility.Collapsed;
-                        animationArea.Opacity = 1; // 重置为默认（避免下一次动画不生效）
-                        clientArea.IsEnabled = true;
-                    };
-                    await Task.Delay(3000);
-                    // 启动动画
-                    clientArea.BeginAnimation(UIElement.OpacityProperty, clientFadeIn);
-                    animationArea.BeginAnimation(UIElement.OpacityProperty, animationFadeOut);
-                }
-            }
+            clientArea.Opacity = 0;
+            clientArea.Visibility = Visibility.Visible; // opacity = 0 时仍可参与布局
+            clientArea.IsEnabled = false;
+
+            var duration = TimeSpan.FromMilliseconds(2000);
+
+            await Task.Delay(duration, cancellationToken);
+
+            // 3. 并行动画
+            var fadeOutTask = AnimateAsync(
+                animationArea,
+                UIElement.OpacityProperty,
+                new DoubleAnimation(1, 0, duration) { FillBehavior = FillBehavior.Stop },
+                setFinalValue: false, // 动画结束后不强制保持 0，后续会设置 Visibility
+                cancellationToken: cancellationToken);
+
+            var fadeInTask = AnimateAsync(
+                clientArea,
+                UIElement.OpacityProperty,
+                new DoubleAnimation(0, 1, duration) { FillBehavior = FillBehavior.HoldEnd },
+                setFinalValue: true, // 动画结束后强制保持 1
+                cancellationToken: cancellationToken);
+
+            // 4. 等待动画完成
+            await Task.WhenAll(fadeOutTask, fadeInTask);
+
+            // 5. 动画完成后处理
+            animationArea.Visibility = Visibility.Collapsed;
+            animationArea.Opacity = 1; // 重置为默认，避免下一次动画不生效
+            clientArea.IsEnabled = true;
         }
+
+        /// <summary>
+        /// 异步执行动画，并在动画完成后返回
+        /// </summary>
+        /// <param name="target">目标对象，必须是 DependencyObject（如 Grid、Border、UserControl 等）</param>
+        /// <param name="property">要动画的依赖属性（如 UIElement.OpacityProperty）</param>
+        /// <param name="animation">动画实例（DoubleAnimation、ColorAnimation 等）</param>
+        /// <param name="setFinalValue">是否在动画完成后强制设置最终值，避免 FillBehavior.Stop 复位</param>
+        /// <param name="cancellationToken">可选的取消标记</param>
+        private Task AnimateAsync(
+            DependencyObject target,
+            DependencyProperty property,
+            DoubleAnimation animation,
+            bool setFinalValue = false,
+            CancellationToken cancellationToken = default)
+        {
+            var tcs = new TaskCompletionSource<object?>();
+
+            // 1. 判空处理
+            if (target == null || property == null || animation == null)
+            {
+                tcs.SetResult(null);
+                return tcs.Task;
+            }
+
+            // 2. 确认可以执行动画
+            if (target is not IAnimatable animatable)
+            {
+                tcs.SetResult(null);
+                return tcs.Task;
+            }
+
+            // 3. 注册取消
+            if (cancellationToken != default)
+            {
+                cancellationToken.Register(() =>
+                {
+                    animatable.BeginAnimation(property, null); // 停止动画
+                    tcs.TrySetCanceled();
+                });
+            }
+
+            // 4. 动画完成时处理
+            animation.Completed += (s, e) =>
+            {
+                if (setFinalValue && animation.To.HasValue)
+                {
+                    // 强制设置最终值，避免动画停止后值被复位
+                    target.SetValue(property, animation.To.Value);
+                }
+                tcs.TrySetResult(null);
+            };
+
+            // 5. 启动动画
+            animatable.BeginAnimation(property, animation);
+
+            return tcs.Task;
+        }
+
 
         /// <summary>
         /// 自动根据当前屏幕与 DPI 缩放窗口大小，并保持窗口居中与四周等边距视觉效果。
@@ -487,7 +548,7 @@ namespace Snet.Windows.Core
         /// <summary>
         /// 初始化模板中的控件并设置事件
         /// </summary>
-        private async Task InitializeTemplateControls()
+        private void InitializeTemplateControls()
         {
             // 设置标题对齐方式
             if (!TitleLeft && GetTemplateChild("PART_CaptionText") is TextBlock captionText)
@@ -508,13 +569,11 @@ namespace Snet.Windows.Core
         private void InitializeWindowButtons()
         {
             minimizeButton = GetTemplateChild("PART_MinimizeButton") as Button;
-            maximizeButton = GetTemplateChild("PART_MaximizeButton") as Button;
-            normalButton = GetTemplateChild("PART_NormalButton") as Button;
+            maximizeNormalButton = GetTemplateChild("PART_MaximizeNormalButton") as Button;
             closeButton = GetTemplateChild("PART_CloseButton") as Button;
 
             AddClickHandler(minimizeButton, OnWindowMinimizing);
-            AddClickHandler(maximizeButton, OnWindowStateRestoring);
-            AddClickHandler(normalButton, OnWindowStateRestoring);
+            AddClickHandler(maximizeNormalButton, OnWindowStateRestoring);
             AddClickHandler(closeButton, OnWindowClosing);
         }
 
@@ -760,8 +819,8 @@ namespace Snet.Windows.Core
             mmi.ptMaxPosition.y = Math.Abs(rcWork.top - rcMonitor.top);
 
             // 设置最大化时的大小（工作区大小，排除任务栏）
-            mmi.ptMaxSize.x = Math.Abs(rcWork.right - rcWork.left);
-            mmi.ptMaxSize.y = Math.Abs(rcWork.bottom - rcWork.top) - 1;
+            mmi.ptMaxSize.x = Math.Abs(rcWork.right - rcWork.left) - 1;
+            mmi.ptMaxSize.y = Math.Abs(rcWork.bottom - rcWork.top) + 1;
 
             // 设置窗口最小可缩放大小（考虑 DPI 缩放）
             mmi.ptMinTrackSize.x = (int)(MinWidth * _dpiX);

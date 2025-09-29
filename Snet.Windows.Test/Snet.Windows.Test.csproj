@@ -15,8 +15,12 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Snet.Windows.Controls" Version="25.271.1" />
+	  <ProjectReference Include="..\Snet.Windows.Controls\Snet.Windows.Controls.csproj" />
 	</ItemGroup>
+
+	<!--<ItemGroup>
+		<PackageReference Include="Snet.Windows.Controls" Version="25.271.1" />
+	</ItemGroup>-->
 
 	<ItemGroup>
 		<Resource Include="Icon.ico" />
