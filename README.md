@@ -1,5 +1,8 @@
 # <img src="https://api.shunnet.top/pic/nuget.png" height="32"> WpfMUI  
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)  
+[![Repo](https://img.shields.io/badge/Repository-shunnet/Rpc-blue)](https://github.com/shunnet/WpfMUI)  
+
 > 🎨 **基于 WPF 的现代化自定义界面库**  
 > 内置常用控件与界面基础架构，助力快速开发 🚀  
 
