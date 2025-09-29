@@ -61,11 +61,11 @@ namespace Snet.Windows.Core
 
         #region 控件字段
 
-        private Button? closeButton;         // 关闭按钮
+        private Button? closeButton;              // 关闭按钮
         private Button? maximizeNormalButton;     // 最大化还原按钮
-        private Button? minimizeButton;      // 最小化按钮
-        private TextBlock? systemVer;            // 系统版本标签
-        private FrameworkElement? ver;       // 版本元素
+        private Button? minimizeButton;           // 最小化按钮
+        private TextBlock? systemVer;             // 系统版本标签
+        private FrameworkElement? ver;            // 版本元素
 
         #endregion
 
@@ -98,7 +98,6 @@ namespace Snet.Windows.Core
             {
                 // 设置初始皮肤
                 SkinHandler.SetSkin(SkinHandler.GetSkin(), true);
-
             }, DispatcherPriority.Loaded);
         }
 
@@ -381,6 +380,34 @@ namespace Snet.Windows.Core
         #endregion
 
         #region 私有方法
+        /// <summary>
+        /// 根据 ResizeMode 更新按钮的可见性
+        /// </summary>
+        private void UpdateButtonVisibility(Button maximizeNormalButton, Button minimizeButton)
+        {
+            switch (this.ResizeMode)
+            {
+                case ResizeMode.CanResize:
+                    maximizeNormalButton.Visibility = Visibility.Visible;
+                    minimizeButton.Visibility = Visibility.Visible;
+                    break;
+                case ResizeMode.CanMinimize:
+                    maximizeNormalButton.Visibility = Visibility.Collapsed;
+                    minimizeButton.Visibility = Visibility.Visible;
+                    break;
+                case ResizeMode.NoResize:
+                    maximizeNormalButton.Visibility = Visibility.Collapsed;
+                    minimizeButton.Visibility = Visibility.Collapsed;
+                    break;
+                case ResizeMode.CanResizeWithGrip:
+                    if (maximizeNormalButton != null && minimizeButton != null)
+                    {
+                        maximizeNormalButton.Visibility = Visibility.Visible;
+                        minimizeButton.Visibility = Visibility.Visible;
+                    }
+                    break;
+            }
+        }
 
         /// <summary>
         /// 动画启动（并行动画，真正异步等待）
@@ -440,12 +467,7 @@ namespace Snet.Windows.Core
         /// <param name="animation">动画实例（DoubleAnimation、ColorAnimation 等）</param>
         /// <param name="setFinalValue">是否在动画完成后强制设置最终值，避免 FillBehavior.Stop 复位</param>
         /// <param name="cancellationToken">可选的取消标记</param>
-        private Task AnimateAsync(
-            DependencyObject target,
-            DependencyProperty property,
-            DoubleAnimation animation,
-            bool setFinalValue = false,
-            CancellationToken cancellationToken = default)
+        private Task AnimateAsync(DependencyObject target, DependencyProperty property, DoubleAnimation animation, bool setFinalValue = false, CancellationToken cancellationToken = default)
         {
             var tcs = new TaskCompletionSource<object?>();
 
@@ -489,7 +511,6 @@ namespace Snet.Windows.Core
 
             return tcs.Task;
         }
-
 
         /// <summary>
         /// 自动根据当前屏幕与 DPI 缩放窗口大小，并保持窗口居中与四周等边距视觉效果。
@@ -544,7 +565,6 @@ namespace Snet.Windows.Core
             return Task.CompletedTask;
         }
 
-
         /// <summary>
         /// 初始化模板中的控件并设置事件
         /// </summary>
@@ -571,6 +591,8 @@ namespace Snet.Windows.Core
             minimizeButton = GetTemplateChild("PART_MinimizeButton") as Button;
             maximizeNormalButton = GetTemplateChild("PART_MaximizeNormalButton") as Button;
             closeButton = GetTemplateChild("PART_CloseButton") as Button;
+
+            UpdateButtonVisibility(maximizeNormalButton, minimizeButton);
 
             AddClickHandler(minimizeButton, OnWindowMinimizing);
             AddClickHandler(maximizeNormalButton, OnWindowStateRestoring);
@@ -608,7 +630,6 @@ namespace Snet.Windows.Core
             }
             return baseValue;
         }
-
         #endregion
 
         #region 窗口控制事件处理

@@ -361,24 +361,6 @@
                     <!--  控件模板触发器  -->
                     <ControlTemplate.Triggers>
 
-                        <!--  ResizeMode = NoResize  -->
-                        <Trigger Property="ResizeMode" Value="NoResize">
-                            <Setter TargetName="PART_MinimizeButton" Property="Visibility" Value="Collapsed" />
-                            <Setter TargetName="PART_MaximizeNormalButton" Property="Visibility" Value="Collapsed" />
-                        </Trigger>
-
-                        <!--  ResizeMode = CanMinimize  -->
-                        <Trigger Property="ResizeMode" Value="CanMinimize">
-                            <Setter TargetName="PART_MinimizeButton" Property="Visibility" Value="Visible" />
-                            <Setter TargetName="PART_MaximizeNormalButton" Property="Visibility" Value="Collapsed" />
-                        </Trigger>
-
-                        <!--  ResizeMode = CanResize  -->
-                        <Trigger Property="ResizeMode" Value="CanResize">
-                            <Setter TargetName="PART_MinimizeButton" Property="Visibility" Value="Visible" />
-                            <Setter TargetName="PART_MaximizeNormalButton" Property="Visibility" Value="Visible" />
-                        </Trigger>
-
                         <!--  窗口最大化  -->
                         <Trigger Property="WindowState" Value="Maximized">
                             <Setter TargetName="PART_MaximizeNormalImage" Property="Source" Value="{DynamicResource Normal}" />
@@ -402,6 +384,7 @@
                         <DataTrigger Binding="{Binding ElementName=PART_Ver, Path=Visibility}" Value="Collapsed">
                             <Setter TargetName="PART_ClientArea" Property="CornerRadius" Value="{DynamicResource DownCornerRadius}" />
                         </DataTrigger>
+
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
