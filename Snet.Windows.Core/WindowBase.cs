@@ -816,11 +816,11 @@ namespace Snet.Windows.Core
 
             // 设置最大化时的位置（相对于显示器左上角）
             mmi.ptMaxPosition.x = Math.Abs(rcWork.left - rcMonitor.left);
-            mmi.ptMaxPosition.y = Math.Abs(rcWork.top - rcMonitor.top);
+            mmi.ptMaxPosition.y = Math.Abs(rcWork.top - rcMonitor.top) + 1;
 
             // 设置最大化时的大小（工作区大小，排除任务栏）
-            mmi.ptMaxSize.x = Math.Abs(rcWork.right - rcWork.left) - 1;
-            mmi.ptMaxSize.y = Math.Abs(rcWork.bottom - rcWork.top) + 1;
+            mmi.ptMaxSize.x = Math.Abs(rcWork.right - rcWork.left);
+            mmi.ptMaxSize.y = Math.Abs(rcWork.bottom - rcWork.top) - 1;
 
             // 设置窗口最小可缩放大小（考虑 DPI 缩放）
             mmi.ptMinTrackSize.x = (int)(MinWidth * _dpiX);
