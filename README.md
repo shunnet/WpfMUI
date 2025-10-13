@@ -52,7 +52,6 @@ dotnet add package Snet.Windows.Controls
 ## 🙏 致谢  
 
 - 🌐 [Shunnet.top](https://shunnet.top)  
-- 📈 [ScottPlot](https://github.com/scottplot/scottplot)  
 - 🖥️ [WPF-UI](https://github.com/lepoco/wpfui)  
 - 🧩 [CommunityToolkit](https://github.com/CommunityToolkit/dotnet)  
 - 🎨 [MaterialDesignInXAML](https://github.com/MaterialDesignInXamlToolkit)  

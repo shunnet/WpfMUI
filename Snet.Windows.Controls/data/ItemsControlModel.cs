@@ -14,7 +14,7 @@ namespace Snet.Windows.Controls.data
             IsChecked = isChecked;
         }
         /// <summary>
-        /// 通过Key过去中英文
+        /// 通过Key获取中英文
         /// </summary>
         public string Key { get; set; }
 
