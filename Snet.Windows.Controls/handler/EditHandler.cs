@@ -66,7 +66,7 @@ namespace Snet.Windows.Controls.handler
             // 避免从文件加载的性能开销<br/>
             string itemTemplateXaml =
                 @"<DataTemplate xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation'>
-                    <TextBlock Text='{Binding Text}' Padding='4,2,4,2' VerticalAlignment='Center'/>
+                    <TextBlock Text='{Binding Text}' Padding='4,2,4,2' Margin='0,0,10,0' VerticalAlignment='Center'/>
                   </DataTemplate>";
             CompletionItemTemplate = (DataTemplate)XamlReader.Parse(itemTemplateXaml);
         }
@@ -151,21 +151,31 @@ namespace Snet.Windows.Controls.handler
         #region 关键词管理
         /// <summary>
         /// 设置关键字集合<br/>
-        /// 清空现有缓存，并缓存关键字颜色画刷<br/>
+        /// 如果是初始化阶段（首次调用）则清空缓存；否则追加或更新已有关键字。<br/>
+        /// 相同名称的关键字将保留最新的描述与颜色。<br/>
         /// </summary>
         /// <param name="keywords">关键字模型集合</param>
         public void SetKeywords(IEnumerable<EditModel> keywords)
         {
-            // 清空现有关键字和画刷缓存<br/>
-            _kwMap.Clear();
-            _kwBrushCache.Clear();
+            if (keywords == null) return;
 
-            // 遍历关键字集合并添加到字典<br/>
+            // 如果当前关键字表为空，说明是首次初始化
+            bool firstInit = _kwMap.Count == 0;
+
+            // 首次初始化时清空缓存
+            if (firstInit)
+            {
+                _kwMap.Clear();
+                _kwBrushCache.Clear();
+            }
+
+            // 遍历关键字集合
             foreach (var k in keywords)
             {
-                if (string.IsNullOrWhiteSpace(k?.Name)) continue;
+                if (string.IsNullOrWhiteSpace(k?.Name))
+                    continue;
 
-                // 添加关键字到字典<br/>
+                // 添加或更新关键字
                 _kwMap[k.Name] = new EditModel
                 {
                     Name = k.Name,
@@ -173,27 +183,31 @@ namespace Snet.Windows.Controls.handler
                     Color = k.Color
                 };
 
-                // 缓存关键字颜色画刷<br/>
+                // 更新颜色画刷缓存
                 if (!string.IsNullOrWhiteSpace(k.Color))
                 {
                     try
                     {
-                        // 创建并冻结颜色画刷<br/>
-                        var b = new SolidColorBrush((Color)ColorConverter.ConvertFromString(k.Color)!);
-                        if (b.CanFreeze) b.Freeze();
-                        _kwBrushCache[k.Name] = b;
+                        var brush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(k.Color)!);
+                        if (brush.CanFreeze) brush.Freeze();
+                        _kwBrushCache[k.Name] = brush;
                     }
                     catch
                     {
-                        // 颜色转换失败时使用默认蓝色<br/>
                         _kwBrushCache[k.Name] = Brushes.DodgerBlue;
                     }
                 }
+                else if (!_kwBrushCache.ContainsKey(k.Name))
+                {
+                    // 没有定义颜色则保持原色或默认蓝色
+                    _kwBrushCache[k.Name] = Brushes.DodgerBlue;
+                }
             }
 
-            // 强制刷新视图以应用新的关键字高亮<br/>
+            // 强制刷新视图以应用新的关键字高亮
             _editor.TextArea.TextView.InvalidateVisual();
         }
+
         #endregion
 
         #region 自动补全
@@ -351,33 +365,33 @@ namespace Snet.Windows.Controls.handler
             protected override void ColorizeLine(DocumentLine line)
             {
                 if (line.IsDeleted) return;
-
                 var doc = CurrentContext.Document;
                 string text = doc.GetText(line);
 
-                // 设置整行默认颜色<br/>
                 Brush defaultBrush = _defaultBrushProvider() ?? Brushes.Black;
                 ChangeLinePart(line.Offset, line.EndOffset, e => e.TextRunProperties.SetForegroundBrush(defaultBrush));
 
-                // 遍历文本查找关键字<br/>
                 int i = 0;
                 while (i < text.Length)
                 {
-                    if (IsWordChar(text[i]))
+                    // 忽略空白字符
+                    if (char.IsWhiteSpace(text[i]))
                     {
-                        // 提取完整单词<br/>
-                        int s = i;
-                        while (i < text.Length && IsWordChar(text[i])) i++;
-                        string token = text.Substring(s, i - s);
-
-                        // 如果是关键字则应用高亮颜色<br/>
-                        if (_kwMap.ContainsKey(token) && _kwBrushCache.TryGetValue(token, out var brush))
-                        {
-                            ChangeLinePart(line.Offset + s, line.Offset + i, e =>
-                                e.TextRunProperties.SetForegroundBrush(brush));
-                        }
+                        i++;
+                        continue;
                     }
-                    else i++;
+
+                    int s = i;
+                    // 向后找连续非空白字符
+                    while (i < text.Length && !char.IsWhiteSpace(text[i])) i++;
+                    string token = text.Substring(s, i - s);
+
+                    // 匹配关键字
+                    if (_kwMap.ContainsKey(token) && _kwBrushCache.TryGetValue(token, out var brush))
+                    {
+                        ChangeLinePart(line.Offset + s, line.Offset + i, e =>
+                            e.TextRunProperties.SetForegroundBrush(brush));
+                    }
                 }
             }
         }
@@ -462,25 +476,44 @@ namespace Snet.Windows.Controls.handler
 
         #region 辅助方法
         /// <summary>
-        /// 获取指定偏移量处的单词<br/>
-        /// 向前和向后查找单词边界<br/>
+        /// 获取指定偏移量处的关键字文本<br/>
+        /// 适用于任意字符定义（包括符号、汉字、函数名等）
         /// </summary>
-        /// <param name="offset">文档偏移量</param>
-        /// <returns>找到的单词或null</returns>
+        /// <param name="offset">文档中的偏移量</param>
+        /// <returns>匹配到的关键字名称；若未匹配则返回 null</returns>
         private string? GetWordAtOffset(int offset)
         {
-            if (offset < 0 || offset >= _editor.Document.TextLength) return null;
-            var text = _editor.Document.Text;
+            if (_editor?.Document == null || _kwMap.Count == 0)
+                return null;
 
-            // 向前查找单词起始位置<br/>
-            int start = offset;
-            while (start > 0 && IsWordChar(text[start - 1])) start--;
+            string text = _editor.Document.Text;
+            if (string.IsNullOrEmpty(text) || offset < 0 || offset >= text.Length)
+                return null;
 
-            // 向后查找单词结束位置<br/>
-            int end = offset;
-            while (end < text.Length && IsWordChar(text[end])) end++;
+            // 从关键字集合中查找匹配（优先匹配最长关键字）
+            // 这样可以支持例如 "==" 比 "=" 优先匹配
+            foreach (var kw in _kwMap.Keys.OrderByDescending(k => k.Length))
+            {
+                if (string.IsNullOrEmpty(kw)) continue;
 
-            return end > start ? text.Substring(start, end - start) : null;
+                int len = kw.Length;
+
+                // 检查当前位置附近是否包含该关键字
+                int start = Math.Max(0, offset - len);
+                int end = Math.Min(text.Length - len, offset);
+
+                for (int i = start; i <= end; i++)
+                {
+                    if (string.Compare(text, i, kw, 0, len, StringComparison.Ordinal) == 0)
+                    {
+                        // 如果光标在关键字范围内，认为命中
+                        if (offset >= i && offset <= i + len)
+                            return kw;
+                    }
+                }
+            }
+
+            return null;
         }
 
         /// <summary>

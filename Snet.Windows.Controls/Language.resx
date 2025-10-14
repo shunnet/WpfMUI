@@ -145,8 +145,8 @@
   <data name="异常" xml:space="preserve">
     <value>异常</value>
   </data>
-  <data name="移除所有线条" xml:space="preserve">
-    <value>移除所有线条</value>
+  <data name="移除线条" xml:space="preserve">
+    <value>移除线条</value>
   </data>
   <data name="导出" xml:space="preserve">
     <value>导出</value>
@@ -156,5 +156,8 @@
   </data>
   <data name="基础数据" xml:space="preserve">
     <value>基础数据</value>
+  </data>
+  <data name="移除线条值" xml:space="preserve">
+    <value>移除线条值</value>
   </data>
 </root>
