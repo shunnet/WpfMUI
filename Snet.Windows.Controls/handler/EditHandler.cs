@@ -10,6 +10,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Markup;
 using System.Windows.Media;
+using System.Windows.Threading;
 
 namespace Snet.Windows.Controls.handler
 {
@@ -47,6 +48,7 @@ namespace Snet.Windows.Controls.handler
         private readonly MouseEventHandler _textViewMouseHoverHandler;
         private readonly MouseEventHandler _textViewMouseHoverStoppedHandler;
         private readonly MouseButtonEventHandler _editorPreviewMouseDownHandler;
+        private readonly KeyEventHandler _editorPreviewKeyDownHandler;
 
         // 补全模板缓存（避免每次 XAML 解析）<br/>
         // 静态字段确保模板只创建一次<br/>
@@ -57,18 +59,51 @@ namespace Snet.Windows.Controls.handler
         private readonly Dictionary<string, Brush> _kwBrushCache = new(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
+        /// 判断是否为单词分隔符<br/>
+        /// 空格、换行、制表符等作为分隔符<br/>
+        /// 统一在这里定义，避免重复<br/>
+        /// </summary>
+        private static bool IsWordSeparator(char c)
+        {
+            return char.IsWhiteSpace(c) ||
+                   c == '.' || c == ',' || c == ';' || c == ':' ||
+                   c == '!' || c == '?' || c == '(' || c == ')' ||
+                   c == '[' || c == ']' || c == '{' || c == '}' ||
+                   c == '<' || c == '>' || c == '"' || c == '\'';
+        }
+
+        /// <summary>
         /// 静态构造函数<br/>
         /// 初始化补全项模板，只创建一次，减少性能开销<br/>
         /// </summary>
         static EditHandler()
         {
-            // 使用XAML字符串创建数据模板<br/>
-            // 避免从文件加载的性能开销<br/>
             string itemTemplateXaml =
-                @"<DataTemplate xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation'>
-                    <TextBlock Text='{Binding Text}' Padding='4,2,4,2' Margin='0,0,10,0' VerticalAlignment='Center'/>
-                  </DataTemplate>";
+            @"<DataTemplate xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation'>
+                <Grid Margin='2'>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width='255'/>
+                        <ColumnDefinition Width='*'/>
+                    </Grid.ColumnDefinitions>
+                    <!-- 左侧关键字 -->
+                    <TextBlock Grid.Column='0' 
+                               Text='{Binding Text}' 
+                               FontWeight='Bold' 
+                               VerticalAlignment='Center' 
+                               Margin='0,0,10,0'
+                               TextAlignment='Center'/>
+                    <!-- 右侧描述 -->
+                    <TextBlock Grid.Column='1' 
+                               Text='{Binding Describe}' 
+                               VerticalAlignment='Center'
+                               TextTrimming='CharacterEllipsis'
+                               Opacity='0.6'
+                               TextAlignment='Center'/>
+                </Grid>
+              </DataTemplate>";
+
             CompletionItemTemplate = (DataTemplate)XamlReader.Parse(itemTemplateXaml);
+
         }
 
         /// <summary>
@@ -86,35 +121,32 @@ namespace Snet.Windows.Controls.handler
             MaxCompletionRows = Math.Max(1, maxCompletionRows);
 
             // 初始化主题画刷<br/>
-            // 使用预定义颜色或默认颜色<br/>
             _dark = color != null ? FreezeBrush(color.Value.dark, Brushes.DimGray) : Brushes.DimGray;
             _light = color != null ? FreezeBrush(color.Value.light, Brushes.WhiteSmoke) : Brushes.WhiteSmoke;
 
             _editor.ShowLineNumbers = showLineNumbers;
 
             // 初始化关键字字典<br/>
-            // 使用忽略大小写的比较器<br/>
             _kwMap = new Dictionary<string, EditModel>(StringComparer.OrdinalIgnoreCase);
             SetKeywords(keywords);
 
             // 初始化语法高亮器<br/>
-            // 传入关键字字典和画刷缓存<br/>
             _colorizer = new KeywordColorizer(_kwMap, _kwBrushCache, () => _editor.Foreground ?? Brushes.Black);
             _editor.TextArea.TextView.LineTransformers.Add(_colorizer);
 
             // 初始化事件处理器<br/>
-            // 缓存委托避免重复创建<br/>
             _textEnteredHandler = Editor_TextEntered;
             _textViewMouseHoverHandler = TextView_MouseHover;
             _textViewMouseHoverStoppedHandler = (s, e) => _hoverTooltip.IsOpen = false;
             _editorPreviewMouseDownHandler = (s, e) => _completionWindow?.Close();
+            _editorPreviewKeyDownHandler = Editor_PreviewKeyDown;
 
             // 绑定事件<br/>
-            // 使用缓存的事件处理器<br/>
             _editor.TextArea.TextEntered += _textEnteredHandler;
             _editor.TextArea.TextView.MouseHover += _textViewMouseHoverHandler;
             _editor.TextArea.TextView.MouseHoverStopped += _textViewMouseHoverStoppedHandler;
             _editor.PreviewMouseDown += _editorPreviewMouseDownHandler;
+            _editor.PreviewKeyDown += _editorPreviewKeyDownHandler;
 
             // 注册主题切换事件<br/>
             SkinHandler.OnSkinEventAsync -= SkinHandler_OnSkinEventAsync;
@@ -126,24 +158,17 @@ namespace Snet.Windows.Controls.handler
 
         /// <summary>
         /// 将颜色字符串转换为画刷并冻结<br/>
-        /// 避免重复创建画刷对象，提高性能<br/>
         /// </summary>
-        /// <param name="colorString">颜色字符串</param>
-        /// <param name="fallback">备用画刷</param>
-        /// <returns>冻结的画刷对象</returns>
         private static Brush FreezeBrush(string colorString, Brush fallback)
         {
             try
             {
-                // 从字符串创建颜色画刷<br/>
                 var brush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(colorString)!);
-                // 冻结画刷提高性能<br/>
                 if (brush.CanFreeze) brush.Freeze();
                 return brush;
             }
             catch
             {
-                // 颜色转换失败时返回备用画刷<br/>
                 return fallback;
             }
         }
@@ -151,31 +176,23 @@ namespace Snet.Windows.Controls.handler
         #region 关键词管理
         /// <summary>
         /// 设置关键字集合<br/>
-        /// 如果是初始化阶段（首次调用）则清空缓存；否则追加或更新已有关键字。<br/>
-        /// 相同名称的关键字将保留最新的描述与颜色。<br/>
         /// </summary>
-        /// <param name="keywords">关键字模型集合</param>
         public void SetKeywords(IEnumerable<EditModel> keywords)
         {
             if (keywords == null) return;
 
-            // 如果当前关键字表为空，说明是首次初始化
             bool firstInit = _kwMap.Count == 0;
-
-            // 首次初始化时清空缓存
             if (firstInit)
             {
                 _kwMap.Clear();
                 _kwBrushCache.Clear();
             }
 
-            // 遍历关键字集合
             foreach (var k in keywords)
             {
                 if (string.IsNullOrWhiteSpace(k?.Name))
                     continue;
 
-                // 添加或更新关键字
                 _kwMap[k.Name] = new EditModel
                 {
                     Name = k.Name,
@@ -183,7 +200,6 @@ namespace Snet.Windows.Controls.handler
                     Color = k.Color
                 };
 
-                // 更新颜色画刷缓存
                 if (!string.IsNullOrWhiteSpace(k.Color))
                 {
                     try
@@ -199,138 +215,259 @@ namespace Snet.Windows.Controls.handler
                 }
                 else if (!_kwBrushCache.ContainsKey(k.Name))
                 {
-                    // 没有定义颜色则保持原色或默认蓝色
                     _kwBrushCache[k.Name] = Brushes.DodgerBlue;
                 }
             }
 
-            // 强制刷新视图以应用新的关键字高亮
             _editor.TextArea.TextView.InvalidateVisual();
         }
-
         #endregion
 
         #region 自动补全
         /// <summary>
-        /// 文本输入事件处理<br/>
-        /// 监听用户输入，在适当的时候触发自动补全<br/>
+        /// 键盘按下事件处理<br/>
         /// </summary>
-        private void Editor_TextEntered(object? sender, TextCompositionEventArgs e)
+        private void Editor_PreviewKeyDown(object sender, KeyEventArgs e)
         {
-            if (string.IsNullOrEmpty(e?.Text)) return;
-            char ch = e.Text[0];
-
-            // 字母数字和下划线触发补全<br/>
-            if (char.IsLetterOrDigit(ch) || ch == '_')
-                ShowCompletion(triggeredBySpace: false);
-            // 空格键触发补全（如果当前没有补全窗口）<br/>
-            else if (ch == ' ')
+            // 回退键触发补全
+            if (e.Key == Key.Back)
             {
-                if (_completionWindow != null) _completionWindow.Close();
-                else ShowCompletion(triggeredBySpace: true);
+                // 延迟触发，等待删除操作完成
+                Dispatcher.CurrentDispatcher.BeginInvoke(new Action(() =>
+                {
+                    string currentWord = GetWordBeforeCaret();
+
+                    // 如果回退后没有单词内容或者是分隔符，关闭补全窗口
+                    if (string.IsNullOrEmpty(currentWord) || IsWordSeparator(currentWord[0]))
+                    {
+                        _completionWindow?.Close();
+                        _completionWindow = null;
+                    }
+                    else
+                    {
+                        ShowCompletion(false);
+                    }
+                }), System.Windows.Threading.DispatcherPriority.Background);
+            }
+            // ESC键关闭补全窗口
+            else if (e.Key == Key.Escape)
+            {
+                _completionWindow?.Close();
+            }
+            // Ctrl+Space强制显示补全
+            else if (e.Key == Key.J && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+            {
+                e.Handled = true;
+                ShowCompletion(true);
             }
         }
 
         /// <summary>
-        /// 显示补全窗口<br/>
-        /// 根据当前输入的前缀筛选匹配的关键字<br/>
+        /// 文本输入事件处理<br/>
+        /// 简化版本：只处理非分隔符输入
         /// </summary>
-        /// <param name="triggeredBySpace">是否由空格键触发</param>
-        private void ShowCompletion(bool triggeredBySpace = false)
+        private void Editor_TextEntered(object? sender, TextCompositionEventArgs e)
+        {
+            if (string.IsNullOrEmpty(e?.Text)) return;
+
+            char ch = e.Text[0];
+
+            // 只对非分隔符字符显示补全
+            if (!IsWordSeparator(ch))
+            {
+                ShowCompletion(false);
+            }
+        }
+
+        /// <summary>
+        /// 获取光标前单词<br/>
+        /// </summary>
+        private string GetWordBeforeCaret()
+        {
+            if (_editor?.Document == null || _editor.Document.TextLength == 0)
+                return string.Empty;
+
+            int offset = Math.Min(_editor.CaretOffset, _editor.Document.TextLength);
+            if (offset == 0) return string.Empty;
+
+            var text = _editor.Document.Text;
+
+            // 从光标位置向前查找单词边界
+            int start = offset - 1;
+            while (start >= 0 && !IsWordSeparator(text[start]))
+            {
+                start--;
+            }
+            start++; // 调整到单词起始位置
+
+            // 提取单词
+            if (start < offset)
+            {
+                string word = text.Substring(start, offset - start);
+                return word;
+            }
+
+            return string.Empty;
+        }
+
+        /// <summary>
+        /// 显示补全窗口<br/>
+        /// </summary>
+        private void ShowCompletion(bool showAll = false)
         {
             var doc = _editor.Document;
             if (doc == null) return;
 
-            int caret = _editor.CaretOffset;
-            if (caret < 0) return;
+            string currentWord = GetWordBeforeCaret();
 
-            // 获取光标前单词前缀<br/>
-            int start = caret;
-            while (start > 0 && IsWordChar(doc.GetCharAt(start - 1))) start--;
-            string prefix = caret > start ? doc.GetText(start, caret - start) : string.Empty;
-
-            // 筛选匹配关键字（优化：直接循环，避免LINQ开销）<br/>
-            var matches = new List<EditModel>();
-            foreach (var kw in _kwMap.Values)
-            {
-                if (triggeredBySpace || kw.Name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-                    matches.Add(kw);
-            }
-
-            // 没有匹配项时关闭补全窗口<br/>
-            if (!matches.Any())
+            // 如果当前单词是分隔符，不显示补全
+            if (!showAll && !string.IsNullOrEmpty(currentWord) && IsWordSeparator(currentWord[0]))
             {
                 _completionWindow?.Close();
                 _completionWindow = null;
                 return;
             }
 
-            // 已存在窗口则刷新数据<br/>
-            if (_completionWindow != null)
+            var matches = new List<EditModel>();
+
+            // 如果没有当前单词或者显示全部，则显示所有关键字
+            if (showAll || string.IsNullOrEmpty(currentWord))
             {
-                var list = _completionWindow.CompletionList.CompletionData;
-                list.Clear();
-                foreach (var kw in matches) list.Add(new KeywordCompletionData(kw));
+                matches.AddRange(_kwMap.Values);
+            }
+            else
+            {
+                // 只匹配名称
+                foreach (var kw in _kwMap.Values)
+                {
+                    // 只检查名称匹配（前缀、包含、完全匹配）
+                    bool nameMatches = kw.Name.StartsWith(currentWord, StringComparison.OrdinalIgnoreCase) ||
+                                      kw.Name.Contains(currentWord, StringComparison.OrdinalIgnoreCase) ||
+                                      kw.Name.Equals(currentWord, StringComparison.OrdinalIgnoreCase);
+
+                    if (nameMatches)
+                    {
+                        matches.Add(kw);
+                    }
+                }
+            }
+
+            // 按匹配质量排序
+            if (!string.IsNullOrEmpty(currentWord))
+            {
+                matches.Sort((a, b) =>
+                {
+                    int scoreA = GetMatchScore(a, currentWord);
+                    int scoreB = GetMatchScore(b, currentWord);
+                    return scoreB.CompareTo(scoreA);
+                });
+            }
+
+            // 如果没有匹配项，关闭补全窗口
+            if (matches.Count == 0)
+            {
+                _completionWindow?.Close();
+                _completionWindow = null;
                 return;
             }
 
-            // 创建新的补全窗口<br/>
-            _completionWindow = new CompletionWindow(_editor.TextArea)
+            // 创建或更新补全窗口
+            if (_completionWindow != null)
             {
-                MaxHeight = MaxCompletionRows * ItemHeight,
-                WindowStyle = WindowStyle.None,
-                AllowsTransparency = true,
-                BorderThickness = new Thickness(1),
-            };
+                // 更新现有窗口的数据
+                var completionList = _completionWindow.CompletionList;
+                completionList.CompletionData.Clear();
 
-            // 应用主题到补全窗口<br/>
-            ApplyCompletionTheme(_completionWindow);
+                foreach (var kw in matches)
+                    completionList.CompletionData.Add(new KeywordCompletionData(kw));
 
-            // 添加匹配的补全项<br/>
-            foreach (var kw in matches)
-                _completionWindow.CompletionList.CompletionData.Add(new KeywordCompletionData(kw));
+                // 重置选择
+                completionList.SelectedItem = completionList.CompletionData.FirstOrDefault();
+            }
+            else
+            {
+                // 创建新窗口
+                _completionWindow = new CompletionWindow(_editor.TextArea)
+                {
+                    MaxHeight = MaxCompletionRows * ItemHeight,
+                    WindowStyle = WindowStyle.None,
+                    AllowsTransparency = true,
+                    BorderThickness = new Thickness(1),
+                    SizeToContent = SizeToContent.WidthAndHeight
+                };
 
-            // 窗口关闭时清空引用<br/>
-            _completionWindow.Closed += (_, _) => _completionWindow = null;
-            _completionWindow.Show();
+                ApplyCompletionTheme(_completionWindow);
+
+                foreach (var kw in matches)
+                    _completionWindow.CompletionList.CompletionData.Add(new KeywordCompletionData(kw));
+
+                _completionWindow.Closed += (_, _) =>
+                {
+                    _completionWindow = null;
+                };
+
+                _completionWindow.Show();
+            }
+        }
+
+        /// <summary>
+        /// 计算匹配分数<br/>
+        /// 用于排序补全项
+        /// </summary>
+        private int GetMatchScore(EditModel model, string currentWord)
+        {
+            if (string.IsNullOrEmpty(currentWord)) return 0;
+
+            int score = 0;
+
+            // 精确匹配最高分
+            if (model.Name.Equals(currentWord, StringComparison.OrdinalIgnoreCase))
+                score += 100;
+
+            // 前缀匹配次高分
+            if (model.Name.StartsWith(currentWord, StringComparison.OrdinalIgnoreCase))
+                score += 50;
+
+            // 包含匹配
+            if (model.Name.Contains(currentWord, StringComparison.OrdinalIgnoreCase))
+                score += 25;
+
+            return score;
         }
 
         /// <summary>
         /// 关键字补全数据实现<br/>
-        /// 封装关键字的补全显示和插入逻辑<br/>
         /// </summary>
         private sealed class KeywordCompletionData : ICompletionData
         {
             private readonly EditModel _kw;
 
-            /// <summary>
-            /// 构造函数<br/>
-            /// 使用关键字模型初始化补全数据<br/>
-            /// </summary>
             public KeywordCompletionData(EditModel kw) => _kw = kw;
 
             public ImageSource? Image => null;
             public string Text => _kw.Name;
             public object Content => _kw.Name;
-            public object Description => _kw.Description;
+            public object Description => null; // 隐藏提示框的提示
+            public string Describe => _kw.Description; // 模板右侧显示用
             public double Priority => 0;
 
-            /// <summary>
-            /// 完成补全操作<br/>
-            /// 将选中的关键字插入到文档中<br/>
-            /// </summary>
             public void Complete(TextArea textArea, ISegment completionSegment, EventArgs insertionRequestEventArgs)
             {
                 var doc = textArea.Document;
                 int start = completionSegment.Offset;
                 int end = completionSegment.EndOffset;
 
-                // 扩展选区包含整个单词，避免部分替换<br/>
-                while (start > 0 && IsWordChar(doc.GetCharAt(start - 1))) start--;
-                while (end < doc.TextLength && IsWordChar(doc.GetCharAt(end))) end++;
+                // 扩展选区包含整个单词
+                while (start > 0 && !EditHandler.IsWordSeparator(doc.GetCharAt(start - 1)))
+                    start--;
+                while (end < doc.TextLength && !EditHandler.IsWordSeparator(doc.GetCharAt(end)))
+                    end++;
 
-                // 替换文本并设置光标位置<br/>
-                doc.Replace(start, end - start, Text);
+                int replaceLength = end - start;
+                string currentText = doc.GetText(start, replaceLength);
+
+                // 替换文本
+                doc.Replace(start, replaceLength, Text);
                 textArea.Caret.Offset = start + Text.Length;
             }
         }
@@ -339,7 +476,6 @@ namespace Snet.Windows.Controls.handler
         #region 语法高亮
         /// <summary>
         /// 关键字颜色高亮器<br/>
-        /// 负责文档中关键字的语法高亮显示<br/>
         /// </summary>
         private sealed class KeywordColorizer : DocumentColorizingTransformer
         {
@@ -347,10 +483,6 @@ namespace Snet.Windows.Controls.handler
             private readonly Dictionary<string, Brush> _kwBrushCache;
             private readonly Func<Brush> _defaultBrushProvider;
 
-            /// <summary>
-            /// 构造函数<br/>
-            /// 初始化关键字映射和画刷缓存<br/>
-            /// </summary>
             public KeywordColorizer(Dictionary<string, EditModel> kwMap, Dictionary<string, Brush> kwBrushCache, Func<Brush> defaultBrushProvider)
             {
                 _kwMap = kwMap;
@@ -358,39 +490,43 @@ namespace Snet.Windows.Controls.handler
                 _defaultBrushProvider = defaultBrushProvider;
             }
 
-            /// <summary>
-            /// 颜色化行内容<br/>
-            /// 遍历行中的每个单词并应用对应的颜色<br/>
-            /// </summary>
             protected override void ColorizeLine(DocumentLine line)
             {
                 if (line.IsDeleted) return;
                 var doc = CurrentContext.Document;
                 string text = doc.GetText(line);
 
+                // 设置默认画刷
                 Brush defaultBrush = _defaultBrushProvider() ?? Brushes.Black;
                 ChangeLinePart(line.Offset, line.EndOffset, e => e.TextRunProperties.SetForegroundBrush(defaultBrush));
 
-                int i = 0;
-                while (i < text.Length)
+                if (_kwMap.Count == 0) return;
+
+                // 对每个关键字进行匹配（支持中文）
+                foreach (var keyword in _kwMap.Keys)
                 {
-                    // 忽略空白字符
-                    if (char.IsWhiteSpace(text[i]))
-                    {
-                        i++;
-                        continue;
-                    }
+                    if (string.IsNullOrEmpty(keyword)) continue;
 
-                    int s = i;
-                    // 向后找连续非空白字符
-                    while (i < text.Length && !char.IsWhiteSpace(text[i])) i++;
-                    string token = text.Substring(s, i - s);
-
-                    // 匹配关键字
-                    if (_kwMap.ContainsKey(token) && _kwBrushCache.TryGetValue(token, out var brush))
+                    int index = 0;
+                    while (index < text.Length)
                     {
-                        ChangeLinePart(line.Offset + s, line.Offset + i, e =>
-                            e.TextRunProperties.SetForegroundBrush(brush));
+                        int foundIndex = text.IndexOf(keyword, index, StringComparison.OrdinalIgnoreCase);
+                        if (foundIndex == -1) break;
+
+                        // 检查是否是完整单词（前后是分隔符或边界）
+                        bool isWordStart = foundIndex == 0 || EditHandler.IsWordSeparator(text[foundIndex - 1]);
+                        bool isWordEnd = foundIndex + keyword.Length == text.Length ||
+                                        EditHandler.IsWordSeparator(text[foundIndex + keyword.Length]);
+
+                        if (isWordStart && isWordEnd && _kwBrushCache.TryGetValue(keyword, out var brush))
+                        {
+                            ChangeLinePart(
+                                line.Offset + foundIndex,
+                                line.Offset + foundIndex + keyword.Length,
+                                e => e.TextRunProperties.SetForegroundBrush(brush));
+                        }
+
+                        index = foundIndex + keyword.Length;
                     }
                 }
             }
@@ -425,9 +561,7 @@ namespace Snet.Windows.Controls.handler
 
         /// <summary>
         /// 设置编辑器主题<br/>
-        /// 根据主题类型切换颜色方案<br/>
         /// </summary>
-        /// <param name="isDark">是否为深色主题</param>
         private void SetTheme(bool isDark)
         {
             _isDark = isDark;
@@ -436,18 +570,13 @@ namespace Snet.Windows.Controls.handler
             _editor.TextArea.Background = _editor.Background;
             _editor.TextArea.Foreground = _editor.Foreground;
 
-            // 更新补全窗口主题<br/>
             if (_completionWindow != null) ApplyCompletionTheme(_completionWindow);
-
-            // 刷新文本视图<br/>
             _editor.TextArea.TextView.InvalidateVisual();
         }
 
         /// <summary>
         /// 应用补全窗口主题<br/>
-        /// 根据当前主题设置补全窗口的颜色<br/>
         /// </summary>
-        /// <param name="win">补全窗口实例</param>
         private void ApplyCompletionTheme(CompletionWindow win)
         {
             win.CompletionList.ListBox.BorderThickness = new Thickness(0);
@@ -455,7 +584,6 @@ namespace Snet.Windows.Controls.handler
 
             if (_isDark)
             {
-                // 深色主题配色<br/>
                 win.Background = _dark;
                 win.Foreground = Brushes.White;
                 win.BorderBrush = Brushes.Gray;
@@ -464,7 +592,6 @@ namespace Snet.Windows.Controls.handler
             }
             else
             {
-                // 浅色主题配色<br/>
                 win.Background = _light;
                 win.Foreground = Brushes.Black;
                 win.BorderBrush = Brushes.LightGray;
@@ -477,78 +604,57 @@ namespace Snet.Windows.Controls.handler
         #region 辅助方法
         /// <summary>
         /// 获取指定偏移量处的关键字文本<br/>
-        /// 适用于任意字符定义（包括符号、汉字、函数名等）
         /// </summary>
-        /// <param name="offset">文档中的偏移量</param>
-        /// <returns>匹配到的关键字名称；若未匹配则返回 null</returns>
         private string? GetWordAtOffset(int offset)
         {
             if (_editor?.Document == null || _kwMap.Count == 0)
                 return null;
 
             string text = _editor.Document.Text;
-            if (string.IsNullOrEmpty(text) || offset < 0 || offset >= text.Length)
-                return null;
+            if (string.IsNullOrEmpty(text) || offset < 0 || offset > text.Length) return null;
 
-            // 从关键字集合中查找匹配（优先匹配最长关键字）
-            // 这样可以支持例如 "==" 比 "=" 优先匹配
-            foreach (var kw in _kwMap.Keys.OrderByDescending(k => k.Length))
+            // 向左找到单词开始
+            int start = offset;
+            while (start > 0 && !IsWordSeparator(text[start - 1])) start--;
+
+            // 向右找到单词结束（exclusive）
+            int end = offset;
+            while (end < text.Length && !IsWordSeparator(text[end])) end++;
+
+            if (end > start)
             {
-                if (string.IsNullOrEmpty(kw)) continue;
-
-                int len = kw.Length;
-
-                // 检查当前位置附近是否包含该关键字
-                int start = Math.Max(0, offset - len);
-                int end = Math.Min(text.Length - len, offset);
-
-                for (int i = start; i <= end; i++)
-                {
-                    if (string.Compare(text, i, kw, 0, len, StringComparison.Ordinal) == 0)
-                    {
-                        // 如果光标在关键字范围内，认为命中
-                        if (offset >= i && offset <= i + len)
-                            return kw;
-                    }
-                }
+                string word = text.Substring(start, end - start);
+                if (_kwMap.ContainsKey(word))
+                    return word;
             }
 
             return null;
         }
-
-        /// <summary>
-        /// 判断字符是否为单词字符<br/>
-        /// 字母、数字和下划线被视为单词字符<br/>
-        /// </summary>
-        /// <param name="c">要检查的字符</param>
-        /// <returns>是否为单词字符</returns>
-        private static bool IsWordChar(char c) => char.IsLetterOrDigit(c) || c == '_';
         #endregion
 
         #region IDisposable
         /// <summary>
         /// 释放资源<br/>
-        /// 解除事件绑定并清理高亮器<br/>
         /// </summary>
         public void Dispose()
         {
             if (_disposed) return;
             _disposed = true;
 
-            // 解除事件绑定<br/>
             _editor.TextArea.TextEntered -= _textEnteredHandler;
             _editor.TextArea.TextView.MouseHover -= _textViewMouseHoverHandler;
             _editor.TextArea.TextView.MouseHoverStopped -= _textViewMouseHoverStoppedHandler;
             _editor.PreviewMouseDown -= _editorPreviewMouseDownHandler;
+            _editor.PreviewKeyDown -= _editorPreviewKeyDownHandler;
 
-            // 移除语法高亮器<br/>
             _editor.TextArea.TextView.LineTransformers.Remove(_colorizer);
+            _completionWindow?.Close();
+            SkinHandler.OnSkinEventAsync -= SkinHandler_OnSkinEventAsync;
         }
         #endregion
 
         /// <summary>
         /// 皮肤事件处理<br/>
-        /// 响应系统主题切换事件<br/>
         /// </summary>
         private Task SkinHandler_OnSkinEventAsync(object? sender, Snet.Windows.Core.data.EventSkinResult e)
         {
