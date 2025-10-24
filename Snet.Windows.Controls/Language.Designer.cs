@@ -169,6 +169,15 @@ namespace Snet.Windows.Controls {
         }
         
         /// <summary>
+        ///   查找类似 提示 的本地化字符串。
+        /// </summary>
+        internal static string 提示 {
+            get {
+                return ResourceManager.GetString("提示", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 是 的本地化字符串。
         /// </summary>
         internal static string 是 {

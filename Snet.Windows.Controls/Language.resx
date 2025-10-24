@@ -160,4 +160,7 @@
   <data name="移除线条值" xml:space="preserve">
     <value>移除线条值</value>
   </data>
+  <data name="提示" xml:space="preserve">
+    <value>提示</value>
+  </data>
 </root>
