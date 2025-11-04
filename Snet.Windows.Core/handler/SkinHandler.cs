@@ -4,7 +4,6 @@ using Snet.Windows.Core.data;
 using Snet.Windows.Core.@enum;
 using System.IO;
 using System.Windows;
-using System.Windows.Media;
 using Wpf.Ui.Appearance;
 using Application = System.Windows.Application;
 using Color = System.Windows.Media.Color;
@@ -219,12 +218,14 @@ namespace Snet.Windows.Core.handler
                              case SkinType.Dark:
                                  internalTheme.SetDarkTheme();//模板
                                  internalTheme.SetPrimaryColor((Color)ColorConverter.ConvertFromString("#505050")); //主要颜色
-                                 internalTheme.SetSecondaryColor(Colors.White);//次要颜色
+                                 internalTheme.SetSecondaryColor((Color)ColorConverter.ConvertFromString("#F0E8E8"));//次要颜色
+                                 internalTheme.PrimaryLight = (Color)ColorConverter.ConvertFromString("#616161");  //文本框选中后背景色
                                  break;
                              case SkinType.Light:
                                  internalTheme.SetLightTheme();//模板
                                  internalTheme.SetPrimaryColor((Color)ColorConverter.ConvertFromString("#F6F6F6"));//主要颜色
-                                 internalTheme.SetSecondaryColor(Colors.Black);//次要颜色
+                                 internalTheme.SetSecondaryColor((Color)ColorConverter.ConvertFromString("#272424"));//次要颜色
+                                 internalTheme.PrimaryLight = (Color)ColorConverter.ConvertFromString("#D3D3D3");//文本框选中后背景色
                                  break;
                          }
                      }
