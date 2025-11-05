@@ -1,42 +1,42 @@
 <Project Sdk="Microsoft.NET.Sdk">
-	<PropertyGroup>
-		<TargetFrameworks>net8.0-windows;net9.0-windows</TargetFrameworks>
-		<AccelerateBuildsInVisualStudio>True</AccelerateBuildsInVisualStudio>
-		<ImplicitUsings>enable</ImplicitUsings>
-		<Nullable>enable</Nullable>
-		<Version>25.307.1</Version>
-		<Authors>Shun</Authors>
-		<UseWPF>True</UseWPF>
-		<AuthorsName>Shun</AuthorsName>
-		<CompanyName>Snet</CompanyName>
-		<GenerateDocumentationFile>True</GenerateDocumentationFile>
-		<PackageProjectUrl>https://shunnet.top</PackageProjectUrl>
-		<Product>Windows</Product>
-		<Description>界面组件：Controls（控件、图表、转换器、模型、枚举、处理、消息、多语言）</Description>
-		<PackageIcon>icon.png</PackageIcon>
-		<PackageLicenseExpression>MIT</PackageLicenseExpression>
-		<PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
-		<PackageReadmeFile>README.md</PackageReadmeFile>
-	</PropertyGroup>
-	<ItemGroup>
-		<None Include="..\icon.png" Pack="true" PackagePath="\" />
-		<None Include="..\README.md" Pack="true" PackagePath="\" />
-	</ItemGroup>
-	<ItemGroup>
-		<PackageReference Include="Snet.Windows.Core" Version="25.307.1" />
-		<PackageReference Include="AvalonEdit" Version="6.3.1.120" />
-	</ItemGroup>
-	<ItemGroup>
-		<Compile Update="Language.Designer.cs">
-			<DesignTime>True</DesignTime>
-			<AutoGen>True</AutoGen>
-			<DependentUpon>Language.resx</DependentUpon>
-		</Compile>
-	</ItemGroup>
-	<ItemGroup>
-		<EmbeddedResource Update="Language.resx">
-			<Generator>ResXFileCodeGenerator</Generator>
-			<LastGenOutput>Language.Designer.cs</LastGenOutput>
-		</EmbeddedResource>
-	</ItemGroup>
+  <PropertyGroup>
+    <TargetFrameworks>net8.0-windows;net9.0-windows</TargetFrameworks>
+    <AccelerateBuildsInVisualStudio>True</AccelerateBuildsInVisualStudio>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Version>25.309.1</Version>
+    <Authors>Shun</Authors>
+    <UseWPF>True</UseWPF>
+    <AuthorsName>Shun</AuthorsName>
+    <CompanyName>Snet</CompanyName>
+    <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    <PackageProjectUrl>https://shunnet.top</PackageProjectUrl>
+    <Product>Windows</Product>
+    <Description>界面组件：Controls（控件、图表、转换器、模型、枚举、处理、消息、多语言）</Description>
+    <PackageIcon>icon.png</PackageIcon>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="..\icon.png" Pack="true" PackagePath="\" />
+    <None Include="..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Snet.Windows.Core" Version="25.309.1" />
+    <PackageReference Include="AvalonEdit" Version="6.3.1.120" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Update="Language.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Language.resx</DependentUpon>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Update="Language.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Language.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+  </ItemGroup>
 </Project>

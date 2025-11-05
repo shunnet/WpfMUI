@@ -225,7 +225,7 @@ namespace Snet.Windows.Core.handler
                                  internalTheme.SetLightTheme();//模板
                                  internalTheme.SetPrimaryColor((Color)ColorConverter.ConvertFromString("#F6F6F6"));//主要颜色
                                  internalTheme.SetSecondaryColor((Color)ColorConverter.ConvertFromString("#272424"));//次要颜色
-                                 internalTheme.PrimaryLight = (Color)ColorConverter.ConvertFromString("#D3D3D3");//文本框选中后背景色
+                                 internalTheme.PrimaryLight = (Color)ColorConverter.ConvertFromString("#C6C6C6");//文本框选中后背景色
                                  break;
                          }
                      }
