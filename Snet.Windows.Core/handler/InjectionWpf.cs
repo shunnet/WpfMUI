@@ -13,17 +13,17 @@ namespace Snet.Windows.Core.handler
         /// <summary>
         /// 窗口缓存
         /// </summary>
-        private static readonly ConcurrentDictionary<Type, System.Windows.Window> WindowCache = new();
+        private static readonly ConcurrentDictionary<Guid, System.Windows.Window> WindowCache = new();
 
         /// <summary>
         /// 页面缓存
         /// </summary>
-        private static readonly ConcurrentDictionary<Type, System.Windows.Controls.Page> PageCache = new();
+        private static readonly ConcurrentDictionary<Guid, System.Windows.Controls.Page> PageCache = new();
 
         /// <summary>
         /// 用户控件缓存
         /// </summary>
-        private static readonly ConcurrentDictionary<Type, System.Windows.Controls.UserControl> UserControlCache = new();
+        private static readonly ConcurrentDictionary<Guid, System.Windows.Controls.UserControl> UserControlCache = new();
 
         /// <summary>
         /// 注入窗口
@@ -69,23 +69,32 @@ namespace Snet.Windows.Core.handler
                 }
 
                 //从缓存中获取
-                if (cache && WindowCache.TryGetValue(typeof(T), out var cacheData))
+                if (cache && WindowCache.TryGetValue(typeof(T).GUID, out var cacheData))
                 {
                     return (T)cacheData;
                 }
 
+                ServiceProvider? serviceProvider = GetProvider();
+                if (serviceProvider == null)
+                {
+                    throw new Exception("注入失败，服务提供器为空");
+                }
+
                 // 获取视图模型
-                var viewModel = GetService<M>();
+                var viewModel = ActivatorUtilities.CreateInstance<M>(serviceProvider);
 
                 // 使用依赖注入创建实例
-                var instance = ActivatorUtilities.CreateInstance<T>(GetProvider());
+                var instance = ActivatorUtilities.CreateInstance<T>(serviceProvider);
                 instance.DataContext = viewModel;
 
                 // 说明是第一次缓存，则设置缓存
                 if (cache)
                 {
                     // 设置缓存
-                    WindowCache[typeof(T)] = instance;
+                    WindowCache[typeof(T).GUID] = instance;
+                    //覆盖之前的注入
+                    AddService(s => s.AddSingleton<T>(instance));
+                    AddService(s => s.AddSingleton<M>(viewModel));
                 }
 
                 //返回新的实例
@@ -141,23 +150,32 @@ namespace Snet.Windows.Core.handler
                 }
 
                 //从缓存中获取
-                if (cache && UserControlCache.TryGetValue(typeof(T), out var cacheData))
+                if (cache && UserControlCache.TryGetValue(typeof(T).GUID, out var cacheData))
                 {
                     return (T)cacheData;
                 }
 
+                ServiceProvider? serviceProvider = GetProvider();
+                if (serviceProvider == null)
+                {
+                    throw new Exception("注入失败，服务提供器为空");
+                }
+
                 // 获取视图模型
-                var viewModel = GetService<M>();
+                var viewModel = ActivatorUtilities.CreateInstance<M>(serviceProvider);
 
                 // 使用依赖注入创建实例
-                var instance = ActivatorUtilities.CreateInstance<T>(GetProvider());
+                var instance = ActivatorUtilities.CreateInstance<T>(serviceProvider);
                 instance.DataContext = viewModel;
 
                 // 说明是第一次缓存，则设置缓存
                 if (cache)
                 {
                     // 设置缓存
-                    UserControlCache[typeof(T)] = instance;
+                    UserControlCache[typeof(T).GUID] = instance;
+                    //覆盖之前的注入
+                    AddService(s => s.AddSingleton<T>(instance));
+                    AddService(s => s.AddSingleton<M>(viewModel));
                 }
 
                 //返回新的实例
@@ -213,23 +231,32 @@ namespace Snet.Windows.Core.handler
                 }
 
                 //从缓存中获取
-                if (cache && PageCache.TryGetValue(typeof(T), out var cacheData))
+                if (cache && PageCache.TryGetValue(typeof(T).GUID, out var cacheData))
                 {
                     return (T)cacheData;
                 }
 
+                ServiceProvider? serviceProvider = GetProvider();
+                if (serviceProvider == null)
+                {
+                    throw new Exception("注入失败，服务提供器为空");
+                }
+
                 // 获取视图模型
-                var viewModel = GetService<M>();
+                var viewModel = ActivatorUtilities.CreateInstance<M>(serviceProvider);
 
                 // 使用依赖注入创建实例
-                var instance = ActivatorUtilities.CreateInstance<T>(GetProvider());
+                var instance = ActivatorUtilities.CreateInstance<T>(serviceProvider);
                 instance.DataContext = viewModel;
 
                 // 说明是第一次缓存，则设置缓存
                 if (cache)
                 {
                     // 设置缓存
-                    PageCache[typeof(T)] = instance;
+                    PageCache[typeof(T).GUID] = instance;
+                    //覆盖之前的注入
+                    AddService(s => s.AddSingleton<T>(instance));
+                    AddService(s => s.AddSingleton<M>(viewModel));
                 }
 
                 //返回新的实例

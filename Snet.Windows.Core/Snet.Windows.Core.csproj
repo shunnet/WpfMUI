@@ -1,10 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>net8.0-windows;net9.0-windows</TargetFrameworks>
+    <TargetFrameworks>net8.0-windows;net10.0-windows</TargetFrameworks>
     <AccelerateBuildsInVisualStudio>True</AccelerateBuildsInVisualStudio>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Version>25.317.1</Version>
+    <Version>25.321.1</Version>
     <Authors>Shun</Authors>
     <UseWPF>True</UseWPF>
     <AuthorsName>Shun</AuthorsName>
