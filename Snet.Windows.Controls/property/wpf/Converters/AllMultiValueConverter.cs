@@ -1,6 +1,6 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="AllMultiValueConverter.cs" company="PropertyTools">
-//   Copyright (c) 2014 PropertyTools contributors
+// <copyright file="AllMultiValueConverter.cs" company="Snet.Windows.Controls.property.core">
+//   Copyright (c) 2014 Snet.Windows.Controls.property.core contributors
 // </copyright>
 // <summary>
 //   Converts an array of object instances to a bool instance by checking if all items equal the parameter.

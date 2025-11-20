@@ -1,5 +1,5 @@
 // --------------------------------------------------------------------------------------------------------------------
-// <copyright file="EnumerableComparer{T}.cs" company="PropertyTools">
+// <copyright file="EnumerableComparer{T}.cs" company="Snet.Windows.Controls.property.core">
 //   https://www.interact-sw.co.uk/iangblog/2007/12/13/natural-sorting
 // </copyright>
 // <summary>

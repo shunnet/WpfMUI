@@ -116,7 +116,7 @@ namespace Snet.Windows.Controls.handler
         {
             NavigationViewItem item = new NavigationViewItem()
             {
-                NavigationCacheMode = NavigationCacheMode.Enabled,
+                NavigationCacheMode = NavigationCacheMode.Required,
                 Icon = new SymbolIcon { Symbol = icon },
                 TargetPageType = type,
                 TargetPageTag = key,

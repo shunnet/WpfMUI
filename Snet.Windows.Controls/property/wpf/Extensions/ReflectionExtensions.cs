@@ -1,6 +1,6 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="ReflectionExtensions.cs" company="PropertyTools">
-//   Copyright (c) 2014 PropertyTools contributors
+// <copyright file="ReflectionExtensions.cs" company="Snet.Windows.Controls.property.core">
+//   Copyright (c) 2014 Snet.Windows.Controls.property.core contributors
 // </copyright>
 // <summary>
 //   Provides reflection extensions.
@@ -21,7 +21,7 @@ namespace Snet.Windows.Controls.property.wpf
     public static class ReflectionExtensions
     {
         /// <summary>
-        /// Filters on the <see cref="System.ComponentModel.BrowsableAttribute" /> and <see cref="PropertyTools.DataAnnotations.BrowsableAttribute" />.
+        /// Filters on the <see cref="System.ComponentModel.BrowsableAttribute" /> and <see cref="Snet.Windows.Controls.property.core.DataAnnotations.BrowsableAttribute" />.
         /// </summary>
         /// <typeparam name="T">The enumeration type.</typeparam>
         /// <param name="arr">The array.</param>
@@ -55,7 +55,7 @@ namespace Snet.Windows.Controls.property.wpf
                         continue;
                     }
 
-                    var browsable2 = field.GetCustomAttributes<Snet.Windows.Controls.property.core.DataAnnotations.BrowsableAttribute>(true).FirstOrDefault();
+                    var browsable2 = field.GetCustomAttributes<core.DataAnnotations.BrowsableAttribute>(true).FirstOrDefault();
                     if (browsable2 != null)
                     {
                         // It is declared, is it true or false?
@@ -139,7 +139,7 @@ namespace Snet.Windows.Controls.property.wpf
         /// <returns><c>true</c> if the property is read-only; otherwise, <c>false</c>.</returns>
         public static bool IsReadOnly(this System.ComponentModel.PropertyDescriptor pd)
         {
-            var a = pd.GetFirstAttributeOrDefault<Snet.Windows.Controls.property.core.DataAnnotations.ReadOnlyAttribute>();
+            var a = pd.GetFirstAttributeOrDefault<core.DataAnnotations.ReadOnlyAttribute>();
             if (a != null)
             {
                 return a.IsReadOnly;
@@ -155,7 +155,7 @@ namespace Snet.Windows.Controls.property.wpf
         /// <returns>The category.</returns>
         public static string GetCategory(this System.ComponentModel.PropertyDescriptor pd)
         {
-            var a = pd.GetFirstAttributeOrDefault<Snet.Windows.Controls.property.core.DataAnnotations.CategoryAttribute>();
+            var a = pd.GetFirstAttributeOrDefault<core.DataAnnotations.CategoryAttribute>();
             if (a != null)
             {
                 return a.Category;
@@ -171,7 +171,7 @@ namespace Snet.Windows.Controls.property.wpf
         /// <returns>The description.</returns>
         public static string GetDescription(this System.ComponentModel.PropertyDescriptor pd)
         {
-            var a = pd.GetFirstAttributeOrDefault<Snet.Windows.Controls.property.core.DataAnnotations.DescriptionAttribute>();
+            var a = pd.GetFirstAttributeOrDefault<core.DataAnnotations.DescriptionAttribute>();
             if (a != null)
             {
                 return a.Description;
@@ -187,7 +187,7 @@ namespace Snet.Windows.Controls.property.wpf
         /// <returns>The display name.</returns>
         public static string GetDisplayName(this System.ComponentModel.PropertyDescriptor pd)
         {
-            var a = pd.GetFirstAttributeOrDefault<Snet.Windows.Controls.property.core.DataAnnotations.DisplayNameAttribute>();
+            var a = pd.GetFirstAttributeOrDefault<core.DataAnnotations.DisplayNameAttribute>();
             if (a != null)
             {
                 return a.DisplayName;

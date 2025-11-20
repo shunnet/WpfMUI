@@ -1,6 +1,6 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="IDataGridControlFactory.cs" company="PropertyTools">
-//   Copyright (c) 2014 PropertyTools contributors
+// <copyright file="IDataGridControlFactory.cs" company="Snet.Windows.Controls.property.core">
+//   Copyright (c) 2014 Snet.Windows.Controls.property.core contributors
 // </copyright>
 // <summary>
 //   Specifies a control factory for the DataGrid.

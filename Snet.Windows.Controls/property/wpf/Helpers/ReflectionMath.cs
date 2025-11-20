@@ -1,6 +1,6 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="ReflectionMath.cs" company="PropertyTools">
-//   Copyright (c) 2014 PropertyTools contributors
+// <copyright file="ReflectionMath.cs" company="Snet.Windows.Controls.property.core">
+//   Copyright (c) 2014 Snet.Windows.Controls.property.core contributors
 // </copyright>
 // <summary>
 //   Addition, subtraction and multiplication for all kinds of objects (by reflection to invoke the operators).

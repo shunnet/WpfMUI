@@ -1,6 +1,6 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="CellRef.cs" company="PropertyTools">
-//   Copyright (c) 2014 PropertyTools contributors
+// <copyright file="CellRef.cs" company="Snet.Windows.Controls.property.core">
+//   Copyright (c) 2014 Snet.Windows.Controls.property.core contributors
 // </copyright>
 // <summary>
 //   Represents a cell reference.

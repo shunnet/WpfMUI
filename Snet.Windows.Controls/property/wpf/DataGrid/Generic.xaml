@@ -1,6 +1,7 @@
-<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" 
-                    xmlns:local="clr-namespace:Snet.Windows.Controls.property.wpf">
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:Snet.Windows.Controls.property.wpf">
 
     <LinearGradientBrush x:Key="SelectionBrush" StartPoint="0,0" EndPoint="0,1">
         <LinearGradientBrush.GradientStops>
@@ -21,38 +22,40 @@
         <Setter Property="RowsContextMenu">
             <Setter.Value>
                 <ContextMenu>
-                    <MenuItem Header="Insert" Command="local:DataGridCommands.InsertRows"/>
-                    <MenuItem Header="Delete" Command="local:DataGridCommands.DeleteRows"/>
+                    <MenuItem Command="local:DataGridCommands.InsertRows" Header="Insert" />
+                    <MenuItem Command="local:DataGridCommands.DeleteRows" Header="Delete" />
                 </ContextMenu>
             </Setter.Value>
         </Setter>
         <Setter Property="ColumnsContextMenu">
             <Setter.Value>
                 <ContextMenu>
-                    <MenuItem Header="Insert" Command="local:DataGridCommands.InsertColumns"/>
-                    <MenuItem Header="Delete" Command="local:DataGridCommands.DeleteColumns"/>
-                    <Separator/>
-                    <MenuItem Header="Sort smallest to largest" Command="local:DataGridCommands.SortAscending"/>
-                    <MenuItem Header="Sort largest to smallest" Command="local:DataGridCommands.SortDescending"/>
-                    <MenuItem Header="Do not sort" Command="local:DataGridCommands.ClearSort"/>
+                    <MenuItem Command="local:DataGridCommands.InsertColumns" Header="Insert" />
+                    <MenuItem Command="local:DataGridCommands.DeleteColumns" Header="Delete" />
+                    <Separator />
+                    <MenuItem Command="local:DataGridCommands.SortAscending" Header="Sort smallest to largest" />
+                    <MenuItem Command="local:DataGridCommands.SortDescending" Header="Sort largest to smallest" />
+                    <MenuItem Command="local:DataGridCommands.ClearSort" Header="Do not sort" />
                 </ContextMenu>
             </Setter.Value>
         </Setter>
         <Setter Property="SheetContextMenu">
             <Setter.Value>
                 <ContextMenu>
-                    <MenuItem Command="ApplicationCommands.Cut"/>
-                    <MenuItem Command="ApplicationCommands.Copy"/>
-                    <MenuItem Command="ApplicationCommands.Paste"/>
-                    <MenuItem Command="ApplicationCommands.Delete"/>
+                    <MenuItem Command="ApplicationCommands.Cut" />
+                    <MenuItem Command="ApplicationCommands.Copy" />
+                    <MenuItem Command="ApplicationCommands.Paste" />
+                    <MenuItem Command="ApplicationCommands.Delete" />
                 </ContextMenu>
             </Setter.Value>
         </Setter>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type local:DataGrid}">
-                    <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
-                  BorderThickness="{TemplateBinding BorderThickness}">
+                    <Border
+                        Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}">
                         <Grid x:Name="PART_Grid">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="{TemplateBinding ColumnHeaderHeight}" />
@@ -62,39 +65,88 @@
                                 <ColumnDefinition Width="{TemplateBinding RowHeaderWidth}" />
                                 <ColumnDefinition />
                             </Grid.ColumnDefinitions>
-                            <!-- The grid cell area (sheet) -->
-                            <ScrollViewer x:Name="PART_SheetScrollViewer" Focusable="False" Grid.Row="1" Grid.Column="1"
-                            HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-                                <Grid x:Name="PART_SheetGrid" Background="Transparent" Cursor="/Snet.Windows.Controls.property.wpf;component/DataGrid/Cursors/Cross.cur">
+                            <!--  The grid cell area (sheet)  -->
+                            <ScrollViewer
+                                x:Name="PART_SheetScrollViewer"
+                                Grid.Row="1"
+                                Grid.Column="1"
+                                Focusable="False"
+                                HorizontalScrollBarVisibility="Auto"
+                                VerticalScrollBarVisibility="Auto">
+                                <Grid
+                                    x:Name="PART_SheetGrid"
+                                    Background="Transparent"
+                                    Cursor="/Snet.Windows.Controls.property.wpf;component/DataGrid/Cursors/Cross.cur">
                                     <Border x:Name="PART_SelectionBackground" Background="#b7dbff" />
                                     <Border x:Name="PART_CurrentBackground" Background="White" />
-                                    <Border x:Name="PART_Selection" BorderBrush="Black" BorderThickness="3" Margin="-1,-1,-2,-2" />
-                                    <Border x:Name="PART_AutoFillSelection" BorderBrush="Gray" BorderThickness="3" Margin="-1,-1,-2,-2" Visibility="Hidden" />
-                                    <Border x:Name="PART_AutoFillBox" Width="7" Height="7" SnapsToDevicePixels="True" Cursor="/Snet.Windows.Controls.property.wpf;component/DataGrid/Cursors/AutoFill.cur" HorizontalAlignment="Right" VerticalAlignment="Bottom" Background="Black" BorderBrush="White" BorderThickness="1" Margin="0, 0, -4, -4" />
+                                    <Border
+                                        x:Name="PART_Selection"
+                                        Margin="-1,-1,-2,-2"
+                                        BorderBrush="Black"
+                                        BorderThickness="3" />
+                                    <Border
+                                        x:Name="PART_AutoFillSelection"
+                                        Margin="-1,-1,-2,-2"
+                                        BorderBrush="Gray"
+                                        BorderThickness="3"
+                                        Visibility="Hidden" />
+                                    <Border
+                                        x:Name="PART_AutoFillBox"
+                                        Width="7"
+                                        Height="7"
+                                        Margin="0,0,-4,-4"
+                                        HorizontalAlignment="Right"
+                                        VerticalAlignment="Bottom"
+                                        Background="Black"
+                                        BorderBrush="White"
+                                        BorderThickness="1"
+                                        Cursor="/Snet.Windows.Controls.property.wpf;component/DataGrid/Cursors/AutoFill.cur"
+                                        SnapsToDevicePixels="True" />
                                 </Grid>
                             </ScrollViewer>
-                            <!-- Column headers -->
-                            <ScrollViewer x:Name="PART_ColumnScrollViewer" Grid.Row="0" Grid.Column="1" VerticalScrollBarVisibility="Hidden"
-                            HorizontalScrollBarVisibility="Hidden">
-                                <Grid x:Name="PART_ColumnGrid" Cursor="/Snet.Windows.Controls.property.wpf;component/DataGrid/Cursors/DownArrow.cur"
-                      Background="{StaticResource HeaderBackgroundBrush}">
+                            <!--  Column headers  -->
+                            <ScrollViewer
+                                x:Name="PART_ColumnScrollViewer"
+                                Grid.Row="0"
+                                Grid.Column="1"
+                                HorizontalScrollBarVisibility="Hidden"
+                                VerticalScrollBarVisibility="Hidden">
+                                <Grid
+                                    x:Name="PART_ColumnGrid"
+                                    Background="{StaticResource HeaderBackgroundBrush}"
+                                    Cursor="/Snet.Windows.Controls.property.wpf;component/DataGrid/Cursors/DownArrow.cur">
                                     <Border x:Name="PART_ColumnSelectionBackground" Background="{StaticResource SelectionBrush}" />
                                 </Grid>
                             </ScrollViewer>
-                            <!-- Row headers -->
-                            <ScrollViewer x:Name="PART_RowScrollViewer" Grid.Row="1" Grid.Column="0" VerticalScrollBarVisibility="Hidden"
-                            HorizontalScrollBarVisibility="Hidden">
-                                <Grid x:Name="PART_RowGrid" Cursor="/Snet.Windows.Controls.property.wpf;component/DataGrid/Cursors/RightArrow.cur"
-                      Background="{StaticResource HeaderBackgroundBrush}">
+                            <!--  Row headers  -->
+                            <ScrollViewer
+                                x:Name="PART_RowScrollViewer"
+                                Grid.Row="1"
+                                Grid.Column="0"
+                                HorizontalScrollBarVisibility="Hidden"
+                                VerticalScrollBarVisibility="Hidden">
+                                <Grid
+                                    x:Name="PART_RowGrid"
+                                    Background="{StaticResource HeaderBackgroundBrush}"
+                                    Cursor="/Snet.Windows.Controls.property.wpf;component/DataGrid/Cursors/RightArrow.cur">
                                     <Border x:Name="PART_RowSelectionBackground" Background="{StaticResource SelectionBrush2}" />
                                 </Grid>
                             </ScrollViewer>
-                            <!-- The top-left cell -->
+                            <!--  The top-left cell  -->
                             <Grid Grid.Row="0" Grid.Column="0">
-                                <Border x:Name="PART_TopLeft" Cursor="/Snet.Windows.Controls.property.wpf;component/DataGrid/Cursors/Cross.cur"
-                        Background="{StaticResource HeaderBackgroundBrush}" BorderBrush="#b1b5ba" BorderThickness="1,1,1,1" Margin="0,0,0,0">
-                                    <Path Data="F1 M0,11 L11,11 L11,0 z" Fill="#30000000" HorizontalAlignment="Right"
-                        VerticalAlignment="Bottom" Margin="3" />
+                                <Border
+                                    x:Name="PART_TopLeft"
+                                    Margin="0,0,0,0"
+                                    Background="{StaticResource HeaderBackgroundBrush}"
+                                    BorderBrush="#b1b5ba"
+                                    BorderThickness="1,1,1,1"
+                                    Cursor="/Snet.Windows.Controls.property.wpf;component/DataGrid/Cursors/Cross.cur">
+                                    <Path
+                                        Margin="3"
+                                        HorizontalAlignment="Right"
+                                        VerticalAlignment="Bottom"
+                                        Data="F1 M0,11 L11,11 L11,0 z"
+                                        Fill="#30000000" />
                                 </Border>
                             </Grid>
                         </Grid>

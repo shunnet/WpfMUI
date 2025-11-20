@@ -1,6 +1,6 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="TreeListBoxDragDropHelper.cs" company="PropertyTools">
-//   Copyright (c) 2014 PropertyTools contributors
+// <copyright file="TreeListBoxDragDropHelper.cs" company="Snet.Windows.Controls.property.core">
+//   Copyright (c) 2014 Snet.Windows.Controls.property.core contributors
 // </copyright>
 // <summary>
 //   Drag/drop helper class for the TreeListBox.
@@ -9,6 +9,7 @@
 
 namespace Snet.Windows.Controls.property.wpf
 {
+    using Snet.Windows.Controls.property.core;
     using System;
     using System.Collections;
     using System.Collections.Generic;
@@ -72,7 +73,7 @@ namespace Snet.Windows.Controls.property.wpf
         /// <summary>
         /// The drop position.
         /// </summary>
-        private Snet.Windows.Controls.property.core.DropPosition dropPosition;
+        private DropPosition dropPosition;
 
         /// <summary>
         /// The has vertical orientation.
@@ -124,7 +125,7 @@ namespace Snet.Windows.Controls.property.wpf
         /// <summary>
         /// Keeps track of the initial drag/drop key states.
         /// </summary>
-        private DragDropKeyStates initialKeyStates;
+        private System.Windows.DragDropKeyStates initialKeyStates;
 
         /// <summary>
         /// Gets the instance singleton.
@@ -354,36 +355,36 @@ namespace Snet.Windows.Controls.property.wpf
 
                     if (relativePosition > 0.3 && relativePosition < 0.7)
                     {
-                        this.dropPosition = Snet.Windows.Controls.property.core.DropPosition.Add;
+                        this.dropPosition = DropPosition.Add;
                     }
                     else
                     {
                         this.dropPosition = relativePosition < 0.5
-                                                ? Snet.Windows.Controls.property.core.DropPosition.InsertBefore
-                                                : Snet.Windows.Controls.property.core.DropPosition.InsertAfter;
+                                                ? DropPosition.InsertBefore
+                                                : DropPosition.InsertAfter;
                     }
                 }
                 else
                 {
                     this.targetItemContainer = this.targetItemsControl.ContainerFromIndex(targetItemsControlCount - 1);
                     this.isInFirstHalf = false;
-                    this.dropPosition = Snet.Windows.Controls.property.core.DropPosition.InsertAfter;
+                    this.dropPosition = DropPosition.InsertAfter;
                 }
             }
             else
             {
                 this.targetItemContainer = null;
-                this.dropPosition = Snet.Windows.Controls.property.core.DropPosition.InsertBefore;
+                this.dropPosition = DropPosition.InsertBefore;
             }
 
             if (this.targetItemContainer != null && draggedItems != null)
             {
-                var dropTarget = this.targetItemContainer.DataContext as Snet.Windows.Controls.property.core.IDropTarget;
+                var dropTarget = this.targetItemContainer.DataContext as IDropTarget;
                 foreach (var draggedItem in draggedItems)
                 {
-                    var dragSource = draggedItem as Snet.Windows.Controls.property.core.IDragSource;
+                    var dragSource = draggedItem as IDragSource;
                     if ((dragSource == null || !dragSource.IsDraggable)
-                        || (dropTarget == null || !dropTarget.CanDrop(dragSource, this.dropPosition, (Snet.Windows.Controls.property.core.DragDropEffect)e.Effects)))
+                        || (dropTarget == null || !dropTarget.CanDrop(dragSource, this.dropPosition, (DragDropEffect)e.Effects)))
                     {
                         this.targetItemContainer = null;
                         e.Effects = DragDropEffects.None;
@@ -411,7 +412,7 @@ namespace Snet.Windows.Controls.property.wpf
                                            : null;
             if (this.sourceItemContainer != null)
             {
-                this.draggedData = new List<Snet.Windows.Controls.property.core.IDragSource>();
+                this.draggedData = new List<IDragSource>();
                 this.draggedData.Add(this.sourceItemContainer.DataContext);
 
                 // drag multiple items?
@@ -533,7 +534,7 @@ namespace Snet.Windows.Controls.property.wpf
                     return;
                 }
 
-                var dropTarget = this.targetItemContainer.DataContext as Snet.Windows.Controls.property.core.IDropTarget;
+                var dropTarget = this.targetItemContainer.DataContext as IDropTarget;
                 if (dropTarget == null)
                 {
                     return;
@@ -548,16 +549,16 @@ namespace Snet.Windows.Controls.property.wpf
                 }
 
                 bool move = (e.Effects & DragDropEffects.Move) != 0;
-                var itemsToDrop = new List<Snet.Windows.Controls.property.core.IDragSource>();
+                var itemsToDrop = new List<IDragSource>();
                 foreach (var draggedItem in draggedItems)
                 {
-                    var dragSource = draggedItem as Snet.Windows.Controls.property.core.IDragSource;
+                    var dragSource = draggedItem as IDragSource;
                     if (dragSource == null || !dragSource.IsDraggable)
                     {
                         continue;
                     }
 
-                    if (!dropTarget.CanDrop(dragSource, this.dropPosition, (Snet.Windows.Controls.property.core.DragDropEffect)e.Effects))
+                    if (!dropTarget.CanDrop(dragSource, this.dropPosition, (DragDropEffect)e.Effects))
                     {
                         continue;
                     }
@@ -570,7 +571,7 @@ namespace Snet.Windows.Controls.property.wpf
                     itemsToDrop.Add(dragSource);
                 }
 
-                dropTarget.Drop(itemsToDrop, this.dropPosition, (Snet.Windows.Controls.property.core.DragDropEffect)e.Effects, (Snet.Windows.Controls.property.core.DragDropKeyStates)this.initialKeyStates);
+                dropTarget.Drop(itemsToDrop, this.dropPosition, (DragDropEffect)e.Effects, (Snet.Windows.Controls.property.core.DragDropKeyStates)this.initialKeyStates);
 
                 e.Handled = true;
             }
@@ -605,7 +606,7 @@ namespace Snet.Windows.Controls.property.wpf
         /// </summary>
         private void UpdateAdorner()
         {
-            if (this.dropPosition == Snet.Windows.Controls.property.core.DropPosition.Add)
+            if (this.dropPosition == DropPosition.Add)
             {
                 if (this.targetItemContainer != null)
                 {

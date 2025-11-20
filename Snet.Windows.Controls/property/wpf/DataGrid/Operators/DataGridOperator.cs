@@ -1,6 +1,6 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="DataGridOperator.cs" company="PropertyTools">
-//   Copyright (c) 2014 PropertyTools contributors
+// <copyright file="DataGridOperator.cs" company="Snet.Windows.Controls.property.core">
+//   Copyright (c) 2014 Snet.Windows.Controls.property.core contributors
 // </copyright>
 // <summary>
 //   Represents an abstract base class for DataGrid operators.
@@ -647,7 +647,7 @@ namespace Snet.Windows.Controls.property.wpf
             }
 
             if (descriptor.GetAttributeValue<System.ComponentModel.ReadOnlyAttribute, bool>(a => a.IsReadOnly)
-                || descriptor.GetAttributeValue<Snet.Windows.Controls.property.core.DataAnnotations.ReadOnlyAttribute, bool>(a => a.IsReadOnly)
+                || descriptor.GetAttributeValue<core.DataAnnotations.ReadOnlyAttribute, bool>(a => a.IsReadOnly)
                 || descriptor.IsReadOnly)
             {
                 pd.IsReadOnly = true;

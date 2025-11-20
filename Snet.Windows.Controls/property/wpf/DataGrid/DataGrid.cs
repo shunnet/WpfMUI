@@ -1,6 +1,6 @@
 // --------------------------------------------------------------------------------------------------------------------
-// <copyright file="DataGrid.cs" company="PropertyTools">
-//   Copyright (c) 2014 PropertyTools contributors
+// <copyright file="DataGrid.cs" company="Snet.Windows.Controls.property.core">
+//   Copyright (c) 2014 Snet.Windows.Controls.property.core contributors
 // </copyright>
 // <summary>
 //   Displays enumerable data in a customizable grid.
@@ -1521,17 +1521,14 @@ namespace Snet.Windows.Controls.property.wpf
             var dataObject = new DataObject();
             dataObject.SetText(text);
 
-            if (AreAllElementsSerializable(valueArray))
+            try
             {
-                try
-                {
-                    dataObject.SetData(typeof(DataGrid), valueArray);
-                }
-                catch (Exception e)
-                {
-                    // nonserializable values?
-                    Debug.WriteLine(e);
-                }
+                dataObject.SetData(typeof(DataGrid), valueArray);
+            }
+            catch (Exception e)
+            {
+                // Could not set data on clipboard (e.g., non-serializable values)
+                Debug.WriteLine(e);
             }
 
             Clipboard.SetDataObject(dataObject);
@@ -2160,36 +2157,7 @@ namespace Snet.Windows.Controls.property.wpf
             return cellWasSet;
         }
 
-        /// <summary>
-        /// Determines whether all elements in the specified array are serializable.
-        /// </summary>
-        /// <param name="array">The array.</param>
-        /// <returns>
-        /// <c>true</c> if all elements of the array are serializable, <c>false</c> otherwise.
-        /// </returns>
-        private static bool AreAllElementsSerializable(object[,] array)
-        {
-            var m = array.GetLength(0);
-            var n = array.GetLength(1);
-            for (var i = 0; i < m; i++)
-            {
-                for (var j = 0; j < n; j++)
-                {
-                    if (array[i, j] == null)
-                    {
-                        continue;
-                    }
 
-                    var type = array[i, j].GetType();
-                    if (!type.IsSerializable)
-                    {
-                        return false;
-                    }
-                }
-            }
-
-            return true;
-        }
 
         /// <summary>
         /// Clamps a value between a minimum and maximum limit.

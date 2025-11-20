@@ -1,6 +1,6 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="ScreenGrab.cs" company="PropertyTools">
-//   Copyright (c) 2014 PropertyTools contributors
+// <copyright file="ScreenGrab.cs" company="Snet.Windows.Controls.property.core">
+//   Copyright (c) 2014 Snet.Windows.Controls.property.core contributors
 // </copyright>
 // <summary>
 //   Provides a behavior that let you capture the contents of a control to a bitmap and copy it to the clipboard.
@@ -13,7 +13,6 @@ namespace Snet.Windows.Controls.property.wpf
     using System.Windows.Input;
     using System.Windows.Media;
     using System.Windows.Media.Imaging;
-
     /// <summary>
     /// Provides a behavior that let you capture the contents of a control to a bitmap and copy it to the clipboard.
     /// </summary>

@@ -1,6 +1,6 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="PropertyGridControlFactory.cs" company="PropertyTools">
-//   Copyright (c) 2014 PropertyTools contributors
+// <copyright file="PropertyGridControlFactory.cs" company="Snet.Windows.Controls.property.core">
+//   Copyright (c) 2014 Snet.Windows.Controls.property.core contributors
 // </copyright>
 // <summary>
 //   Provides a control factory for the PropertyGrid control.
@@ -323,13 +323,13 @@ namespace Snet.Windows.Controls.property.wpf
         /// <returns>
         /// A <see cref="HorizontalAlignment" />.
         /// </returns>
-        protected static HorizontalAlignment ConvertHorizontalAlignment(Snet.Windows.Controls.property.core.DataAnnotations.HorizontalAlignment a)
+        protected static HorizontalAlignment ConvertHorizontalAlignment(core.DataAnnotations.HorizontalAlignment a)
         {
             switch (a)
             {
-                case Snet.Windows.Controls.property.core.DataAnnotations.HorizontalAlignment.Center:
+                case core.DataAnnotations.HorizontalAlignment.Center:
                     return HorizontalAlignment.Center;
-                case Snet.Windows.Controls.property.core.DataAnnotations.HorizontalAlignment.Right:
+                case core.DataAnnotations.HorizontalAlignment.Right:
                     return HorizontalAlignment.Right;
                 default:
                     return HorizontalAlignment.Left;
@@ -630,30 +630,30 @@ namespace Snet.Windows.Controls.property.wpf
 
             var values = this.GetEnumValues(property.Descriptor.PropertyType).ToArray();
             var style = property.SelectorStyle;
-            if (style == Snet.Windows.Controls.property.core.DataAnnotations.SelectorStyle.Auto)
+            if (style == core.DataAnnotations.SelectorStyle.Auto)
             {
                 style = values.Length > options.EnumAsRadioButtonsLimit
-                            ? Snet.Windows.Controls.property.core.DataAnnotations.SelectorStyle.ComboBox
-                            : Snet.Windows.Controls.property.core.DataAnnotations.SelectorStyle.RadioButtons;
+                            ? core.DataAnnotations.SelectorStyle.ComboBox
+                            : core.DataAnnotations.SelectorStyle.RadioButtons;
             }
 
             switch (style)
             {
-                case Snet.Windows.Controls.property.core.DataAnnotations.SelectorStyle.RadioButtons:
+                case core.DataAnnotations.SelectorStyle.RadioButtons:
                     {
                         var c = new RadioButtonList { EnumType = property.Descriptor.PropertyType };
                         c.SetBinding(RadioButtonList.ValueProperty, property.CreateBinding());
                         return c;
                     }
 
-                case Snet.Windows.Controls.property.core.DataAnnotations.SelectorStyle.ComboBox:
+                case core.DataAnnotations.SelectorStyle.ComboBox:
                     {
                         var c = new ComboBox { ItemsSource = values };
                         c.SetBinding(Selector.SelectedValueProperty, property.CreateBinding());
                         return c;
                     }
 
-                case Snet.Windows.Controls.property.core.DataAnnotations.SelectorStyle.ListBox:
+                case core.DataAnnotations.SelectorStyle.ListBox:
                     {
                         var c = new ListBox { ItemsSource = values };
                         c.SetBinding(Selector.SelectedValueProperty, property.CreateBinding());

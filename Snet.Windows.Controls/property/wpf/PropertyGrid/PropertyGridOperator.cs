@@ -1,6 +1,6 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="PropertyGridOperator.cs" company="PropertyTools">
-//   Copyright (c) 2014 PropertyTools contributors
+// <copyright file="PropertyGridOperator.cs" company="Snet.Windows.Controls.property.core">
+//   Copyright (c) 2014 Snet.Windows.Controls.property.core contributors
 // </copyright>
 // <summary>
 //   Cretes a model for the PropertyGrid control.
@@ -254,7 +254,7 @@ namespace Snet.Windows.Controls.property.wpf
 
             foreach (PropertyDescriptor pd in properties)
             {
-                var portableBrowsableAttribute = pd.GetFirstAttributeOrDefault<Snet.Windows.Controls.property.core.DataAnnotations.BrowsableAttribute>();
+                var portableBrowsableAttribute = pd.GetFirstAttributeOrDefault<core.DataAnnotations.BrowsableAttribute>();
                 var systemBrowsableAttribute = pd.GetFirstAttributeOrDefault<System.ComponentModel.BrowsableAttribute>();
 
                 // If all BrowsableAttributes in the properties are set to true, the default will be changed to false, e.g. you need to opt-in.
@@ -281,7 +281,7 @@ namespace Snet.Windows.Controls.property.wpf
                 // if any BrowsableAttribute in the properties are set to false, the default is true, e.g. you need to opt-out.
                 else
                 {
-                    // Skip properties marked with [PropertyTools.DataAnnotations.Browsable(false)]
+                    // Skip properties marked with [Snet.Windows.Controls.property.core.DataAnnotations.Browsable(false)]
                     if (portableBrowsableAttribute != null && !portableBrowsableAttribute.Browsable)
                     {
                         continue;
@@ -300,7 +300,7 @@ namespace Snet.Windows.Controls.property.wpf
 
         /// <summary>
         /// Iterates over <see cref="PropertyDescriptorCollection"/> and determines whether the value of <see cref="System.ComponentModel.BrowsableAttribute"/>
-        /// or <see cref="Snet.Windows.Controls.property.core.DataAnnotations.BrowsableAttribute"/>, for those <see cref="PropertyDescriptor"/>s with such Attributes, is exclusively <see cref="true"/>
+        /// or <see cref="DataAnnotations.BrowsableAttribute"/>, for those <see cref="PropertyDescriptor"/>s with such Attributes, is exclusively <see cref="true"/>
         /// </summary>
         /// <param name="propertyDescriptors">The collection of property descriptors.</param>
         /// <returns>
@@ -309,7 +309,7 @@ namespace Snet.Windows.Controls.property.wpf
         protected bool AreBrowsableAttributesJustTrue(PropertyDescriptorCollection propertyDescriptors)
         {
             var attributes = propertyDescriptors.OfType<PropertyDescriptor>()
-              .Select(pd => Tuple.Create(pd.GetFirstAttributeOrDefault<Snet.Windows.Controls.property.core.DataAnnotations.BrowsableAttribute>(), pd.GetFirstAttributeOrDefault<System.ComponentModel.BrowsableAttribute>()))
+              .Select(pd => Tuple.Create(pd.GetFirstAttributeOrDefault<core.DataAnnotations.BrowsableAttribute>(), pd.GetFirstAttributeOrDefault<System.ComponentModel.BrowsableAttribute>()))
               .ToArray();
 
             bool isAnyFalse = attributes.Any(a => (a.Item1 != null && a.Item1.Browsable == false) || (a.Item2 != null && a.Item2.Browsable == false));
@@ -440,7 +440,7 @@ namespace Snet.Windows.Controls.property.wpf
                 this.CurrentCategoryDeclaringType = declaringType;
             }
 
-            var ca2 = pi.GetAttribute<Snet.Windows.Controls.property.core.DataAnnotations.CategoryAttribute>();
+            var ca2 = pi.GetAttribute<core.DataAnnotations.CategoryAttribute>();
             if (ca2 != null)
             {
                 this.CurrentCategory = ca2.Category;
@@ -630,7 +630,7 @@ namespace Snet.Windows.Controls.property.wpf
                             object[] descriptionAttributes = elementType.GetProperty(column.PropertyName)?.GetCustomAttributes(typeof(Snet.Windows.Controls.property.core.DataAnnotations.DescriptionAttribute), true);
                             if (descriptionAttributes != null && descriptionAttributes.Length > 0)
                             {
-                                toolTip = ((Snet.Windows.Controls.property.core.DataAnnotations.DescriptionAttribute)descriptionAttributes[0]).Description;
+                                toolTip = ((core.DataAnnotations.DescriptionAttribute)descriptionAttributes[0]).Description;
                             }
                         }
 
