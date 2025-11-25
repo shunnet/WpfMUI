@@ -1,8 +1,11 @@
-﻿namespace Snet.Windows.Core.@enum
+﻿using System.Text.Json.Serialization;
+
+namespace Snet.Windows.Core.@enum
 {
     /// <summary>
     /// 皮肤类型
     /// </summary>
+    [JsonConverter(typeof(JsonStringEnumConverter))]
     public enum SkinType
     {
         /// <summary>

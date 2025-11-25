@@ -1,4 +1,5 @@
-﻿using System.Windows;
+﻿using System.Text.Json.Serialization;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 
@@ -160,6 +161,7 @@ namespace Snet.Windows.Controls.drag
         /// <summary>
         /// 按钮状态
         /// </summary>
+        [JsonConverter(typeof(JsonStringEnumConverter))]
         public enum ButtonState
         {
             /// <summary>

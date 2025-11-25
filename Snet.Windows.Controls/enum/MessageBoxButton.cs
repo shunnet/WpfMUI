@@ -1,8 +1,11 @@
-﻿namespace Snet.Windows.Controls.@enum
+﻿using System.Text.Json.Serialization;
+
+namespace Snet.Windows.Controls.@enum
 {
     /// <summary>
     /// 消息框按钮
     /// </summary>
+    [JsonConverter(typeof(JsonStringEnumConverter))]
     public enum MessageBoxButton
     {
         /// <summary>

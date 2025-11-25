@@ -1,8 +1,11 @@
-﻿namespace Snet.Windows.Controls.@enum
+﻿using System.Text.Json.Serialization;
+
+namespace Snet.Windows.Controls.@enum
 {
     /// <summary>
     /// 消息框图片
     /// </summary>
+    [JsonConverter(typeof(JsonStringEnumConverter))]
     public enum MessageBoxImage
     {
         /// <summary>
