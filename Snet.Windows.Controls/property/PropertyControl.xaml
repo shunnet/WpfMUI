@@ -157,6 +157,7 @@
                     <!--<Setter Property="BorderThickness" Value="0" />-->
                 </Style>
                 <Style BasedOn="{StaticResource MaterialDesignSecondaryCheckBox}" TargetType="CheckBox" />
+                <Style BasedOn="{StaticResource UiScrollBar}" TargetType="ScrollBar" />
             </pt:PropertyGrid.Resources>
         </pt:PropertyGrid>
     </ui:Card>
