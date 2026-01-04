@@ -201,43 +201,51 @@ namespace Snet.Windows.Controls.handler
         /// </summary>
         private static async Task LanguageHandler_OnLanguageEventAsync(object? sender, Snet.Model.data.EventLanguageResult e, NavigationView navigation, LanguageModel model)
         {
-            foreach (NavigationViewItem item in navigation.MenuItems)
-            {
-                if (!item.ContentStringFormat.IsNullOrWhiteSpace())
-                {
-                    item.Content = await model.GetLanguageValueAsync(item.ContentStringFormat);
-                }
-                if (item.MenuItems.Count > 0)
-                {
-                    foreach (NavigationViewItem subItem in item.MenuItems)
-                    {
-                        if (!subItem.ContentStringFormat.IsNullOrWhiteSpace())
-                        {
-                            subItem.Content = await model.GetLanguageValueAsync(subItem.ContentStringFormat);
-                        }
-                    }
-                }
-            }
+            // 先获取 Dispatcher（navigation 是 UI 元素，肯定有）
+            var dispatcher = navigation.Dispatcher;
 
-            foreach (NavigationViewItem item in navigation.FooterMenuItems)
+            // 切换到 UI 线程执行所有 UI 操作
+            await dispatcher.InvokeAsync(async () =>
             {
-                if (!item.ContentStringFormat.IsNullOrWhiteSpace())
+                foreach (NavigationViewItem item in navigation.MenuItems)
                 {
-                    item.Content = await model.GetLanguageValueAsync(item.ContentStringFormat);
-                }
-                if (item.MenuItems.Count > 0)
-                {
-                    foreach (NavigationViewItem subItem in item.MenuItems)
+                    if (!item.ContentStringFormat.IsNullOrWhiteSpace())
                     {
-                        if (!subItem.ContentStringFormat.IsNullOrWhiteSpace())
+                        item.Content = await model.GetLanguageValueAsync(item.ContentStringFormat);
+                    }
+
+                    if (item.MenuItems.Count > 0)
+                    {
+                        foreach (NavigationViewItem subItem in item.MenuItems)
                         {
-                            subItem.Content = await model.GetLanguageValueAsync(subItem.ContentStringFormat);
+                            if (!subItem.ContentStringFormat.IsNullOrWhiteSpace())
+                            {
+                                subItem.Content = await model.GetLanguageValueAsync(subItem.ContentStringFormat);
+                            }
                         }
                     }
                 }
-            }
+
+                foreach (NavigationViewItem item in navigation.FooterMenuItems)
+                {
+                    if (!item.ContentStringFormat.IsNullOrWhiteSpace())
+                    {
+                        item.Content = await model.GetLanguageValueAsync(item.ContentStringFormat);
+                    }
+
+                    if (item.MenuItems.Count > 0)
+                    {
+                        foreach (NavigationViewItem subItem in item.MenuItems)
+                        {
+                            if (!subItem.ContentStringFormat.IsNullOrWhiteSpace())
+                            {
+                                subItem.Content = await model.GetLanguageValueAsync(subItem.ContentStringFormat);
+                            }
+                        }
+                    }
+                }
+            });
         }
-
 
         /// <summary>
         /// 设置汉堡菜单默认项
@@ -250,7 +258,5 @@ namespace Snet.Windows.Controls.handler
         /// <param name="autoZoom">设置一个值，窗体大于此值则自动打开菜单，反之隐藏，0 不使用此功能</param>
         public static void SelectNavigationViewDefaultItem(this NavigationView navigation, Window window, Type type, LanguageModel model, string containerName, int autoZoom = 0)
             => SelectNavigationViewDefaultItem(window, navigation, type, model, containerName, autoZoom);
-
-
     }
 }

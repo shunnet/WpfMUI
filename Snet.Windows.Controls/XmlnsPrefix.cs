@@ -6,3 +6,4 @@
 [assembly: XmlnsDefinition("https://shunnet.top", "Snet.Windows.Controls.property.wpf")]
 [assembly: XmlnsDefinition("https://shunnet.top", "Snet.Windows.Controls.converter")]
 [assembly: XmlnsDefinition("https://shunnet.top", "Snet.Windows.Controls.ledgauge")]
+[assembly: XmlnsDefinition("https://shunnet.top", "Snet.Windows.Controls.pagebar")]

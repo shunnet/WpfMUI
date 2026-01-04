@@ -317,12 +317,38 @@
                                     CloseOnClickAway="False"
                                     DialogContentUniformCornerRadius="{DynamicResource WindowCornerRadius_Double}"
                                     DialogTheme="Inherit"
-                                    Identifier="DialogHost" />
+                                    Identifier="DialogHost">
+                                    <ui:DialogHost.InputBindings>
+                                        <KeyBinding Key="Enter" Command="{x:Static ui:DialogHost.CloseDialogCommand}">
+                                            <KeyBinding.CommandParameter>
+                                                <system:Boolean xmlns:system="clr-namespace:System;assembly=mscorlib">True</system:Boolean>
+                                            </KeyBinding.CommandParameter>
+                                        </KeyBinding>
+                                        <KeyBinding Key="Esc" Command="{x:Static ui:DialogHost.CloseDialogCommand}">
+                                            <KeyBinding.CommandParameter>
+                                                <system:Boolean xmlns:system="clr-namespace:System;assembly=mscorlib">False</system:Boolean>
+                                            </KeyBinding.CommandParameter>
+                                        </KeyBinding>
+                                    </ui:DialogHost.InputBindings>
+                                </ui:DialogHost>
                                 <ui:DialogHost
                                     CloseOnClickAway="True"
                                     DialogContentUniformCornerRadius="{DynamicResource WindowCornerRadius_Double}"
                                     DialogTheme="Inherit"
-                                    Identifier="DialogHost_ClickClose" />
+                                    Identifier="DialogHost_ClickClose">
+                                    <ui:DialogHost.InputBindings>
+                                        <KeyBinding Key="Enter" Command="{x:Static ui:DialogHost.CloseDialogCommand}">
+                                            <KeyBinding.CommandParameter>
+                                                <system:Boolean xmlns:system="clr-namespace:System;assembly=mscorlib">True</system:Boolean>
+                                            </KeyBinding.CommandParameter>
+                                        </KeyBinding>
+                                        <KeyBinding Key="Esc" Command="{x:Static ui:DialogHost.CloseDialogCommand}">
+                                            <KeyBinding.CommandParameter>
+                                                <system:Boolean xmlns:system="clr-namespace:System;assembly=mscorlib">False</system:Boolean>
+                                            </KeyBinding.CommandParameter>
+                                        </KeyBinding>
+                                    </ui:DialogHost.InputBindings>
+                                </ui:DialogHost>
 
                             </Grid>
                         </ui:Card>

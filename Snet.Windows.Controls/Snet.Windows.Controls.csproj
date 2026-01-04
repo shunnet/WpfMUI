@@ -27,6 +27,9 @@
     <PackageReference Include="AvalonEdit" Version="6.3.1.120" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Snet.Windows.Core\Snet.Windows.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
     <Compile Update="Language.Designer.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>

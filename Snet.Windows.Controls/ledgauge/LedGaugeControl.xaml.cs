@@ -264,6 +264,9 @@ namespace Snet.Windows.Controls.ledgauge
 
         private void LedGauge_Unloaded(object sender, RoutedEventArgs e)
         {
+            if (flashTimer == null)
+                return;
+
             flashTimer.Stop();
             flashTimer.Elapsed -= OnTimerTick;
             flashTimer.Dispose();

@@ -6,7 +6,7 @@
     xmlns:local="clr-namespace:Snet.Windows.Controls.textbox"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:ui="http://materialdesigninxaml.net/winfx/xaml/themes">
-    <Grid>
+    <Grid Height="25">
         <Image
             Width="15"
             Height="15"
