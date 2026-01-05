@@ -30,11 +30,11 @@
         </ResourceDictionary>
     </UserControl.Resources>
 
-    <ui:Card ui:ColorZoneAssist.Mode="Standard" UniformCornerRadius="0">
+    <ui:Card ui:ColorZoneAssist.Mode="Standard">
         <ui:Card.Resources>
             <ResourceDictionary>
                 <DataTemplate x:Key="PropertyGridHeaderTemplate" DataType="GroupBox">
-                    <Grid Height="35">
+                    <Grid Height="31">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="auto" />
                             <ColumnDefinition Width="auto" />
@@ -58,7 +58,7 @@
                         <Button
                             Grid.Column="3"
                             Width="80"
-                            Height="35"
+                            Height="30.5"
                             Margin="0,-1,0,0"
                             Padding="0"
                             ui:ButtonAssist.CornerRadius="0,0,0,0"
@@ -104,7 +104,7 @@
                         <Button
                             Grid.Column="4"
                             Width="80"
-                            Height="35"
+                            Height="30.5"
                             Margin="0,-1,0,0"
                             Padding="0"
                             ui:ButtonAssist.CornerRadius="0,5,0,0"
@@ -116,7 +116,7 @@
 
                                     <Style.Triggers>
                                         <!--  Command 为 null 时隐藏  -->
-                                        <DataTrigger Binding="{Binding IncCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="{x:Null}">
+                                        <DataTrigger Binding="{Binding ExpCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="{x:Null}">
                                             <Setter Property="Visibility" Value="Collapsed" />
                                         </DataTrigger>
                                     </Style.Triggers>
@@ -161,6 +161,7 @@
                 <RowDefinition Height="auto" />
             </Grid.RowDefinitions>
             <pt:PropertyGrid
+                x:Name="propertyGrid"
                 Grid.ColumnSpan="2"
                 MinWidth="300"
                 Margin="0,-3,0,-3"
@@ -202,7 +203,7 @@
                 Command="{x:Static ui:DialogHost.CloseDialogCommand}"
                 IsDefault="True"
                 Style="{StaticResource MaterialDesignRaisedButton}"
-                Visibility="{Binding ButtonVisibility}">
+                Visibility="{Binding ButtonVisibility, RelativeSource={RelativeSource AncestorType=UserControl}}">
                 <Button.CommandParameter>
                     <system:Boolean xmlns:system="clr-namespace:System;assembly=mscorlib">True</system:Boolean>
                 </Button.CommandParameter>
@@ -242,7 +243,7 @@
                 Command="{x:Static ui:DialogHost.CloseDialogCommand}"
                 IsDefault="True"
                 Style="{StaticResource MaterialDesignRaisedButton}"
-                Visibility="{Binding ButtonVisibility}">
+                Visibility="{Binding ButtonVisibility, RelativeSource={RelativeSource AncestorType=UserControl}}">
                 <Button.CommandParameter>
                     <system:Boolean xmlns:system="clr-namespace:System;assembly=mscorlib">False</system:Boolean>
                 </Button.CommandParameter>

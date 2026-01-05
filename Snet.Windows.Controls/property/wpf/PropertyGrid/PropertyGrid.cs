@@ -1727,7 +1727,6 @@ namespace Snet.Windows.Controls.property.wpf
                 {
                     Content = pi.DisplayName,
                     VerticalAlignment = VerticalAlignment.Center,
-                    HorizontalAlignment = HorizontalAlignment.Right,
                     Margin = new Thickness(indentation, 0, 4, 0)
                 };
             }

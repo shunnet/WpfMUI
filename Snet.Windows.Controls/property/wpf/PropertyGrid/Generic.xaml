@@ -86,6 +86,7 @@
                             <TabControl
                                 x:Name="PART_Tabs"
                                 AutomationProperties.AutomationId="Tabs"
+                                DockPanel.Dock="Top"
                                 Focusable="false"
                                 SelectedIndex="{Binding Path=SelectedTabIndex, RelativeSource={RelativeSource TemplatedParent}}"
                                 TabStripPlacement="{TemplateBinding TabStripPlacement}" />
@@ -93,7 +94,7 @@
                                 x:Name="PART_ScrollViewer"
                                 AutomationProperties.AutomationId="ScrollViewer"
                                 Focusable="false"
-                                VerticalScrollBarVisibility="Auto">
+                                VerticalScrollBarVisibility="Hidden">
                                 <StackPanel x:Name="PART_Panel" />
                             </ScrollViewer>
                         </Grid>
