@@ -10,6 +10,7 @@
 namespace Snet.Windows.Controls.property.wpf
 {
     using Snet.Windows.Controls.property.core.DataAnnotations;
+    using Snet.Windows.Core.handler;
     using System;
     using System.Collections;
     using System.Collections.Generic;
@@ -468,7 +469,17 @@ namespace Snet.Windows.Controls.property.wpf
             var description = this.GetDescription(pi.Descriptor, declaringType);
 
             // Localize the strings
-            pi.DisplayName = this.GetLocalizedString(displayName, declaringType);
+
+            switch (LanguageHandler.GetLanguage())
+            {
+                case Model.@enum.LanguageType.zh:
+                    pi.DisplayName = this.GetLocalizedString(description, declaringType);
+                    break;
+                case Model.@enum.LanguageType.en:
+                    pi.DisplayName = this.GetLocalizedString(displayName, declaringType);
+                    break;
+            }
+
             pi.Description = this.GetLocalizedDescription(description, declaringType);
             pi.Category = this.GetLocalizedString(categoryName, this.CurrentCategoryDeclaringType);
             pi.Tab = this.GetLocalizedString(tabName, this.CurrentCategoryDeclaringType);

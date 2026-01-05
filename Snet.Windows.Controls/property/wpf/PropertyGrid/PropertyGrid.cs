@@ -1688,6 +1688,7 @@ namespace Snet.Windows.Controls.property.wpf
                 {
                     Content = pi.DisplayName,
                     VerticalAlignment = VerticalAlignment.Center,
+                    HorizontalAlignment = HorizontalAlignment.Right,
                     Margin = new Thickness(5 + indentation, 0, 4, 0)
                 };
 
@@ -1725,7 +1726,8 @@ namespace Snet.Windows.Controls.property.wpf
                 propertyLabel = new Label
                 {
                     Content = pi.DisplayName,
-                    VerticalAlignment = VerticalAlignment.Top,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    HorizontalAlignment = HorizontalAlignment.Right,
                     Margin = new Thickness(indentation, 0, 4, 0)
                 };
             }

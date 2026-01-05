@@ -16,6 +16,24 @@ namespace Snet.Windows.Controls.property
         }
 
         /// <summary>
+        /// 获取基础数据
+        /// </summary>
+        /// <returns></returns>
+        public object GetBasics()
+        {
+            return GetValue(BasicsDataProperty);
+        }
+
+        /// <summary>
+        /// 设置基础数据
+        /// </summary>
+        /// <param name="value">基础数据</param>
+        public void SetBasics(object value)
+        {
+            SetValue(BasicsDataProperty, value);
+        }
+
+        /// <summary>
         /// 导出命令
         /// </summary>
         public ICommand ExpCommand
@@ -48,6 +66,18 @@ namespace Snet.Windows.Controls.property
         public static readonly DependencyProperty BasicsDataProperty =
             DependencyProperty.Register(nameof(BasicsData), typeof(object), typeof(PropertyControl),
                 new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
+
+        /// <summary>
+        /// 按钮显示状态
+        /// </summary>
+        public Visibility ButtonVisibility
+        {
+            get => (Visibility)GetValue(ButtonVisibilityProperty);
+            set => SetValue(ButtonVisibilityProperty, value);
+        }
+        public static readonly DependencyProperty ButtonVisibilityProperty = DependencyProperty.Register(nameof(ButtonVisibilityProperty), typeof(Visibility), typeof(PropertyControl), new PropertyMetadata(Visibility.Collapsed));
+
+
 
     }
 }
