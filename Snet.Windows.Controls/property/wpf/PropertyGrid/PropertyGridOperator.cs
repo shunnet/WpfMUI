@@ -9,6 +9,7 @@
 
 namespace Snet.Windows.Controls.property.wpf
 {
+    using Snet.Utility;
     using Snet.Windows.Controls.property.core.DataAnnotations;
     using Snet.Windows.Core.handler;
     using System;
@@ -474,6 +475,10 @@ namespace Snet.Windows.Controls.property.wpf
             {
                 case Model.@enum.LanguageType.zh:
                     pi.DisplayName = this.GetLocalizedString(description, declaringType);
+                    if (pi.DisplayName.IsNullOrWhiteSpace())
+                    {
+                        pi.DisplayName = this.GetLocalizedString(displayName, declaringType);
+                    }
                     break;
                 case Model.@enum.LanguageType.en:
                     pi.DisplayName = this.GetLocalizedString(displayName, declaringType);

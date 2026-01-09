@@ -75,7 +75,7 @@ namespace Snet.Windows.Controls.property
             get => (Visibility)GetValue(ButtonVisibilityProperty);
             set => SetValue(ButtonVisibilityProperty, value);
         }
-        public static readonly DependencyProperty ButtonVisibilityProperty = DependencyProperty.Register(nameof(ButtonVisibilityProperty), typeof(Visibility), typeof(PropertyControl), new PropertyMetadata(Visibility.Collapsed));
+        public static readonly DependencyProperty ButtonVisibilityProperty = DependencyProperty.Register(nameof(ButtonVisibility), typeof(Visibility), typeof(PropertyControl), new PropertyMetadata(Visibility.Collapsed));
 
 
 
