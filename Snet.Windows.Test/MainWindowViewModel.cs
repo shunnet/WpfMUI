@@ -18,7 +18,8 @@ namespace Snet.Windows.Test
             Debug.WriteLine(e.ToJson(true));
         }
 
-        public IAsyncRelayCommand Hello => new AsyncRelayCommand(HelloAsync);
+        public IAsyncRelayCommand Hello => p_Hello ??= new AsyncRelayCommand(HelloAsync);
+        IAsyncRelayCommand p_Hello;
         public async Task HelloAsync()
         {
             string title = App.LanguageOperate.GetLanguageValue("Hello");
