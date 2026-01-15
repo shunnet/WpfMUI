@@ -178,10 +178,16 @@
                     <Style BasedOn="{StaticResource DefaultComboBoxStyle}" TargetType="{x:Type ComboBox}">
                         <Setter Property="ui:TextFieldAssist.DecorationVisibility" Value="Collapsed" />
                         <Setter Property="BorderBrush" Value="{DynamicResource MaterialDesign.Brush.Primary}" />
+                        <Setter Property="Height" Value="30" />
+                        <Setter Property="Padding" Value="8,0,0,0" />
+                        <Setter Property="VerticalContentAlignment" Value="Center" />
                     </Style>
                     <Style BasedOn="{StaticResource DefaultTextBoxStyle}" TargetType="{x:Type pt:TextBoxEx}">
                         <Setter Property="BorderBrush" Value="{DynamicResource MaterialDesign.Brush.Primary}" />
                         <Setter Property="Foreground" Value="{DynamicResource MaterialDesign.Brush.Secondary}" />
+                        <Setter Property="Height" Value="30" />
+                        <Setter Property="Padding" Value="6,0,0,0" />
+                        <Setter Property="VerticalContentAlignment" Value="Center" />
                     </Style>
                     <Style BasedOn="{StaticResource MaterialDesignCardGroupBox}" TargetType="GroupBox">
                         <Setter Property="ui:GroupBoxAssist.HeaderPadding" Value="0" />

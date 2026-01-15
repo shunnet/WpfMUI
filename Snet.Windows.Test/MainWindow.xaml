@@ -6,18 +6,63 @@
     xmlns:local="clr-namespace:Snet.Windows.Test"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:snet="https://shunnet.top"
+    xmlns:ui="http://materialdesigninxaml.net/winfx/xaml/themes"
+    xmlns:uis="http://schemas.lepo.co/wpfui/2022/xaml"
     Title="{snet:Loc SystemTitle}"
     snet:ResxLocalizationProvider.DefaultAssembly="Snet.Windows.Test"
     snet:ResxLocalizationProvider.DefaultDictionary="Language"
     Icon="/Icon.ico"
-    LoadAnimationEnabled="True"
+    LoadAnimationEnabled="False"
     WindowStartupLocation="CenterScreen">
-    <Grid>
+    <StackPanel>
         <snet:ButtonControl
+            Margin="10"
             HorizontalAlignment="Center"
             VerticalAlignment="Center"
             Command="{Binding Hello}"
             Content="{snet:Loc Hello}"
             Icon="{DynamicResource Hello}" />
-    </Grid>
+
+        <snet:ButtonControl
+            Margin="10"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            Command="{Binding Hello1}"
+            Content="{snet:Loc Hello}"
+            Icon="{DynamicResource Hello}" />
+
+        <snet:ButtonControl
+            Margin="10"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            Command="{Binding Hello2}"
+            Content="{snet:Loc Hello}"
+            Icon="{DynamicResource Hello}" />
+
+        <snet:ButtonControl
+            Margin="10"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            Command="{Binding Hello3}"
+            Content="{snet:Loc Hello}"
+            Icon="{DynamicResource Hello}" />
+
+        <snet:ComboBoxControl
+            Width="200"
+            
+            Margin="0,10,0,10"
+            DisplayMemberPath="Key"
+            Hint="测试控件"
+            Icon="{DynamicResource AutoHandler}"
+            ItemsSource="{Binding ComboBoxItemsSource}"
+            SelectedItem="{Binding ComboBoxSelectedItem}" />
+
+        <snet:TextBoxControl
+            Width="200"
+            
+            ClearButtonEnabled="True"
+            Hint="测试控件"
+            Icon="{DynamicResource AutoHandler}"
+            Text="{Binding TextBoxText}" />
+    </StackPanel>
 </snet:WindowBase>

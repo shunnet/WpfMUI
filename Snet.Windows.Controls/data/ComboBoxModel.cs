@@ -35,5 +35,14 @@ namespace Snet.Windows.Controls.data
             get => GetProperty(() => Value);
             set => SetProperty(() => Value, value);
         }
+
+        /// <summary>
+        /// 重写让UI显示KEY
+        /// </summary>
+        /// <returns>返回KEY</returns>
+        public override string ToString()
+        {
+            return Key;
+        }
     }
 }

@@ -5,25 +5,34 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="clr-namespace:Snet.Windows.Controls.textbox"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    xmlns:ui="http://materialdesigninxaml.net/winfx/xaml/themes">
-    <Grid Height="25">
+    xmlns:ui="http://materialdesigninxaml.net/winfx/xaml/themes"
+    xmlns:uis="http://schemas.lepo.co/wpfui/2022/xaml">
+    <Grid Height="{Binding Height, RelativeSource={RelativeSource AncestorType=UserControl}}">
+        <uis:TextBox
+            ClearButtonEnabled="{Binding ClearButtonEnabled, RelativeSource={RelativeSource AncestorType=UserControl}}"
+            PlaceholderText="{Binding Hint, RelativeSource={RelativeSource AncestorType=UserControl}}"
+            Text="{Binding Text, RelativeSource={RelativeSource AncestorType=UserControl}}">
+            <uis:TextBox.Style>
+                <Style BasedOn="{StaticResource DefaultUiTextBoxStyle}" TargetType="uis:TextBox">
+                    <Setter Property="VerticalContentAlignment" Value="Center" />
+                    <Setter Property="Padding" Value="27,0,5,0" />
+                    <Style.Triggers>
+                        <MultiDataTrigger>
+                            <MultiDataTrigger.Conditions>
+                                <Condition Binding="{Binding Icon, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="{x:Null}" />
+                            </MultiDataTrigger.Conditions>
+                            <Setter Property="Padding" Value="5,0,5,0" />
+                        </MultiDataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </uis:TextBox.Style>
+        </uis:TextBox>
         <Image
             Width="15"
             Height="15"
+            Margin="8,0,0,0"
             HorizontalAlignment="Left"
             Source="{Binding Icon, RelativeSource={RelativeSource AncestorType=UserControl}}"
             Stretch="Fill" />
-        <TextBox
-            Margin="20,-10,0,0"
-            ui:HintAssist.Foreground="{DynamicResource MaterialDesign.Brush.Secondary}"
-            ui:HintAssist.Hint="{Binding Hint, RelativeSource={RelativeSource AncestorType=UserControl}}"
-            ui:TextFieldAssist.DecorationVisibility="Collapsed"
-            ui:TextFieldAssist.UnderlineBrush="{DynamicResource MaterialDesign.Brush.Primary}"
-            BorderBrush="{DynamicResource MaterialDesign.Brush.Primary}"
-            BorderThickness="0,0,0,1"
-            Foreground="{DynamicResource MaterialDesign.Brush.Secondary}"
-            Style="{StaticResource MaterialDesignFloatingHintTextBox}"
-            Text="{Binding Text, RelativeSource={RelativeSource AncestorType=UserControl}}"
-            TextOptions.TextFormattingMode="Display" />
     </Grid>
 </UserControl>

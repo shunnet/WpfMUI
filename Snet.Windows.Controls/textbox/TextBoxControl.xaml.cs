@@ -14,6 +14,13 @@ namespace Snet.Windows.Controls.textbox
             InitializeComponent();
         }
 
+        public double Height
+        {
+            get => (double)GetValue(HeightProperty);
+            set => SetValue(HeightProperty, value);
+        }
+        public static readonly DependencyProperty HeightProperty =
+            DependencyProperty.Register(nameof(Height), typeof(double), typeof(TextBoxControl), new PropertyMetadata(30d));
 
         public ImageSource Icon
         {
@@ -22,8 +29,6 @@ namespace Snet.Windows.Controls.textbox
         }
         public static readonly DependencyProperty IconProperty =
             DependencyProperty.Register(nameof(Icon), typeof(ImageSource), typeof(TextBoxControl), new PropertyMetadata(null));
-
-
 
         public object Text
         {
@@ -34,9 +39,6 @@ namespace Snet.Windows.Controls.textbox
             DependencyProperty.Register(nameof(Text), typeof(object), typeof(TextBoxControl),
                 new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
 
-
-
-
         public string Hint
         {
             get => (string)GetValue(HintProperty);
@@ -44,5 +46,14 @@ namespace Snet.Windows.Controls.textbox
         }
         public static readonly DependencyProperty HintProperty =
             DependencyProperty.Register(nameof(Hint), typeof(string), typeof(TextBoxControl), new PropertyMetadata(string.Empty));
+
+
+        public bool ClearButtonEnabled
+        {
+            get => (bool)GetValue(ClearButtonEnabledProperty);
+            set => SetValue(ClearButtonEnabledProperty, value);
+        }
+        public static readonly DependencyProperty ClearButtonEnabledProperty =
+            DependencyProperty.Register(nameof(ClearButtonEnabled), typeof(bool), typeof(TextBoxControl), new PropertyMetadata(true));
     }
 }

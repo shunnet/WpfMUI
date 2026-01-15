@@ -15,6 +15,15 @@ namespace Snet.Windows.Controls.combobox
             InitializeComponent();
         }
 
+        public double Height
+        {
+            get => (double)GetValue(HeightProperty);
+            set => SetValue(HeightProperty, value);
+        }
+        public static readonly DependencyProperty HeightProperty =
+            DependencyProperty.Register(nameof(Height), typeof(double), typeof(ComboBoxControl), new PropertyMetadata(30d));
+
+
         public ImageSource Icon
         {
             get => (ImageSource)GetValue(IconProperty);
@@ -23,14 +32,13 @@ namespace Snet.Windows.Controls.combobox
         public static readonly DependencyProperty IconProperty =
             DependencyProperty.Register(nameof(Icon), typeof(ImageSource), typeof(ComboBoxControl), new PropertyMetadata(null));
 
-        public string Hint
+        public object Hint
         {
-            get => (string)GetValue(HintProperty);
+            get => (object)GetValue(HintProperty);
             set => SetValue(HintProperty, value);
         }
         public static readonly DependencyProperty HintProperty =
-            DependencyProperty.Register(nameof(Hint), typeof(string), typeof(ComboBoxControl), new PropertyMetadata(string.Empty));
-
+            DependencyProperty.Register(nameof(Hint), typeof(object), typeof(ComboBoxControl), new PropertyMetadata(null));
 
         public string DisplayMemberPath
         {
@@ -39,8 +47,6 @@ namespace Snet.Windows.Controls.combobox
         }
         public static readonly DependencyProperty DisplayMemberPathProperty =
             DependencyProperty.Register(nameof(DisplayMemberPath), typeof(string), typeof(ComboBoxControl), new PropertyMetadata(string.Empty));
-
-
 
         public IEnumerable ItemsSource
         {
@@ -57,18 +63,7 @@ namespace Snet.Windows.Controls.combobox
             set => SetValue(SelectedItemProperty, value);
         }
         public static readonly DependencyProperty SelectedItemProperty =
-            DependencyProperty.Register(nameof(SelectedItem), typeof(object), typeof(ComboBoxControl),
-                new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
-
-
-        public object SelectedValue
-        {
-            get => (object)GetValue(SelectedValueProperty);
-            set => SetValue(SelectedValueProperty, value);
-        }
-        public static readonly DependencyProperty SelectedValueProperty =
-            DependencyProperty.Register(nameof(SelectedValue), typeof(object), typeof(ComboBoxControl),
-                new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
+            DependencyProperty.Register(nameof(SelectedItem), typeof(object), typeof(ComboBoxControl), new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
 
     }
 }
