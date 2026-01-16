@@ -8,6 +8,14 @@
     xmlns:ui="http://materialdesigninxaml.net/winfx/xaml/themes"
     xmlns:uis="http://schemas.lepo.co/wpfui/2022/xaml">
     <Grid Height="{Binding Height, RelativeSource={RelativeSource AncestorType=UserControl}}">
+        <Grid.Resources>
+            <Style
+                x:Key="CustomComboBoxItemStyle"
+                BasedOn="{StaticResource DefaultComboBoxItemStyle}"
+                TargetType="ComboBoxItem">
+                <Setter Property="Padding" Value="10,6,10,6" />
+            </Style>
+        </Grid.Resources>
         <Label
             VerticalContentAlignment="Center"
             Content="{Binding Hint, RelativeSource={RelativeSource AncestorType=local:ComboBoxControl}}"
@@ -31,6 +39,7 @@
             Height="{Binding Height, RelativeSource={RelativeSource AncestorType=UserControl}}"
             DisplayMemberPath="{Binding DisplayMemberPath, RelativeSource={RelativeSource AncestorType=local:ComboBoxControl}}"
             IsEditable="False"
+            ItemContainerStyle="{StaticResource CustomComboBoxItemStyle}"
             ItemsSource="{Binding ItemsSource, RelativeSource={RelativeSource AncestorType=local:ComboBoxControl}}"
             SelectedItem="{Binding SelectedItem, RelativeSource={RelativeSource AncestorType=local:ComboBoxControl}, Mode=TwoWay}">
             <ComboBox.Style>
