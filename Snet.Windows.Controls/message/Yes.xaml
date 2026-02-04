@@ -50,6 +50,8 @@
                     Source="{Binding ContentIcon}"
                     Stretch="Fill" />
                 <TextBox
+                    VerticalAlignment="Center"
+                    VerticalContentAlignment="Center"
                     ui:TextFieldAssist.DecorationVisibility="Collapsed"
                     AcceptsReturn="True"
                     BorderThickness="0,0,0,0"
