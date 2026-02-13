@@ -197,6 +197,16 @@
                         <Setter Property="Padding" Value="6,0,0,0" />
                         <Setter Property="VerticalContentAlignment" Value="Center" />
                     </Style>
+                    <Style BasedOn="{StaticResource DefaultTextBoxStyle}" TargetType="TextBox">
+                        <Setter Property="BorderBrush" Value="{DynamicResource MaterialDesign.Brush.Primary}" />
+                        <Setter Property="Foreground" Value="{DynamicResource MaterialDesign.Brush.Secondary}" />
+                        <Setter Property="Height" Value="30" />
+                        <Setter Property="Padding" Value="6,0,0,0" />
+                        <Setter Property="VerticalContentAlignment" Value="Center" />
+                    </Style>
+                    <Style BasedOn="{StaticResource DefaultButtonStyle}" TargetType="Button">
+                        <Setter Property="Height" Value="30" />
+                    </Style>
                     <Style BasedOn="{StaticResource MaterialDesignCardGroupBox}" TargetType="GroupBox">
                         <Setter Property="ui:GroupBoxAssist.HeaderPadding" Value="0" />
                         <Setter Property="ui:ElevationAssist.Elevation" Value="Dp0" />
