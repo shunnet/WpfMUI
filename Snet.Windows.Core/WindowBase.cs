@@ -57,6 +57,12 @@ namespace Snet.Windows.Core
         public static readonly DependencyProperty LoadAnimationEnabledProperty =
             DependencyProperty.Register("LoadAnimationEnabled", typeof(bool), typeof(WindowBase), new UIPropertyMetadata(false));
 
+        /// <summary>
+        /// 最大化时的内边距补偿（用于抵消 GlassFrameThickness 导致的边框溢出）
+        /// </summary>
+        public static readonly DependencyProperty MaximizeBorderThicknessProperty =
+            DependencyProperty.Register("MaximizeBorderThickness", typeof(Thickness), typeof(WindowBase), new UIPropertyMetadata(new Thickness(0)));
+
         #endregion
 
         #region 控件字段
@@ -113,8 +119,11 @@ namespace Snet.Windows.Core
             get => (AsyncRelayCommand)GetValue(SkinCommandProperty);
             set => SetValue(SkinCommandProperty, value);
         }
-        private async Task OnSkinCommand()
-            => SkinHandler.SetSkin(SkinHandler.GetSkin() == SkinType.Dark ? SkinType.Light : SkinType.Dark);
+        private Task OnSkinCommand()
+        {
+            SkinHandler.SetSkin(SkinHandler.GetSkin() == SkinType.Dark ? SkinType.Light : SkinType.Dark);
+            return Task.CompletedTask;
+        }
 
 
         /// <summary>
@@ -126,8 +135,11 @@ namespace Snet.Windows.Core
             get => (AsyncRelayCommand)GetValue(LanguageCommandProperty);
             set => SetValue(LanguageCommandProperty, value);
         }
-        private async Task OnLanguageCommand()
-            => LanguageHandler.SetLanguage(LanguageHandler.GetLanguage() == LanguageType.zh ? LanguageType.en : LanguageType.zh);
+        private Task OnLanguageCommand()
+        {
+            LanguageHandler.SetLanguage(LanguageHandler.GetLanguage() == LanguageType.zh ? LanguageType.en : LanguageType.zh);
+            return Task.CompletedTask;
+        }
 
 
         #endregion
@@ -138,8 +150,8 @@ namespace Snet.Windows.Core
         // 缓存 WindowChrome 对象，避免每次重复获取
         private WindowChrome _chrome;
 
-        // 标记是否正在进行边框修复，防止重复进入逻辑
-        private bool _isResizing;
+        // 标记是否正在进行边框修复，防止重复进入逻辑（多线程访问需 volatile）
+        private volatile bool _isResizing;
 
 
         /// <summary>
@@ -179,6 +191,11 @@ namespace Snet.Windows.Core
         /// </summary>
         private void OnSizeChanged(object sender, SizeChangedEventArgs e)
         {
+            // 最大化/还原/最小化状态切换时跳过白边修复，
+            // 否则 GlassFrameThickness 0→1 的切换会导致窗口闪烁
+            if (WindowState != WindowState.Normal)
+                return;
+
             // 若是缩小或尺寸未变化，则无需处理
             if (e.NewSize.Width <= e.PreviousSize.Width &&
                 e.NewSize.Height <= e.PreviousSize.Height)
@@ -278,6 +295,7 @@ namespace Snet.Windows.Core
         private void OnSourceInitialized(object? sender, EventArgs e)
         {
             UpdateDpi(); // 初始化时调用一次
+            UpdateMaximizeBorderThickness(); // 计算最大化内边距
         }
         #endregion
 
@@ -326,6 +344,15 @@ namespace Snet.Windows.Core
         {
             get => (bool)GetValue(LoadAnimationEnabledProperty);
             set => SetValue(LoadAnimationEnabledProperty, value);
+        }
+
+        /// <summary>
+        /// 获取最大化时的内边距补偿值
+        /// </summary>
+        public Thickness MaximizeBorderThickness
+        {
+            get => (Thickness)GetValue(MaximizeBorderThicknessProperty);
+            set => SetValue(MaximizeBorderThicknessProperty, value);
         }
 
         #endregion
@@ -780,6 +807,24 @@ namespace Snet.Windows.Core
         }
 
         /// <summary>
+        /// 根据系统边框指标和 DPI 计算最大化时的内边距补偿值。
+        /// GlassFrameThickness > 0 时，OS 最大化会将窗口向外扩展边框厚度的像素，
+        /// 需要等量内边距使内容不超出工作区。
+        /// </summary>
+        private void UpdateMaximizeBorderThickness()
+        {
+            int borderPad = GetSystemMetrics(SM_CXPADDEDBORDER);
+            int frameX = GetSystemMetrics(SM_CXFRAME) + borderPad;
+            int frameY = GetSystemMetrics(SM_CYFRAME) + borderPad;
+
+            // 物理像素转 DIP
+            double padX = frameX / _dpiX;
+            double padY = frameY / _dpiY;
+
+            MaximizeBorderThickness = new Thickness(padX, padY, padX, padY);
+        }
+
+        /// <summary>
         /// 窗口消息处理过程
         /// </summary>
         private IntPtr WindowProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
@@ -812,15 +857,17 @@ namespace Snet.Windows.Core
             if (!GetMonitorInfo(monitor, mi)) return;
 
             int workHeight = mi.rcWork.bottom - mi.rcWork.top;
-            double winHeight = ActualHeight;
+            // ActualHeight 是 DIP，需要乘以 DPI 缩放转换为物理像素再比较
+            double winHeightPx = ActualHeight * _dpiY;
 
             // 容差 2 像素，避免浮点精度误差
-            if (Math.Abs(workHeight - winHeight) <= 2.0)
+            if (Math.Abs(workHeight - winHeightPx) <= 2.0)
                 WindowState = WindowState.Maximized;
         }
 
         /// <summary>
-        /// 处理 WM_GETMINMAXINFO 消息，限制窗口大小并支持 DPI 缩放
+        /// 处理 WM_GETMINMAXINFO 消息，限制窗口大小并支持 DPI 缩放。
+        /// 通过允许窗口边框溢出工作区并在 XAML 层用 Padding 补偿，彻底消除最大化间隙。
         /// </summary>
         private bool WmGetMinMaxInfo(IntPtr hwnd, IntPtr lParam)
         {
@@ -835,13 +882,18 @@ namespace Snet.Windows.Core
             RECT rcWork = mi.rcWork;
             RECT rcMonitor = mi.rcMonitor;
 
-            // 设置最大化时的位置（相对于显示器左上角）
-            mmi.ptMaxPosition.x = Math.Abs(rcWork.left - rcMonitor.left);
-            mmi.ptMaxPosition.y = Math.Abs(rcWork.top - rcMonitor.top) + 1;
+            // 计算系统边框厚度（GlassFrameThickness 导致最大化时 OS 向外扩展窗口）
+            int borderPad = GetSystemMetrics(SM_CXPADDEDBORDER);
+            int frameX = GetSystemMetrics(SM_CXFRAME) + borderPad;
+            int frameY = GetSystemMetrics(SM_CYFRAME) + borderPad;
 
-            // 设置最大化时的大小（工作区大小，排除任务栏）
-            mmi.ptMaxSize.x = Math.Abs(rcWork.right - rcWork.left);
-            mmi.ptMaxSize.y = Math.Abs(rcWork.bottom - rcWork.top) - 1;
+            // 设置最大化时的位置（允许边框溢出到工作区外）
+            mmi.ptMaxPosition.x = rcWork.left - rcMonitor.left - frameX;
+            mmi.ptMaxPosition.y = rcWork.top - rcMonitor.top - frameY;
+
+            // 设置最大化时的大小（工作区 + 两侧边框溢出）
+            mmi.ptMaxSize.x = (rcWork.right - rcWork.left) + 2 * frameX;
+            mmi.ptMaxSize.y = (rcWork.bottom - rcWork.top) + 2 * frameY;
 
             // 设置窗口最小可缩放大小（考虑 DPI 缩放）
             mmi.ptMinTrackSize.x = (int)(MinWidth * _dpiX);

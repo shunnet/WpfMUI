@@ -106,7 +106,12 @@ namespace Snet.Windows.Core.handler
         /// 不用引用资源文件也可以直接访问
         /// </summary>
         /// <param name="resourceFile">资源文件路径</param>
-        public static void Loading(string resourceFile) => LoadingAsync(resourceFile).ConfigureAwait(false).GetAwaiter().GetResult();
+        public static void Loading(string resourceFile)
+        {
+            // 直接同步调用，避免 .GetAwaiter().GetResult() 在 UI 线程上造成死锁
+            resourceFileCache.AddOrUpdate(resourceFile.GetHashCode(), resourceFile, (k, v) => resourceFile);
+            HandlerAsync();
+        }
 
         /// <summary>
         /// 加载外部图标<br/>

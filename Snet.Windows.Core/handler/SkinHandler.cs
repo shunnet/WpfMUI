@@ -209,27 +209,26 @@ namespace Snet.Windows.Core.handler
         {
             await ModifyThemeAsync(theme =>
              {
-                 return Task.Run(() =>
+                 // 主题对象绑定 UI 线程，不可在 Task.Run 中操作
+                 if (theme is Theme internalTheme)
                  {
-                     if (theme is Theme internalTheme)
+                     switch (skinType)
                      {
-                         switch (skinType)
-                         {
-                             case SkinType.Dark:
-                                 internalTheme.SetDarkTheme();//模板
-                                 internalTheme.SetPrimaryColor((Color)ColorConverter.ConvertFromString("#505050")); //主要颜色
-                                 internalTheme.SetSecondaryColor((Color)ColorConverter.ConvertFromString("#F0E8E8"));//次要颜色
-                                 internalTheme.PrimaryLight = (Color)ColorConverter.ConvertFromString("#616161");  //文本框选中后背景色
-                                 break;
-                             case SkinType.Light:
-                                 internalTheme.SetLightTheme();//模板
-                                 internalTheme.SetPrimaryColor((Color)ColorConverter.ConvertFromString("#F6F6F6"));//主要颜色
-                                 internalTheme.SetSecondaryColor((Color)ColorConverter.ConvertFromString("#272424"));//次要颜色
-                                 internalTheme.PrimaryLight = (Color)ColorConverter.ConvertFromString("#C6C6C6");//文本框选中后背景色
-                                 break;
-                         }
+                         case SkinType.Dark:
+                             internalTheme.SetDarkTheme();//模板
+                             internalTheme.SetPrimaryColor((Color)ColorConverter.ConvertFromString("#505050")); //主要颜色
+                             internalTheme.SetSecondaryColor((Color)ColorConverter.ConvertFromString("#F0E8E8"));//次要颜色
+                             internalTheme.PrimaryLight = (Color)ColorConverter.ConvertFromString("#616161");  //文本框选中后背景色
+                             break;
+                         case SkinType.Light:
+                             internalTheme.SetLightTheme();//模板
+                             internalTheme.SetPrimaryColor((Color)ColorConverter.ConvertFromString("#F6F6F6"));//主要颜色
+                             internalTheme.SetSecondaryColor((Color)ColorConverter.ConvertFromString("#272424"));//次要颜色
+                             internalTheme.PrimaryLight = (Color)ColorConverter.ConvertFromString("#C6C6C6");//文本框选中后背景色
+                             break;
                      }
-                 });
+                 }
+                 return Task.CompletedTask;
              });
         }
 

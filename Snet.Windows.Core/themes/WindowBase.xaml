@@ -16,6 +16,7 @@
         TargetType="{x:Type sv:WindowBase}">
         <Setter Property="AllowsTransparency" Value="False" />
         <Setter Property="Window.WindowStyle" Value="SingleBorderWindow" />
+        <Setter Property="Background" Value="{DynamicResource WindowBackgroundBrush}" />
         <Setter Property="MinHeight" Value="235" />
         <Setter Property="MinWidth" Value="235" />
         <Setter Property="WindowChrome.WindowChrome">
@@ -32,6 +33,7 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type sv:WindowBase}">
+                    <Border x:Name="PART_MaximizeBorder" Padding="0" Background="{DynamicResource WindowBackgroundBrush}">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="auto" />
@@ -384,6 +386,7 @@
                             </Grid>
                         </Border>
                     </Grid>
+                    </Border>
                     <!--  控件模板触发器  -->
                     <ControlTemplate.Triggers>
 
@@ -392,6 +395,7 @@
                             <Setter TargetName="PART_MaximizeNormalImage" Property="Source" Value="{DynamicResource Normal}" />
                             <Setter TargetName="PART_Caption" Property="CornerRadius" Value="0" />
                             <Setter TargetName="PART_Ver" Property="CornerRadius" Value="0" />
+                            <Setter TargetName="PART_MaximizeBorder" Property="Padding" Value="{Binding MaximizeBorderThickness, RelativeSource={RelativeSource TemplatedParent}}" />
                         </Trigger>
 
                         <!--  窗口还原  -->

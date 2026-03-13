@@ -35,6 +35,9 @@
     <!--  跟随样式的图标颜色  -->
     <SolidColorBrush x:Key="Follow.Style.ImageColor" Color="{StaticResource ImageColor.Base}" />
 
+    <!--  窗体背景色（用于消除最大化过渡时的白色闪烁）  -->
+    <SolidColorBrush x:Key="WindowBackgroundBrush" Color="#FFFFFF" />
+
     <!--  窗体标题背景色  -->
     <LinearGradientBrush x:Key="CaptionActiveBackgroundBrush" StartPoint="0.5,0" EndPoint="0.5,1">
         <GradientStop Offset="0.0" Color="#ffffff" />
