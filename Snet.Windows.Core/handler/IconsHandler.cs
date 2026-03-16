@@ -32,13 +32,13 @@ namespace Snet.Windows.Core.handler
         /// 图标缓存（Key = "path|key"，Value = DrawingImage）
         /// 作用：避免重复解析资源字典和对象查找，提升性能
         /// </summary>
-        private static readonly Dictionary<string, DrawingImage> cache = new();
+        private static readonly ConcurrentDictionary<string, DrawingImage> cache = new();
 
         /// <summary>
         /// 资源文件缓存（Key = path，Value = ResourceDictionary）
         /// 作用：同一个资源文件只加载一次，避免频繁 IO / 内存消耗
         /// </summary>
-        private static readonly Dictionary<string, ResourceDictionary> dictCache = new();
+        private static readonly ConcurrentDictionary<string, ResourceDictionary> dictCache = new();
 
         /// <summary>
         /// 根据资源路径和 Key 获取 DrawingImage（自动加载并缓存）
@@ -60,13 +60,11 @@ namespace Snet.Windows.Core.handler
                 return cachedIcon;
 
             // 2. 获取资源文件（若未加载则加载并缓存）
-            if (!dictCache.TryGetValue(path, out var dict))
+            var dict = dictCache.GetOrAdd(path, p =>
             {
-                // 注意：UriKind.RelativeOrAbsolute 保证兼容 pack://、绝对路径、相对路径
-                var uri = new Uri(path, UriKind.RelativeOrAbsolute);
-                dict = new ResourceDictionary { Source = uri };
-                dictCache[path] = dict;
-            }
+                var uri = new Uri(p, UriKind.RelativeOrAbsolute);
+                return new ResourceDictionary { Source = uri };
+            });
 
             // 3. 直接索引查找（避免 Contains + 二次索引开销）
             if (dict[key] is DrawingImage icon)
@@ -87,18 +85,11 @@ namespace Snet.Windows.Core.handler
         /// <param name="e">事件</param>
         private static async Task OnIconsEventHandlerAsync(object? sender, EventSkinResult e)
         {
-            try
-            {
-                //清空ICON缓存
-                dictCache.Clear();
-                cache.Clear();
-                // 执行处理
-                await HandlerAsync();
-            }
-            catch (Exception ex)
-            {
-                throw new Exception(ex.Message, ex);
-            }
+            //清空ICON缓存
+            dictCache.Clear();
+            cache.Clear();
+            // 执行处理
+            await HandlerAsync();
         }
 
         /// <summary>
@@ -120,18 +111,11 @@ namespace Snet.Windows.Core.handler
         /// <param name="resourceFile">资源文件路径</param>
         public static async Task LoadingAsync(string resourceFile)
         {
-            try
-            {
-                //存在则更新,不存在则添加
-                resourceFileCache.AddOrUpdate(resourceFile.GetHashCode(), resourceFile, (k, v) => resourceFile);
+            //存在则更新,不存在则添加
+            resourceFileCache.AddOrUpdate(resourceFile.GetHashCode(), resourceFile, (k, v) => resourceFile);
 
-                // 执行处理
-                await HandlerAsync();
-            }
-            catch (Exception ex)
-            {
-                throw new Exception(ex.Message, ex);
-            }
+            // 执行处理
+            await HandlerAsync();
         }
 
         /// <summary>

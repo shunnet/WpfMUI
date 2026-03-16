@@ -55,6 +55,8 @@ namespace Snet.Windows.Core.handler
         /// </summary>
         private static readonly string _pathSkin = Path.Combine(WindowHandler.BasePath, "skin.json");
 
+        private static readonly Snet.Model.data.LanguageModel _skinLanguageModel = new("Snet.Windows.Controls", "Language", "Snet.Windows.Controls.dll");
+
         #endregion
 
         #region 私有方法
@@ -79,14 +81,7 @@ namespace Snet.Windows.Core.handler
         /// </summary>
         public static void SetSkin(SkinType skinType, bool notice = true)
         {
-            try
-            {
-                setSkin(skinType, notice);
-            }
-            catch (Exception ex)
-            {
-                throw new Exception(ex.Message, ex);
-            }
+            setSkin(skinType, notice);
         }
 
         /// <summary>
@@ -143,7 +138,7 @@ namespace Snet.Windows.Core.handler
             //是否通知
             if (notice)
             {
-                OnSkinEventHandler(skinType == SkinType.Dark ? "#505050" : "#F6F6F6", new EventSkinResult(true, Snet.Core.handler.LanguageHandler.GetLanguageValue("皮肤设置成功", new("Snet.Windows.Controls", "Language", "Snet.Windows.Controls.dll")), skinType));
+                OnSkinEventHandler(skinType == SkinType.Dark ? "#505050" : "#F6F6F6", new EventSkinResult(true, Snet.Core.handler.LanguageHandler.GetLanguageValue("皮肤设置成功", _skinLanguageModel), skinType));
             }
 
             // 持久化保存皮肤设置
@@ -283,7 +278,8 @@ namespace Snet.Windows.Core.handler
                 {
                     await SaveAsync(SkinType.Dark); // 默认保存为 Dark
                 }
-                var model = File.ReadAllText(_pathSkin).ToJsonEntity<UseSkinModel>();
+                var json = await File.ReadAllTextAsync(_pathSkin);
+                var model = json.ToJsonEntity<UseSkinModel>();
                 return model.SkinType;
             }
             catch

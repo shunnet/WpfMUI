@@ -17,7 +17,7 @@ public static class WindowHandler
     /// <summary>
     /// 配置文件基础路径
     /// </summary>
-    public static string BasePath = Path.Combine(AppContext.BaseDirectory, "config");
+    public static readonly string BasePath = Path.Combine(AppContext.BaseDirectory, "config");
     #endregion
 
     #region 常量定义（Win32 消息与系统指标）

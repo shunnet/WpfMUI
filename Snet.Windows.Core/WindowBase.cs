@@ -422,9 +422,10 @@ namespace Snet.Windows.Core
             }
 
             // 3. 注册取消
+            CancellationTokenRegistration ctr = default;
             if (cancellationToken != default)
             {
-                cancellationToken.Register(() =>
+                ctr = cancellationToken.Register(() =>
                 {
                     animatable.BeginAnimation(property, null); // 停止动画
                     tcs.TrySetCanceled();
@@ -439,6 +440,7 @@ namespace Snet.Windows.Core
                     // 强制设置最终值，避免动画停止后值被复位
                     target.SetValue(property, animation.To.Value);
                 }
+                ctr.Dispose();
                 tcs.TrySetResult(null);
             };
 
@@ -545,9 +547,10 @@ namespace Snet.Windows.Core
 
             if (VerEnabled && systemVer != null)
             {
-                systemVer.Text = System.Diagnostics.FileVersionInfo
-                    .GetVersionInfo(System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName)
-                    .FileVersion;
+                var mainModule = System.Diagnostics.Process.GetCurrentProcess().MainModule;
+                systemVer.Text = mainModule != null
+                    ? System.Diagnostics.FileVersionInfo.GetVersionInfo(mainModule.FileName).FileVersion
+                    : string.Empty;
             }
             else if (ver != null)
             {
@@ -694,9 +697,6 @@ namespace Snet.Windows.Core
         // DPI 缩放比例（默认 96 DPI = 1.0）
         private double _dpiX = 1.0;
         private double _dpiY = 1.0;
-
-        // 获取窗口所在显示器的选项常量
-        private const int MONITOR_DEFAULTTONEAREST = 2;
 
         /// <summary>
         /// 更新当前窗口的 DPI 缩放比例
