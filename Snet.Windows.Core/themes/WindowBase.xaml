@@ -33,359 +33,362 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type sv:WindowBase}">
-                    <Border x:Name="PART_MaximizeBorder" Padding="0" Background="{DynamicResource WindowBackgroundBrush}">
-                    <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="auto" />
-                            <RowDefinition />
-                            <RowDefinition Height="auto" />
-                        </Grid.RowDefinitions>
-                        <Border
-                            x:Name="PART_Caption"
-                            Grid.Row="0"
-                            Height="{DynamicResource TitleHeight}"
-                            Background="{DynamicResource CaptionActiveBackgroundBrush}"
-                            CornerRadius="{DynamicResource TopCornerRadius}">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="auto" />
-                                    <ColumnDefinition />
-                                    <ColumnDefinition Width="auto" />
-                                    <ColumnDefinition Width="auto" />
-                                    <ColumnDefinition Width="auto" />
-                                    <ColumnDefinition Width="auto" />
-                                    <ColumnDefinition Width="auto" />
-                                </Grid.ColumnDefinitions>
-                                <!--  LOGO  -->
-                                <Image
-                                    x:Name="PART_Icon"
-                                    Grid.Column="0"
-                                    Margin="{DynamicResource LogoImageMargin}"
-                                    Source="{Binding Path=Icon, RelativeSource={RelativeSource TemplatedParent}}" />
-                                <!--  标题  -->
-                                <TextBlock
-                                    x:Name="PART_CaptionText"
-                                    Grid.Column="1"
-                                    HorizontalAlignment="Left"
-                                    VerticalAlignment="Center"
-                                    FontSize="{DynamicResource TitleFontSize}"
-                                    FontWeight="{DynamicResource TitleFontWeight}"
-                                    Foreground="{DynamicResource TitleForeground}"
-                                    LineHeight="{DynamicResource TitleLineHeight}"
-                                    LineStackingStrategy="BlockLineHeight"
-                                    Text="{Binding Path=Title, RelativeSource={RelativeSource TemplatedParent}}"
-                                    TextAlignment="Center" />
-                                <!--  语言  -->
-                                <Button
-                                    x:Name="PART_LanguageButton"
-                                    Grid.Column="2"
-                                    Width="40"
-                                    Height="{DynamicResource TitleHeight}"
-                                    Margin="0"
-                                    Padding="0"
-                                    ui:ButtonAssist.CornerRadius="0"
-                                    BorderThickness="0"
-                                    Command="{TemplateBinding LanguageCommand}"
-                                    Style="{DynamicResource MaterialDesignFlatButton}"
-                                    WindowChrome.IsHitTestVisibleInChrome="True">
-                                    <Button.Template>
-                                        <ControlTemplate TargetType="Button">
-                                            <Grid>
-                                                <Border
-                                                    x:Name="BgBorder"
-                                                    Background="Transparent"
-                                                    BorderThickness="0">
-                                                    <ContentPresenter
-                                                        HorizontalAlignment="Center"
-                                                        VerticalAlignment="Center"
-                                                        RecognizesAccessKey="True" />
-                                                </Border>
-                                            </Grid>
-                                            <ControlTemplate.Triggers>
-                                                <Trigger Property="IsMouseOver" Value="True">
-                                                    <Setter TargetName="BgBorder" Property="Background" Value="{DynamicResource ButtonMouseOverBackground}" />
-                                                </Trigger>
-                                                <Trigger Property="IsPressed" Value="True">
-                                                    <Setter TargetName="BgBorder" Property="Background" Value="{DynamicResource ButtonPressedBackground}" />
-                                                </Trigger>
-                                            </ControlTemplate.Triggers>
-                                        </ControlTemplate>
-                                    </Button.Template>
-                                    <StackPanel>
-                                        <Image
-                                            Width="{DynamicResource LanguageImageWidth}"
-                                            Source="{DynamicResource Language}"
-                                            Stretch="Uniform" />
-                                    </StackPanel>
-                                </Button>
+                    <Border
+                        x:Name="PART_MaximizeBorder"
+                        Padding="0"
+                        Background="{DynamicResource WindowBackgroundBrush}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="auto" />
+                                <RowDefinition />
+                                <RowDefinition Height="auto" />
+                            </Grid.RowDefinitions>
+                            <Border
+                                x:Name="PART_Caption"
+                                Grid.Row="0"
+                                Height="{DynamicResource TitleHeight}"
+                                Background="{DynamicResource CaptionActiveBackgroundBrush}"
+                                CornerRadius="{DynamicResource TopCornerRadius}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="auto" />
+                                        <ColumnDefinition />
+                                        <ColumnDefinition Width="auto" />
+                                        <ColumnDefinition Width="auto" />
+                                        <ColumnDefinition Width="auto" />
+                                        <ColumnDefinition Width="auto" />
+                                        <ColumnDefinition Width="auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <!--  LOGO  -->
+                                    <Image
+                                        x:Name="PART_Icon"
+                                        Grid.Column="0"
+                                        Margin="{DynamicResource LogoImageMargin}"
+                                        Source="{Binding Path=Icon, RelativeSource={RelativeSource TemplatedParent}}" />
+                                    <!--  标题  -->
+                                    <TextBlock
+                                        x:Name="PART_CaptionText"
+                                        Grid.Column="1"
+                                        HorizontalAlignment="Left"
+                                        VerticalAlignment="Center"
+                                        FontSize="{DynamicResource TitleFontSize}"
+                                        FontWeight="{DynamicResource TitleFontWeight}"
+                                        Foreground="{DynamicResource TitleForeground}"
+                                        LineHeight="{DynamicResource TitleLineHeight}"
+                                        LineStackingStrategy="BlockLineHeight"
+                                        Text="{Binding Path=Title, RelativeSource={RelativeSource TemplatedParent}}"
+                                        TextAlignment="Center" />
+                                    <!--  语言  -->
+                                    <Button
+                                        x:Name="PART_LanguageButton"
+                                        Grid.Column="2"
+                                        Width="40"
+                                        Height="{DynamicResource TitleHeight}"
+                                        Margin="0"
+                                        Padding="0"
+                                        ui:ButtonAssist.CornerRadius="0"
+                                        BorderThickness="0"
+                                        Command="{TemplateBinding LanguageCommand}"
+                                        Style="{DynamicResource MaterialDesignFlatButton}"
+                                        WindowChrome.IsHitTestVisibleInChrome="True">
+                                        <Button.Template>
+                                            <ControlTemplate TargetType="Button">
+                                                <Grid>
+                                                    <Border
+                                                        x:Name="BgBorder"
+                                                        Background="Transparent"
+                                                        BorderThickness="0">
+                                                        <ContentPresenter
+                                                            HorizontalAlignment="Center"
+                                                            VerticalAlignment="Center"
+                                                            RecognizesAccessKey="True" />
+                                                    </Border>
+                                                </Grid>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="BgBorder" Property="Background" Value="{DynamicResource ButtonMouseOverBackground}" />
+                                                    </Trigger>
+                                                    <Trigger Property="IsPressed" Value="True">
+                                                        <Setter TargetName="BgBorder" Property="Background" Value="{DynamicResource ButtonPressedBackground}" />
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Button.Template>
+                                        <StackPanel>
+                                            <Image
+                                                Width="{DynamicResource LanguageImageWidth}"
+                                                Source="{DynamicResource Language}"
+                                                Stretch="Uniform" />
+                                        </StackPanel>
+                                    </Button>
 
-                                <!--  皮肤  -->
-                                <Button
-                                    x:Name="PART_SkinButton"
-                                    Grid.Column="3"
-                                    Width="40"
-                                    Height="{DynamicResource TitleHeight}"
-                                    Margin="0"
-                                    Padding="0"
-                                    ui:ButtonAssist.CornerRadius="0"
-                                    BorderThickness="0"
-                                    Command="{TemplateBinding SkinCommand}"
-                                    Style="{DynamicResource MaterialDesignFlatButton}"
-                                    WindowChrome.IsHitTestVisibleInChrome="True">
-                                    <Button.Template>
-                                        <ControlTemplate TargetType="Button">
-                                            <Grid>
-                                                <Border
-                                                    x:Name="BgBorder"
-                                                    Background="Transparent"
-                                                    BorderThickness="0">
-                                                    <ContentPresenter
-                                                        HorizontalAlignment="Center"
-                                                        VerticalAlignment="Center"
-                                                        RecognizesAccessKey="True" />
-                                                </Border>
-                                            </Grid>
-                                            <ControlTemplate.Triggers>
-                                                <Trigger Property="IsMouseOver" Value="True">
-                                                    <Setter TargetName="BgBorder" Property="Background" Value="{DynamicResource ButtonMouseOverBackground}" />
-                                                </Trigger>
-                                                <Trigger Property="IsPressed" Value="True">
-                                                    <Setter TargetName="BgBorder" Property="Background" Value="{DynamicResource ButtonPressedBackground}" />
-                                                </Trigger>
-                                            </ControlTemplate.Triggers>
-                                        </ControlTemplate>
-                                    </Button.Template>
-                                    <StackPanel Orientation="Horizontal">
-                                        <Image
-                                            Width="{DynamicResource SkinImageWidth}"
-                                            Source="{DynamicResource Skin}"
-                                            Stretch="Uniform" />
-                                    </StackPanel>
-                                </Button>
-                                <!--  最小化  -->
-                                <Button
-                                    x:Name="PART_MinimizeButton"
-                                    Grid.Column="4"
-                                    Width="40"
-                                    Height="{DynamicResource TitleHeight}"
-                                    Padding="0"
-                                    ui:ButtonAssist.CornerRadius="0"
-                                    BorderThickness="0"
-                                    Style="{DynamicResource MaterialDesignFlatButton}"
-                                    WindowChrome.IsHitTestVisibleInChrome="True">
-                                    <Button.Template>
-                                        <ControlTemplate TargetType="Button">
-                                            <Grid>
-                                                <Border
-                                                    x:Name="BgBorder"
-                                                    Background="Transparent"
-                                                    BorderThickness="0">
-                                                    <ContentPresenter
-                                                        HorizontalAlignment="Center"
-                                                        VerticalAlignment="Center"
-                                                        RecognizesAccessKey="True" />
-                                                </Border>
-                                            </Grid>
-                                            <ControlTemplate.Triggers>
-                                                <Trigger Property="IsMouseOver" Value="True">
-                                                    <Setter TargetName="BgBorder" Property="Background" Value="{DynamicResource ButtonMouseOverBackground}" />
-                                                </Trigger>
-                                                <Trigger Property="IsPressed" Value="True">
-                                                    <Setter TargetName="BgBorder" Property="Background" Value="{DynamicResource ButtonPressedBackground}" />
-                                                </Trigger>
-                                            </ControlTemplate.Triggers>
-                                        </ControlTemplate>
-                                    </Button.Template>
-                                    <StackPanel Orientation="Horizontal">
-                                        <Image
-                                            Width="{DynamicResource MinimizeImageWidth}"
-                                            Source="{DynamicResource Min}"
-                                            Stretch="Uniform" />
-                                    </StackPanel>
-                                </Button>
-                                <!--  最大化 / 原始  -->
-                                <Button
-                                    x:Name="PART_MaximizeNormalButton"
-                                    Grid.Column="5"
-                                    Width="40"
-                                    Height="{DynamicResource TitleHeight}"
-                                    Padding="0"
-                                    ui:ButtonAssist.CornerRadius="0"
-                                    BorderThickness="0"
-                                    Style="{DynamicResource MaterialDesignFlatButton}"
-                                    WindowChrome.IsHitTestVisibleInChrome="True">
-                                    <Button.Template>
-                                        <ControlTemplate TargetType="Button">
-                                            <Grid>
-                                                <Border
-                                                    x:Name="BgBorder"
-                                                    Background="Transparent"
-                                                    BorderThickness="0">
-                                                    <ContentPresenter
-                                                        HorizontalAlignment="Center"
-                                                        VerticalAlignment="Center"
-                                                        RecognizesAccessKey="True" />
-                                                </Border>
-                                            </Grid>
-                                            <ControlTemplate.Triggers>
-                                                <Trigger Property="IsMouseOver" Value="True">
-                                                    <Setter TargetName="BgBorder" Property="Background" Value="{DynamicResource ButtonMouseOverBackground}" />
-                                                </Trigger>
-                                                <Trigger Property="IsPressed" Value="True">
-                                                    <Setter TargetName="BgBorder" Property="Background" Value="{DynamicResource ButtonPressedBackground}" />
-                                                </Trigger>
-                                            </ControlTemplate.Triggers>
-                                        </ControlTemplate>
-                                    </Button.Template>
-                                    <StackPanel Orientation="Horizontal">
-                                        <Image
-                                            x:Name="PART_MaximizeNormalImage"
-                                            Width="{DynamicResource MaximizeNormalImageWidth}"
-                                            Stretch="Uniform" />
-                                    </StackPanel>
-                                </Button>
-                                <!--  关闭  -->
-                                <Button
-                                    x:Name="PART_CloseButton"
-                                    Grid.Column="6"
-                                    Width="40"
-                                    Height="{DynamicResource TitleHeight}"
-                                    Padding="0"
-                                    ui:ButtonAssist.CornerRadius="{DynamicResource CloseCornerRadius}"
-                                    BorderThickness="0"
-                                    Style="{DynamicResource MaterialDesignFlatButton}"
-                                    WindowChrome.IsHitTestVisibleInChrome="True">
-                                    <Button.Template>
-                                        <ControlTemplate TargetType="Button">
-                                            <Grid>
-                                                <Border
-                                                    x:Name="BgBorder"
-                                                    Background="Transparent"
-                                                    BorderThickness="0"
-                                                    CornerRadius="{DynamicResource CloseCornerRadius}">
-                                                    <ContentPresenter
-                                                        HorizontalAlignment="Center"
-                                                        VerticalAlignment="Center"
-                                                        RecognizesAccessKey="True" />
-                                                </Border>
-                                            </Grid>
-                                            <ControlTemplate.Triggers>
-                                                <Trigger Property="IsMouseOver" Value="True">
-                                                    <Setter TargetName="BgBorder" Property="Background" Value="{DynamicResource CloseButtonMouseOverBackground}" />
-                                                    <!--  Hover: 粉红色  -->
-                                                </Trigger>
-                                                <Trigger Property="IsPressed" Value="True">
-                                                    <Setter TargetName="BgBorder" Property="Background" Value="{DynamicResource CloseButtonPressedBackground}" />
-                                                    <!--  Pressed: 暗红色  -->
-                                                </Trigger>
-                                                <!--  最大化时圆角为0  -->
-                                                <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=WindowState}" Value="Maximized">
-                                                    <Setter TargetName="BgBorder" Property="CornerRadius" Value="0" />
-                                                </DataTrigger>
-                                                <!--  还原时恢复默认圆角  -->
-                                                <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=WindowState}" Value="Normal">
-                                                    <Setter TargetName="BgBorder" Property="CornerRadius" Value="{DynamicResource CloseCornerRadius}" />
-                                                </DataTrigger>
-                                            </ControlTemplate.Triggers>
-                                        </ControlTemplate>
-                                    </Button.Template>
-                                    <StackPanel Orientation="Horizontal">
-                                        <Image
-                                            Width="{DynamicResource CloseImageWidth}"
-                                            Source="{DynamicResource Close}"
-                                            Stretch="Uniform" />
-                                    </StackPanel>
-                                </Button>
-                            </Grid>
-                        </Border>
-                        <!--  内容  -->
-                        <ui:Card
-                            Grid.Row="1"
-                            ui:ColorZoneAssist.Mode="Standard"
-                            UniformCornerRadius="0">
-                            <Grid>
-                                <Border x:Name="PART_ClientArea">
-                                    <ContentPresenter Content="{TemplateBinding Content}" />
-                                </Border>
-                                <ProgressBar
-                                    x:Name="PART_LoadAnimation"
-                                    Width="100"
-                                    Height="100"
-                                    Foreground="{DynamicResource MaterialDesignBody}"
-                                    IsIndeterminate="True"
-                                    Style="{DynamicResource MaterialDesignCircularProgressBar}"
-                                    Visibility="Collapsed" />
-                                <ui:DialogHost
-                                    CloseOnClickAway="False"
-                                    DialogContentUniformCornerRadius="{DynamicResource WindowCornerRadius_Double}"
-                                    DialogTheme="Inherit"
-                                    Identifier="DialogHost">
-                                    <ui:DialogHost.InputBindings>
-                                        <KeyBinding Key="Enter" Command="{x:Static ui:DialogHost.CloseDialogCommand}">
-                                            <KeyBinding.CommandParameter>
-                                                <system:Boolean xmlns:system="clr-namespace:System;assembly=mscorlib">True</system:Boolean>
-                                            </KeyBinding.CommandParameter>
-                                        </KeyBinding>
-                                        <KeyBinding Key="Esc" Command="{x:Static ui:DialogHost.CloseDialogCommand}">
-                                            <KeyBinding.CommandParameter>
-                                                <system:Boolean xmlns:system="clr-namespace:System;assembly=mscorlib">False</system:Boolean>
-                                            </KeyBinding.CommandParameter>
-                                        </KeyBinding>
-                                    </ui:DialogHost.InputBindings>
-                                </ui:DialogHost>
-                                <ui:DialogHost
-                                    CloseOnClickAway="True"
-                                    DialogContentUniformCornerRadius="{DynamicResource WindowCornerRadius_Double}"
-                                    DialogTheme="Inherit"
-                                    Identifier="DialogHost_ClickClose">
-                                    <ui:DialogHost.InputBindings>
-                                        <KeyBinding Key="Enter" Command="{x:Static ui:DialogHost.CloseDialogCommand}">
-                                            <KeyBinding.CommandParameter>
-                                                <system:Boolean xmlns:system="clr-namespace:System;assembly=mscorlib">True</system:Boolean>
-                                            </KeyBinding.CommandParameter>
-                                        </KeyBinding>
-                                        <KeyBinding Key="Esc" Command="{x:Static ui:DialogHost.CloseDialogCommand}">
-                                            <KeyBinding.CommandParameter>
-                                                <system:Boolean xmlns:system="clr-namespace:System;assembly=mscorlib">False</system:Boolean>
-                                            </KeyBinding.CommandParameter>
-                                        </KeyBinding>
-                                    </ui:DialogHost.InputBindings>
-                                </ui:DialogHost>
+                                    <!--  皮肤  -->
+                                    <Button
+                                        x:Name="PART_SkinButton"
+                                        Grid.Column="3"
+                                        Width="40"
+                                        Height="{DynamicResource TitleHeight}"
+                                        Margin="0"
+                                        Padding="0"
+                                        ui:ButtonAssist.CornerRadius="0"
+                                        BorderThickness="0"
+                                        Command="{TemplateBinding SkinCommand}"
+                                        Style="{DynamicResource MaterialDesignFlatButton}"
+                                        WindowChrome.IsHitTestVisibleInChrome="True">
+                                        <Button.Template>
+                                            <ControlTemplate TargetType="Button">
+                                                <Grid>
+                                                    <Border
+                                                        x:Name="BgBorder"
+                                                        Background="Transparent"
+                                                        BorderThickness="0">
+                                                        <ContentPresenter
+                                                            HorizontalAlignment="Center"
+                                                            VerticalAlignment="Center"
+                                                            RecognizesAccessKey="True" />
+                                                    </Border>
+                                                </Grid>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="BgBorder" Property="Background" Value="{DynamicResource ButtonMouseOverBackground}" />
+                                                    </Trigger>
+                                                    <Trigger Property="IsPressed" Value="True">
+                                                        <Setter TargetName="BgBorder" Property="Background" Value="{DynamicResource ButtonPressedBackground}" />
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Button.Template>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Image
+                                                Width="{DynamicResource SkinImageWidth}"
+                                                Source="{DynamicResource Skin}"
+                                                Stretch="Uniform" />
+                                        </StackPanel>
+                                    </Button>
+                                    <!--  最小化  -->
+                                    <Button
+                                        x:Name="PART_MinimizeButton"
+                                        Grid.Column="4"
+                                        Width="40"
+                                        Height="{DynamicResource TitleHeight}"
+                                        Padding="0"
+                                        ui:ButtonAssist.CornerRadius="0"
+                                        BorderThickness="0"
+                                        Style="{DynamicResource MaterialDesignFlatButton}"
+                                        WindowChrome.IsHitTestVisibleInChrome="True">
+                                        <Button.Template>
+                                            <ControlTemplate TargetType="Button">
+                                                <Grid>
+                                                    <Border
+                                                        x:Name="BgBorder"
+                                                        Background="Transparent"
+                                                        BorderThickness="0">
+                                                        <ContentPresenter
+                                                            HorizontalAlignment="Center"
+                                                            VerticalAlignment="Center"
+                                                            RecognizesAccessKey="True" />
+                                                    </Border>
+                                                </Grid>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="BgBorder" Property="Background" Value="{DynamicResource ButtonMouseOverBackground}" />
+                                                    </Trigger>
+                                                    <Trigger Property="IsPressed" Value="True">
+                                                        <Setter TargetName="BgBorder" Property="Background" Value="{DynamicResource ButtonPressedBackground}" />
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Button.Template>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Image
+                                                Width="{DynamicResource MinimizeImageWidth}"
+                                                Source="{DynamicResource Min}"
+                                                Stretch="Uniform" />
+                                        </StackPanel>
+                                    </Button>
+                                    <!--  最大化 / 原始  -->
+                                    <Button
+                                        x:Name="PART_MaximizeNormalButton"
+                                        Grid.Column="5"
+                                        Width="40"
+                                        Height="{DynamicResource TitleHeight}"
+                                        Padding="0"
+                                        ui:ButtonAssist.CornerRadius="0"
+                                        BorderThickness="0"
+                                        Style="{DynamicResource MaterialDesignFlatButton}"
+                                        WindowChrome.IsHitTestVisibleInChrome="True">
+                                        <Button.Template>
+                                            <ControlTemplate TargetType="Button">
+                                                <Grid>
+                                                    <Border
+                                                        x:Name="BgBorder"
+                                                        Background="Transparent"
+                                                        BorderThickness="0">
+                                                        <ContentPresenter
+                                                            HorizontalAlignment="Center"
+                                                            VerticalAlignment="Center"
+                                                            RecognizesAccessKey="True" />
+                                                    </Border>
+                                                </Grid>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="BgBorder" Property="Background" Value="{DynamicResource ButtonMouseOverBackground}" />
+                                                    </Trigger>
+                                                    <Trigger Property="IsPressed" Value="True">
+                                                        <Setter TargetName="BgBorder" Property="Background" Value="{DynamicResource ButtonPressedBackground}" />
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Button.Template>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Image
+                                                x:Name="PART_MaximizeNormalImage"
+                                                Width="{DynamicResource MaximizeNormalImageWidth}"
+                                                Stretch="Uniform" />
+                                        </StackPanel>
+                                    </Button>
+                                    <!--  关闭  -->
+                                    <Button
+                                        x:Name="PART_CloseButton"
+                                        Grid.Column="6"
+                                        Width="40"
+                                        Height="{DynamicResource TitleHeight}"
+                                        Padding="0"
+                                        ui:ButtonAssist.CornerRadius="{DynamicResource CloseCornerRadius}"
+                                        BorderThickness="0"
+                                        Style="{DynamicResource MaterialDesignFlatButton}"
+                                        WindowChrome.IsHitTestVisibleInChrome="True">
+                                        <Button.Template>
+                                            <ControlTemplate TargetType="Button">
+                                                <Grid>
+                                                    <Border
+                                                        x:Name="BgBorder"
+                                                        Background="Transparent"
+                                                        BorderThickness="0"
+                                                        CornerRadius="{DynamicResource CloseCornerRadius}">
+                                                        <ContentPresenter
+                                                            HorizontalAlignment="Center"
+                                                            VerticalAlignment="Center"
+                                                            RecognizesAccessKey="True" />
+                                                    </Border>
+                                                </Grid>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="BgBorder" Property="Background" Value="{DynamicResource CloseButtonMouseOverBackground}" />
+                                                        <!--  Hover: 粉红色  -->
+                                                    </Trigger>
+                                                    <Trigger Property="IsPressed" Value="True">
+                                                        <Setter TargetName="BgBorder" Property="Background" Value="{DynamicResource CloseButtonPressedBackground}" />
+                                                        <!--  Pressed: 暗红色  -->
+                                                    </Trigger>
+                                                    <!--  最大化时圆角为0  -->
+                                                    <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=WindowState}" Value="Maximized">
+                                                        <Setter TargetName="BgBorder" Property="CornerRadius" Value="0" />
+                                                    </DataTrigger>
+                                                    <!--  还原时恢复默认圆角  -->
+                                                    <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=WindowState}" Value="Normal">
+                                                        <Setter TargetName="BgBorder" Property="CornerRadius" Value="{DynamicResource CloseCornerRadius}" />
+                                                    </DataTrigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Button.Template>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Image
+                                                Width="{DynamicResource CloseImageWidth}"
+                                                Source="{DynamicResource Close}"
+                                                Stretch="Uniform" />
+                                        </StackPanel>
+                                    </Button>
+                                </Grid>
+                            </Border>
+                            <!--  内容  -->
+                            <ui:Card
+                                Grid.Row="1"
+                                ui:ColorZoneAssist.Mode="Standard"
+                                UniformCornerRadius="0">
+                                <Grid>
+                                    <Border x:Name="PART_ClientArea">
+                                        <ContentPresenter Content="{TemplateBinding Content}" />
+                                    </Border>
+                                    <ProgressBar
+                                        x:Name="PART_LoadAnimation"
+                                        Width="100"
+                                        Height="100"
+                                        Foreground="{DynamicResource MaterialDesignBody}"
+                                        IsIndeterminate="True"
+                                        Style="{DynamicResource MaterialDesignCircularProgressBar}"
+                                        Visibility="Collapsed" />
+                                    <ui:DialogHost
+                                        CloseOnClickAway="False"
+                                        DialogContentUniformCornerRadius="{DynamicResource WindowCornerRadius_Double}"
+                                        DialogTheme="Inherit"
+                                        Identifier="DialogHost">
+                                        <ui:DialogHost.InputBindings>
+                                            <KeyBinding Key="Enter" Command="{x:Static ui:DialogHost.CloseDialogCommand}">
+                                                <KeyBinding.CommandParameter>
+                                                    <system:Boolean xmlns:system="clr-namespace:System;assembly=mscorlib">True</system:Boolean>
+                                                </KeyBinding.CommandParameter>
+                                            </KeyBinding>
+                                            <KeyBinding Key="Esc" Command="{x:Static ui:DialogHost.CloseDialogCommand}">
+                                                <KeyBinding.CommandParameter>
+                                                    <system:Boolean xmlns:system="clr-namespace:System;assembly=mscorlib">False</system:Boolean>
+                                                </KeyBinding.CommandParameter>
+                                            </KeyBinding>
+                                        </ui:DialogHost.InputBindings>
+                                    </ui:DialogHost>
+                                    <ui:DialogHost
+                                        CloseOnClickAway="True"
+                                        DialogContentUniformCornerRadius="{DynamicResource WindowCornerRadius_Double}"
+                                        DialogTheme="Inherit"
+                                        Identifier="DialogHost_ClickClose">
+                                        <ui:DialogHost.InputBindings>
+                                            <KeyBinding Key="Enter" Command="{x:Static ui:DialogHost.CloseDialogCommand}">
+                                                <KeyBinding.CommandParameter>
+                                                    <system:Boolean xmlns:system="clr-namespace:System;assembly=mscorlib">True</system:Boolean>
+                                                </KeyBinding.CommandParameter>
+                                            </KeyBinding>
+                                            <KeyBinding Key="Esc" Command="{x:Static ui:DialogHost.CloseDialogCommand}">
+                                                <KeyBinding.CommandParameter>
+                                                    <system:Boolean xmlns:system="clr-namespace:System;assembly=mscorlib">False</system:Boolean>
+                                                </KeyBinding.CommandParameter>
+                                            </KeyBinding>
+                                        </ui:DialogHost.InputBindings>
+                                    </ui:DialogHost>
 
-                            </Grid>
-                        </ui:Card>
-                        <!--  版本  -->
-                        <Border
-                            x:Name="PART_Ver"
-                            Grid.Row="2"
-                            Height="{DynamicResource VerHeight}"
-                            VerticalAlignment="Bottom"
-                            Background="{DynamicResource VerBackgroundBrush}"
-                            CornerRadius="{DynamicResource DownCornerRadius}">
-                            <Grid HorizontalAlignment="Left" VerticalAlignment="Center">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="auto" />
-                                    <ColumnDefinition Width="auto" />
-                                </Grid.ColumnDefinitions>
-                                <Image
-                                    Grid.Column="0"
-                                    Margin="{DynamicResource VerImageMargin}"
-                                    VerticalAlignment="Center"
-                                    Source="{DynamicResource Ver}" />
-                                <TextBlock
-                                    x:Name="System_Ver"
-                                    Grid.Column="1"
-                                    HorizontalAlignment="Left"
-                                    VerticalAlignment="Center"
-                                    FontSize="{DynamicResource VerCodeFontSize}"
-                                    FontWeight="{DynamicResource VerCodeFontWeight}"
-                                    Foreground="{DynamicResource VerCodeForeground}"
-                                    LineHeight="{DynamicResource VerLineHeight}"
-                                    LineStackingStrategy="BlockLineHeight"
-                                    TextAlignment="Center" />
-                            </Grid>
-                        </Border>
-                    </Grid>
+                                </Grid>
+                            </ui:Card>
+                            <!--  版本  -->
+                            <Border
+                                x:Name="PART_Ver"
+                                Grid.Row="2"
+                                Height="{DynamicResource VerHeight}"
+                                VerticalAlignment="Bottom"
+                                Background="{DynamicResource VerBackgroundBrush}"
+                                CornerRadius="{DynamicResource DownCornerRadius}">
+                                <Grid HorizontalAlignment="Left" VerticalAlignment="Center">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="auto" />
+                                        <ColumnDefinition Width="auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <Image
+                                        Grid.Column="0"
+                                        Margin="{DynamicResource VerImageMargin}"
+                                        VerticalAlignment="Center"
+                                        Source="{DynamicResource Ver}" />
+                                    <TextBlock
+                                        x:Name="System_Ver"
+                                        Grid.Column="1"
+                                        HorizontalAlignment="Left"
+                                        VerticalAlignment="Center"
+                                        FontSize="{DynamicResource VerCodeFontSize}"
+                                        FontWeight="{DynamicResource VerCodeFontWeight}"
+                                        Foreground="{DynamicResource VerCodeForeground}"
+                                        LineHeight="{DynamicResource VerLineHeight}"
+                                        LineStackingStrategy="BlockLineHeight"
+                                        TextAlignment="Center" />
+                                </Grid>
+                            </Border>
+                        </Grid>
                     </Border>
                     <!--  控件模板触发器  -->
                     <ControlTemplate.Triggers>
@@ -395,7 +398,6 @@
                             <Setter TargetName="PART_MaximizeNormalImage" Property="Source" Value="{DynamicResource Normal}" />
                             <Setter TargetName="PART_Caption" Property="CornerRadius" Value="0" />
                             <Setter TargetName="PART_Ver" Property="CornerRadius" Value="0" />
-                            <Setter TargetName="PART_MaximizeBorder" Property="Padding" Value="{Binding MaximizeBorderThickness, RelativeSource={RelativeSource TemplatedParent}}" />
                         </Trigger>
 
                         <!--  窗口还原  -->

@@ -70,6 +70,7 @@ namespace Snet.Windows.Core
         private Button? closeButton;              // 关闭按钮
         private Button? maximizeNormalButton;     // 最大化还原按钮
         private Button? minimizeButton;           // 最小化按钮
+        private Border? maximizeBorder;           // 最大化补偿边框
         private TextBlock? systemVer;             // 系统版本标签
         private FrameworkElement? ver;            // 版本元素
         private HwndSource? _hwndSource;          // 窗口句柄源（用于设置合成背景色）
@@ -303,6 +304,21 @@ namespace Snet.Windows.Core
         }
 
         /// <summary>
+        /// 窗口状态变化时立即更新最大化补偿内边距，
+        /// 避免 XAML Trigger 中 Binding 异步解析导致的延迟闪烁
+        /// </summary>
+        protected override void OnStateChanged(EventArgs e)
+        {
+            base.OnStateChanged(e);
+            if (maximizeBorder != null)
+            {
+                maximizeBorder.Padding = WindowState == WindowState.Maximized
+                    ? MaximizeBorderThickness
+                    : new Thickness(0);
+            }
+        }
+
+        /// <summary>
         /// 窗口源初始化时调用，设置窗口消息处理
         /// </summary>
         protected override void OnSourceInitialized(EventArgs e)
@@ -508,6 +524,9 @@ namespace Snet.Windows.Core
         /// </summary>
         private void InitializeTemplateControls()
         {
+            // 缓存最大化补偿边框
+            maximizeBorder = GetTemplateChild("PART_MaximizeBorder") as Border;
+
             // 设置标题对齐方式
             if (!TitleLeft && GetTemplateChild("PART_CaptionText") is TextBlock captionText)
             {
@@ -589,7 +608,12 @@ namespace Snet.Windows.Core
         /// 最大化/还原窗口事件处理
         /// </summary>
         private void OnWindowStateRestoring(object sender, RoutedEventArgs e)
-            => WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+        {
+            if (WindowState == WindowState.Maximized)
+                SystemCommands.RestoreWindow(this);
+            else
+                SystemCommands.MaximizeWindow(this);
+        }
 
         #endregion
 

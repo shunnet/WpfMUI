@@ -4,7 +4,7 @@
     <AccelerateBuildsInVisualStudio>True</AccelerateBuildsInVisualStudio>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Version>26.75.2</Version>
+    <Version>26.75.3</Version>
     <Authors>Shun</Authors>
     <UseWPF>True</UseWPF>
     <AuthorsName>Shun</AuthorsName>
@@ -12,7 +12,7 @@
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
     <PackageProjectUrl>https://shunnet.top</PackageProjectUrl>
     <Product>Windows</Product>
-    <Description>界面组件：Controls（控件、图表、转换器、模型、枚举、处理、消息、多语言）</Description>
+    <Description>界面组件：Controls（控件、转换器、模型、枚举、处理、消息、多语言）</Description>
     <PackageIcon>icon.png</PackageIcon>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
@@ -23,7 +23,7 @@
     <None Include="..\README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Snet.Windows.Core" Version="26.75.2" />
+    <PackageReference Include="Snet.Windows.Core" Version="26.75.3" />
     <PackageReference Include="AvalonEdit" Version="6.3.1.120" />
   </ItemGroup>
   <ItemGroup>
