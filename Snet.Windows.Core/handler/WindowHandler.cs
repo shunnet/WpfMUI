@@ -40,7 +40,12 @@ public static class WindowHandler
     // DWM 属性
     public const int DWMWA_WINDOW_CORNER_PREFERENCE = 33;
     public const int DWMWA_EXTENDED_FRAME_BOUNDS = 9;
+    public const int DWMWA_CAPTION_COLOR = 35;
+    public const int DWMWA_BORDER_COLOR = 34;
     public const int DWMWA_VISIBLE_FRAME_BORDER_THICKNESS = 37;
+
+    // 窗口类属性
+    public const int GCLP_HBRBACKGROUND = -10;
     #endregion
 
     #region 枚举定义
@@ -118,6 +123,16 @@ public static class WindowHandler
         return IntPtr.Size > 4
             ? GetClassLongPtr64(hWnd, nIndex)
             : new IntPtr(GetClassLongPtr32(hWnd, nIndex));
+    }
+
+    /// <summary>
+    /// 设置窗口类信息（适配 32/64 位平台）。
+    /// </summary>
+    public static IntPtr SetClassLongPtr(IntPtr hWnd, int nIndex, IntPtr dwNewLong)
+    {
+        return IntPtr.Size > 4
+            ? SetClassLongPtr64(hWnd, nIndex, dwNewLong)
+            : new IntPtr(SetClassLongPtr32(hWnd, nIndex, (uint)dwNewLong.ToInt32()));
     }
 
     /// <summary>
@@ -207,6 +222,12 @@ public static class WindowHandler
     [DllImport("user32.dll", EntryPoint = "GetClassLongPtr")]
     private static extern IntPtr GetClassLongPtr64(IntPtr hWnd, int nIndex);
 
+    [DllImport("user32.dll", EntryPoint = "SetClassLong")]
+    private static extern uint SetClassLongPtr32(IntPtr hWnd, int nIndex, uint dwNewLong);
+
+    [DllImport("user32.dll", EntryPoint = "SetClassLongPtr")]
+    private static extern IntPtr SetClassLongPtr64(IntPtr hWnd, int nIndex, IntPtr dwNewLong);
+
     [SuppressUnmanagedCodeSecurity, SecurityCritical,
      DllImport("user32.dll", EntryPoint = "ClientToScreen", CharSet = CharSet.Auto, SetLastError = true, ExactSpelling = true)]
     private static extern int IntClientToScreen(HandleRef hWnd, [In, Out] POINT pt);
@@ -225,6 +246,15 @@ public static class WindowHandler
 
     [DllImport("dwmapi.dll")]
     public static extern int DwmGetWindowAttribute(IntPtr hwnd, int dwAttribute, out int pvAttribute, int cbAttribute);
+
+    [DllImport("dwmapi.dll")]
+    public static extern int DwmSetWindowAttribute(IntPtr hwnd, int dwAttribute, ref uint pvAttribute, int cbAttribute);
+
+    [DllImport("gdi32.dll")]
+    public static extern IntPtr CreateSolidBrush(uint crColor);
+
+    [DllImport("gdi32.dll")]
+    public static extern bool DeleteObject(IntPtr hObject);
 
     [DllImport("user32.dll")]
     public static extern bool GetWindowPlacement(IntPtr hWnd, ref WINDOWPLACEMENT lpwndpl);

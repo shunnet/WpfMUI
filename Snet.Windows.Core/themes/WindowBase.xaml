@@ -24,7 +24,7 @@
                 <WindowChrome
                     CaptionHeight="{DynamicResource TitleHeight}"
                     CornerRadius="{DynamicResource WindowCornerRadius}"
-                    GlassFrameThickness="1"
+                    GlassFrameThickness="-1"
                     NonClientFrameEdges="None"
                     ResizeBorderThickness="8"
                     UseAeroCaptionButtons="False" />

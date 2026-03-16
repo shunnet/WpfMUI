@@ -72,6 +72,8 @@ namespace Snet.Windows.Core
         private Button? minimizeButton;           // 最小化按钮
         private TextBlock? systemVer;             // 系统版本标签
         private FrameworkElement? ver;            // 版本元素
+        private HwndSource? _hwndSource;          // 窗口句柄源（用于设置合成背景色）
+        private IntPtr _hBrush;                   // 缓存的 Win32 背景画刷句柄
 
         #endregion
 
@@ -98,7 +100,6 @@ namespace Snet.Windows.Core
             LanguageCommand = new AsyncRelayCommand(OnLanguageCommand);
             SkinCommand = new AsyncRelayCommand(OnSkinCommand);
             this.Loaded += OnLoaded;
-            this.SizeChanged += OnSizeChanged;
             this.SourceInitialized += OnSourceInitialized;
             Application.Current.Dispatcher.InvokeAsync(() =>
             {
@@ -122,6 +123,7 @@ namespace Snet.Windows.Core
         private Task OnSkinCommand()
         {
             SkinHandler.SetSkin(SkinHandler.GetSkin() == SkinType.Dark ? SkinType.Light : SkinType.Dark);
+            Dispatcher.InvokeAsync(UpdateNativeBackground, DispatcherPriority.Loaded);
             return Task.CompletedTask;
         }
 
@@ -146,103 +148,6 @@ namespace Snet.Windows.Core
 
         #region 事件
 
-        #region 解决屏幕缩放白边问题
-        // 缓存 WindowChrome 对象，避免每次重复获取
-        private WindowChrome _chrome;
-
-        // 标记是否正在进行边框修复，防止重复进入逻辑（多线程访问需 volatile）
-        private volatile bool _isResizing;
-
-
-        /// <summary>
-        /// 移除窗口边框（设置玻璃框架厚度为 0）并动态计算恢复延迟
-        /// </summary>
-        /// <param name="e">窗口尺寸变化事件参数</param>
-        /// <returns>恢复边框前需要延迟的时间（毫秒）</returns>
-        private int RemoveBorderAndCalcDelay(SizeChangedEventArgs e)
-        {
-            // 确保 _chrome 已初始化
-            _chrome ??= WindowChrome.GetWindowChrome(this);
-
-            // 临时移除边框，防止出现白边
-            _chrome.GlassFrameThickness = new Thickness(0);
-
-            // 根据尺寸变化幅度动态调整延迟时间（变化越大，延迟越长）
-            double sizeDelta = Math.Max(
-                Math.Abs(e.NewSize.Width - e.PreviousSize.Width),
-                Math.Abs(e.NewSize.Height - e.PreviousSize.Height)
-            );
-
-            // 延迟时间范围限制在 [100ms, 150ms]，防止过短或过长
-            return (int)Math.Clamp(sizeDelta * 0.5, 100, 200);
-        }
-
-        /// <summary>
-        /// 恢复窗口边框（设置玻璃框架厚度为 1）
-        /// </summary>
-        private void RestoreBorder()
-        {
-            _chrome ??= WindowChrome.GetWindowChrome(this);
-            _chrome.GlassFrameThickness = new Thickness(1);
-        }
-
-        /// <summary>
-        /// 窗口大小改变事件，仅在窗口“放大”时触发白边修复逻辑
-        /// </summary>
-        private void OnSizeChanged(object sender, SizeChangedEventArgs e)
-        {
-            // 最大化/还原/最小化状态切换时跳过白边修复，
-            // 否则 GlassFrameThickness 0→1 的切换会导致窗口闪烁
-            if (WindowState != WindowState.Normal)
-                return;
-
-            // 若是缩小或尺寸未变化，则无需处理
-            if (e.NewSize.Width <= e.PreviousSize.Width &&
-                e.NewSize.Height <= e.PreviousSize.Height)
-                return;
-
-            // 若当前已经在修复过程中，则直接返回，避免重复进入
-            if (_isResizing)
-                return;
-
-            _isResizing = true;
-
-            // 先移除边框并计算动态延迟时间
-            int delay = RemoveBorderAndCalcDelay(e);
-
-            // 使用后台任务延迟恢复边框
-            _ = Task.Run(async () =>
-            {
-                try
-                {
-                    // 等待一段时间，确保窗口调整已完成
-                    await Task.Delay(delay);
-
-                    // 回到 UI 线程执行边框恢复操作
-                    await Dispatcher.InvokeAsync(() =>
-                    {
-                        // 若窗口已关闭或未加载，则直接退出
-                        if (!IsLoaded)
-                        {
-                            _isResizing = false;
-                            return;
-                        }
-
-                        // 恢复边框，修复白边问题
-                        RestoreBorder();
-
-                        _isResizing = false;
-                    });
-                }
-                catch
-                {
-                    // 出现异常时保证状态恢复，避免死锁
-                    _isResizing = false;
-                }
-            });
-        }
-        #endregion
-
         /// <summary>
         /// 窗体加载完成
         /// </summary>
@@ -260,6 +165,9 @@ namespace Snet.Windows.Core
 
             // 修改注册表优化显示效果
             UpdateRegistry();
+
+            // 设置原生背景色与主题匹配，消除拖拽/最大化过渡时的白色闪烁
+            UpdateNativeBackground();
 
             //自动缩放功能
             AutoAdjustAsync();
@@ -400,7 +308,8 @@ namespace Snet.Windows.Core
         protected override void OnSourceInitialized(EventArgs e)
         {
             var handle = new WindowInteropHelper(this).Handle;
-            HwndSource.FromHwnd(handle)?.AddHook(WindowProc);
+            _hwndSource = HwndSource.FromHwnd(handle);
+            _hwndSource?.AddHook(WindowProc);
             base.OnSourceInitialized(e);
         }
 
@@ -903,6 +812,37 @@ namespace Snet.Windows.Core
             return true;
         }
 
+        /// <summary>
+        /// 将 Win32 窗口类背景画刷、DWM 合成背景色、DWM 标题栏颜色统一设置为当前主题色，
+        /// 从根源消除拖拽调整大小和最大化/还原过渡动画时的白色闪烁，
+        /// 同时保持 GlassFrameThickness=-1 不变以保留原生 DWM 阴影与动画。
+        /// </summary>
+        private void UpdateNativeBackground()
+        {
+            if (TryFindResource("WindowBackgroundBrush") is not SolidColorBrush brush) return;
+            Color color = brush.Color;
+
+            // 1. 设置 WPF 合成背景色（DWM 合成层），消除最大化/还原过渡闪白
+            if (_hwndSource?.CompositionTarget != null)
+                _hwndSource.CompositionTarget.BackgroundColor = color;
+
+            var hwnd = new WindowInteropHelper(this).Handle;
+            if (hwnd == IntPtr.Zero) return;
+
+            // COLORREF = 0x00BBGGRR
+            uint colorRef = (uint)(color.B << 16 | color.G << 8 | color.R);
+
+            // 2. 设置 Win32 窗口类背景画刷 —— 消除拖拽调整大小时 OS 填充的白色区域
+            IntPtr newBrush = CreateSolidBrush(colorRef);
+            SetClassLongPtr(hwnd, GCLP_HBRBACKGROUND, newBrush);
+            if (_hBrush != IntPtr.Zero)
+                DeleteObject(_hBrush);
+            _hBrush = newBrush;
+
+            // 3. 设置 DWM 标题栏/边框颜色（Windows 11 22H2+，低版本静默忽略）
+            DwmSetWindowAttribute(hwnd, DWMWA_CAPTION_COLOR, ref colorRef, sizeof(uint));
+            DwmSetWindowAttribute(hwnd, DWMWA_BORDER_COLOR, ref colorRef, sizeof(uint));
+        }
 
         #endregion
 
