@@ -13,7 +13,6 @@ using System.Windows.Controls;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
-using System.Windows.Shell;
 using System.Windows.Threading;
 using static Snet.Windows.Core.handler.WindowHandler;
 
@@ -56,6 +55,12 @@ namespace Snet.Windows.Core
         /// </summary>
         public static readonly DependencyProperty LoadAnimationEnabledProperty =
             DependencyProperty.Register("LoadAnimationEnabled", typeof(bool), typeof(WindowBase), new UIPropertyMetadata(false));
+
+        /// <summary>
+        /// 动画时间
+        /// </summary>
+        public static readonly DependencyProperty AnimationTimeProperty =
+            DependencyProperty.Register("AnimationTime", typeof(int), typeof(WindowBase), new UIPropertyMetadata(2000));
 
         /// <summary>
         /// 最大化时的内边距补偿（用于抵消 GlassFrameThickness 导致的边框溢出）
@@ -256,6 +261,15 @@ namespace Snet.Windows.Core
         }
 
         /// <summary>
+        /// 动画时间
+        /// </summary>
+        public int AnimationTime
+        {
+            get => (int)GetValue(AnimationTimeProperty);
+            set => SetValue(AnimationTimeProperty, value);
+        }
+
+        /// <summary>
         /// 获取最大化时的内边距补偿值
         /// </summary>
         public Thickness MaximizeBorderThickness
@@ -383,7 +397,7 @@ namespace Snet.Windows.Core
             clientArea.Visibility = Visibility.Visible; // opacity = 0 时仍可参与布局
             clientArea.IsEnabled = false;
 
-            var duration = TimeSpan.FromMilliseconds(2000);
+            var duration = TimeSpan.FromMilliseconds(AnimationTime);
 
             await Task.Delay(duration, cancellationToken);
 
