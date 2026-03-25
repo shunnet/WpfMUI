@@ -11,8 +11,9 @@
     Title="{snet:Loc SystemTitle}"
     snet:ResxLocalizationProvider.DefaultAssembly="Snet.Windows.Test"
     snet:ResxLocalizationProvider.DefaultDictionary="Language"
+    AnimationTime="2000"
     Icon="/Icon.ico"
-    LoadAnimationEnabled="False"
+    LoadAnimationEnabled="True"
     WindowStartupLocation="CenterScreen">
     <StackPanel>
         <snet:ButtonControl
@@ -49,7 +50,6 @@
 
         <snet:ComboBoxControl
             Width="200"
-            
             Margin="0,10,0,10"
             DisplayMemberPath="Key"
             Hint="测试控件"
@@ -59,7 +59,6 @@
 
         <snet:TextBoxControl
             Width="200"
-            
             ClearButtonEnabled="True"
             Hint="测试控件"
             Icon="{DynamicResource AutoHandler}"

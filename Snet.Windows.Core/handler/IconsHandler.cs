@@ -6,7 +6,11 @@ using System.Windows.Media;
 namespace Snet.Windows.Core.handler
 {
     /// <summary>
-    /// 图标处理类
+    /// 图标资源处理器，提供基于缓存的图标加载、皮肤感知的自动重载功能。<br/>
+    /// 使用 ConcurrentDictionary 实现线程安全的多级缓存：<br/>
+    /// - 图标缓存（DrawingImage）：避免重复查找<br/>
+    /// - 资源字典缓存（ResourceDictionary）：避免重复加载资源文件<br/>
+    /// 皮肤切换时自动清空缓存并重新加载资源。
     /// </summary>
     public class IconsHandler
     {

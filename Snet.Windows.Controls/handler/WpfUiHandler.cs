@@ -9,15 +9,20 @@ using Wpf.Ui.Controls;
 namespace Snet.Windows.Controls.handler
 {
     /// <summary>
-    /// WPFUI的汉堡菜单处理类
+    /// Wpf.Ui (WPF UI) 汉堡菜单处理类，提供以下功能：<br/>
+    /// - 主题（皮肤）资源替换<br/>
+    /// - 导航菜单项创建（支持多语言）<br/>
+    /// - 默认导航项设置与自动展开/折叠<br/>
+    /// - 语言切换时自动更新菜单文本
     /// </summary>
     public static class WpfUiHandler
     {
         /// <summary>
-        /// WPFUI的皮肤处理
+        /// 更新 Wpf.Ui 主题资源。<br/>
+        /// 查找并替换全局合并资源中的旧主题资源字典，确保主题切换无闪烁。
         /// </summary>
-        /// <param name="app">容器</param>
-        /// <param name="skin">皮肤</param>
+        /// <param name="app">包含主题资源的容器控件</param>
+        /// <param name="skin">目标皮肤类型，若为 null 则默认为 Dark</param>
         public static void WpfUI_SkinUpdate(this FrameworkElement app, SkinType? skin)
         {
             //设置默认样式
@@ -62,11 +67,12 @@ namespace Snet.Windows.Controls.handler
         }
 
         /// <summary>
-        /// 替换资源
+        /// 替换指定控件的合并资源字典（线程安全）。<br/>
+        /// 先添加新资源后移除旧资源，通过 BeginInit/EndInit 包裹以减少 UI 闪烁。
         /// </summary>
-        /// <param name="app">grid控件</param>
-        /// <param name="newDict">新资源</param>
-        /// <param name="oldDict">旧资源</param>
+        /// <param name="app">目标控件</param>
+        /// <param name="newDict">新资源字典</param>
+        /// <param name="oldDict">旧资源字典（待移除）</param>
         private static void ReplaceResources(this FrameworkElement app, ResourceDictionary newDict, ResourceDictionary oldDict)
         {
             // 确保在 UI 线程执行
@@ -111,7 +117,7 @@ namespace Snet.Windows.Controls.handler
         /// <param name="type">对应的界面</param>
         /// <param name="multilingual">多语言的情况下 model 必填</param>
         /// <param name="model">语言模型</param>
-        /// <returns></returns>
+        /// <returns>创建的导航菜单项实例</returns>
         public static NavigationViewItem CreationControl(string key, SymbolRegular icon, Type type, bool multilingual = false, LanguageModel? model = null)
         {
             NavigationViewItem item = new NavigationViewItem()
@@ -197,8 +203,14 @@ namespace Snet.Windows.Controls.handler
 
 
         /// <summary>
-        /// 语言切换通知事件
+        /// 语言切换通知事件处理。<br/>
+        /// 在 UI 线程上遍历导航菜单的所有项（包含子项和底部菜单），<br/>
+        /// 根据 ContentStringFormat 中存储的多语言键值异步获取翻译文本并更新 Content。
         /// </summary>
+        /// <param name="sender">事件源</param>
+        /// <param name="e">语言切换事件参数（可为 null）</param>
+        /// <param name="navigation">导航菜单控件</param>
+        /// <param name="model">语言模型，用于查询翻译文本</param>
         private static async Task LanguageHandler_OnLanguageEventAsync(object? sender, Snet.Model.data.EventLanguageResult e, NavigationView navigation, LanguageModel model)
         {
             // 先获取 Dispatcher（navigation 是 UI 元素，肯定有）

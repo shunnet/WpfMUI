@@ -24,10 +24,16 @@ namespace Snet.Windows.Controls.tray;
  */
 
 /// <summary>
-/// Responsible for managing the icons in the Tray bar.
+/// 系统托盘图标管理器。<br/>
+/// 负责注册、修改和注销系统托盘中的图标。
 /// </summary>
 internal static class TrayManager
 {
+    /// <summary>
+    /// 使用默认父窗口注册托盘图标。
+    /// </summary>
+    /// <param name="notifyIcon">要注册的通知图标实例。</param>
+    /// <returns>注册是否成功。</returns>
     public static bool Register(INotifyIcon notifyIcon)
     {
         if (notifyIcon is null)
@@ -38,6 +44,12 @@ internal static class TrayManager
         return Register(notifyIcon, GetParentSource());
     }
 
+    /// <summary>
+    /// 使用指定父窗口注册托盘图标。
+    /// </summary>
+    /// <param name="notifyIcon">要注册的通知图标实例。</param>
+    /// <param name="parentWindow">父窗口。</param>
+    /// <returns>注册是否成功。</returns>
     public static bool Register(INotifyIcon notifyIcon, Window parentWindow)
     {
         if (parentWindow == null)
@@ -48,6 +60,13 @@ internal static class TrayManager
         return Register(notifyIcon, (HwndSource)PresentationSource.FromVisual(parentWindow));
     }
 
+    /// <summary>
+    /// 使用指定的 HwndSource 注册托盘图标。<br/>
+    /// 包括创建 TrayHandler、设置 Shell32 通知数据、加载图标和消息钩子。
+    /// </summary>
+    /// <param name="notifyIcon">要注册的通知图标实例。</param>
+    /// <param name="parentSource">父窗口的 HwndSource，可为 null。</param>
+    /// <returns>注册是否成功。</returns>
     public static bool Register(INotifyIcon notifyIcon, HwndSource? parentSource)
     {
         if (parentSource is null)
@@ -110,6 +129,11 @@ internal static class TrayManager
         return true;
     }
 
+    /// <summary>
+    /// 修改托盘图标的显示图像。
+    /// </summary>
+    /// <param name="notifyIcon">要修改的通知图标实例。</param>
+    /// <returns>修改是否成功。</returns>
     public static bool ModifyIcon(INotifyIcon notifyIcon)
     {
         if (!notifyIcon.IsRegistered)
@@ -122,6 +146,11 @@ internal static class TrayManager
         return Interop.Shell32.Shell_NotifyIcon(Interop.Shell32.NIM.MODIFY, notifyIcon.ShellIconData);
     }
 
+    /// <summary>
+    /// 修改托盘图标的提示文本。
+    /// </summary>
+    /// <param name="notifyIcon">要修改的通知图标实例。</param>
+    /// <returns>修改是否成功。</returns>
     public static bool ModifyToolTip(INotifyIcon notifyIcon)
     {
         if (!notifyIcon.IsRegistered)
@@ -136,8 +165,10 @@ internal static class TrayManager
     }
 
     /// <summary>
-    /// Tries to remove the <see cref="INotifyIcon"/> from the shell.
+    /// 尝试从 Shell 中注销 <see cref="INotifyIcon"/>，移除托盘图标。
     /// </summary>
+    /// <param name="notifyIcon">要注销的通知图标实例。</param>
+    /// <returns>注销是否成功。</returns>
     public static bool Unregister(INotifyIcon notifyIcon)
     {
         if (notifyIcon.ShellIconData == null || !notifyIcon.IsRegistered)
@@ -153,8 +184,9 @@ internal static class TrayManager
     }
 
     /// <summary>
-    /// Gets application source.
+    /// 获取应用程序主窗口的 HwndSource。
     /// </summary>
+    /// <returns>主窗口的 HwndSource，若主窗口不存在则返回 null。</returns>
     private static HwndSource? GetParentSource()
     {
         Window mainWindow = Application.Current.MainWindow;
@@ -167,6 +199,11 @@ internal static class TrayManager
         return (HwndSource)PresentationSource.FromVisual(mainWindow);
     }
 
+    /// <summary>
+    /// 重新加载托盘图标的 HICON 句柄。<br/>
+    /// 优先使用自定义图标，若无则使用应用程序默认图标。
+    /// </summary>
+    /// <param name="notifyIcon">要加载图标的通知图标实例。</param>
     private static void ReloadHicon(INotifyIcon notifyIcon)
     {
         IntPtr hIcon = IntPtr.Zero;

@@ -1,7 +1,5 @@
 ﻿using Snet.Core.handler;
-using System.Diagnostics;
 using System.IO;
-using System.Runtime.InteropServices;
 using System.Security.Principal;
 using System.Text;
 using System.Windows;
@@ -9,7 +7,10 @@ using System.Windows;
 namespace Snet.Windows.Controls.handler
 {
     /// <summary>
-    /// 设置处理类
+    /// 系统设置处理器，提供以下功能：<br/>
+    /// - 开机自启动（通过启动文件夹 .bat 文件）<br/>
+    /// - 管理员权限检测与重启<br/>
+    /// - 桌面快捷方式创建/删除（通过 COM IShellLinkW）
     /// </summary>
     public class SettingsHandler
     {

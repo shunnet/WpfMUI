@@ -104,38 +104,62 @@ namespace Snet.Windows.Controls.property.wpf
         }
 
         /// <summary>
-        /// Captures the specified rectangle from the screen.
-        /// <returns>
-        /// A bitmap.
-        /// </returns>
+        /// 从屏幕捕获指定矩形区域的截图。
+        /// 使用 GDI 的 BitBlt 函数实现屏幕像素拷贝。
+        /// 所有 GDI 资源在 finally 块中安全释放，防止资源泄漏。
         /// </summary>
-        /// <param name="area">The area to capture.</param>
-        /// <returns>
-        /// A bitmap.
-        /// </returns>
+        /// <param name="area">要捕获的屏幕矩形区域。</param>
+        /// <returns>捕获的位图源。</returns>
         public static BitmapSource Capture(Rect area)
         {
-            var screenDeviceContext = GetDC(IntPtr.Zero);
-            var memoryDeviceContext = CreateCompatibleDC(screenDeviceContext);
-            var bitmapHandle = CreateCompatibleBitmap(screenDeviceContext, (int)area.Width, (int)area.Height);
-            SelectObject(memoryDeviceContext, bitmapHandle); // Select bitmap from compatible bitmap to memDC
+            IntPtr screenDeviceContext = IntPtr.Zero;
+            IntPtr memoryDeviceContext = IntPtr.Zero;
+            IntPtr bitmapHandle = IntPtr.Zero;
 
-            BitBlt(
-                memoryDeviceContext,
-                0,
-                0,
-                (int)area.Width,
-                (int)area.Height,
-                screenDeviceContext,
-                (int)area.X,
-                (int)area.Y,
-                TernaryRasterOperations.SRCCOPY);
-            var bitmapSource = Imaging.CreateBitmapSourceFromHBitmap(bitmapHandle, IntPtr.Zero, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
+            try
+            {
+                // 获取整个屏幕的设备上下文
+                screenDeviceContext = GetDC(IntPtr.Zero);
+                // 创建与屏幕兼容的内存设备上下文
+                memoryDeviceContext = CreateCompatibleDC(screenDeviceContext);
+                // 创建与屏幕兼容的位图对象
+                bitmapHandle = CreateCompatibleBitmap(screenDeviceContext, (int)area.Width, (int)area.Height);
+                // 将位图选入内存设备上下文
+                SelectObject(memoryDeviceContext, bitmapHandle);
 
-            DeleteObject(bitmapHandle);
-            ReleaseDC(IntPtr.Zero, screenDeviceContext);
-            ReleaseDC(IntPtr.Zero, memoryDeviceContext);
-            return bitmapSource;
+                // 执行屏幕像素到内存位图的拷贝操作
+                BitBlt(
+                    memoryDeviceContext,
+                    0,
+                    0,
+                    (int)area.Width,
+                    (int)area.Height,
+                    screenDeviceContext,
+                    (int)area.X,
+                    (int)area.Y,
+                    TernaryRasterOperations.SRCCOPY);
+
+                // 从 GDI 位图句柄创建 WPF 位图源
+                var bitmapSource = Imaging.CreateBitmapSourceFromHBitmap(
+                    bitmapHandle, IntPtr.Zero, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
+                bitmapSource.Freeze();
+
+                return bitmapSource;
+            }
+            finally
+            {
+                // 按创建的逆序释放所有 GDI 资源
+                if (bitmapHandle != IntPtr.Zero)
+                    DeleteObject(bitmapHandle);
+
+                // CreateCompatibleDC 创建的 DC 必须使用 DeleteDC 释放，而非 ReleaseDC
+                if (memoryDeviceContext != IntPtr.Zero)
+                    DeleteDC(memoryDeviceContext);
+
+                // GetDC 获取的 DC 使用 ReleaseDC 释放
+                if (screenDeviceContext != IntPtr.Zero)
+                    ReleaseDC(IntPtr.Zero, screenDeviceContext);
+            }
         }
 
         /// <summary>
@@ -239,6 +263,14 @@ namespace Snet.Windows.Controls.property.wpf
         /// </returns>
         [DllImport("gdi32.dll", SetLastError = true)]
         private static extern IntPtr CreateCompatibleDC(IntPtr hdc);
+
+        /// <summary>
+        /// 删除由 CreateCompatibleDC 创建的设备上下文。
+        /// </summary>
+        /// <param name="hdc">要删除的设备上下文句柄。</param>
+        /// <returns>操作是否成功。</returns>
+        [DllImport("gdi32.dll")]
+        private static extern bool DeleteDC(IntPtr hdc);
 
         /// <summary>
         /// The delete object.

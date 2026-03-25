@@ -297,7 +297,7 @@ public static class WindowHandler
             IsEmpty ? "RECT {Empty}" : $"RECT {{ left : {left}, top : {top}, right : {right}, bottom : {bottom} }}";
 
         public override bool Equals(object obj) => obj is RECT r && this == r;
-        public override int GetHashCode() => left ^ top ^ right ^ bottom;
+        public override int GetHashCode() => HashCode.Combine(left, top, right, bottom);
 
         public static bool operator ==(RECT r1, RECT r2) =>
             r1.left == r2.left && r1.top == r2.top && r1.right == r2.right && r1.bottom == r2.bottom;

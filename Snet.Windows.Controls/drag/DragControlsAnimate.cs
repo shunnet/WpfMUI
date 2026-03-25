@@ -173,7 +173,10 @@ namespace Snet.Windows.Controls.drag
 
         #region 执行事件
 
-        //移动位置
+        /// <summary>
+        /// 鼠标移动事件处理。<br/>
+        /// 根据容器类型（Canvas 或 Grid）计算并更新控件位置。
+        /// </summary>
         private void ControlsShow_PreviewMouseMove(object sender, System.Windows.Input.MouseEventArgs e)
         {
             if (ControlsObj == null) return;
@@ -197,7 +200,10 @@ namespace Snet.Windows.Controls.drag
             }
         }
 
-        //当在已显示的控件左键点松开后
+        /// <summary>
+        /// 鼠标左键松开事件处理。<br/>
+        /// 停止拖动并恢复控件透明度。
+        /// </summary>
         private void ControlsShow_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
             IsMouseDown = false;
@@ -207,7 +213,10 @@ namespace Snet.Windows.Controls.drag
         }
 
 
-        //当在已显示的控件左键点击后
+        /// <summary>
+        /// 鼠标左键按下事件处理。<br/>
+        /// 通过委托创建新控件，设置半透明并添加到容器中，启动拖动。
+        /// </summary>
         private void ControlsShow_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             if (LlayoutContainer.GetType().Equals(typeof(Canvas)))
@@ -265,7 +274,10 @@ namespace Snet.Windows.Controls.drag
         }
 
 
-        //当窗体大小改变，布局容器也要跟着改变大小
+        /// <summary>
+        /// 窗体大小变化事件处理。<br/>
+        /// 同步更新布局容器的大小以匹配窗体大小。
+        /// </summary>
         private void Windwos_SizeChanged(object sender, SizeChangedEventArgs e)
         {
             FrameworkElement window = sender as FrameworkElement;

@@ -1,8 +1,13 @@
 using Newtonsoft.Json;
-using System.Diagnostics;
 
 namespace Snet.Windows.Controls.ledgauge
 {
+    /// <summary>
+    /// 泛型范围结构体，表示一个有最小值和最大值的闭区间 [Min, Max]。<br/>
+    /// 支持范围宽度、中心值计算，以及值的限定（Clamp）和范围比较操作。<br/>
+    /// 使用 GenericOperator 实现泛型数学运算，支持任意数值类型。
+    /// </summary>
+    /// <typeparam name="T">数值类型（必须为值类型且实现 IComparable、IEquatable 等接口）</typeparam>
     [JsonObject(MemberSerialization.OptIn)]
     [DebuggerDisplay("Range Min = {Min}, Max = {Max},  Width = {Width}, Center = {Center}")]
     public readonly struct Range<T> : IComparable<Range<T>>, IEquatable<Range<T>> where T : struct, IComparable, IFormattable, IConvertible, IComparable<T>, IEquatable<T>

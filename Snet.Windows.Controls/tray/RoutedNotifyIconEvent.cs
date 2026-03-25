@@ -3,8 +3,8 @@
 // Copyright (C) Leszek Pomianowski and WPF UI Contributors.
 // All Rights Reserved.
 
-using System.Windows;
 using Snet.Windows.Controls.tray.Controls;
+using System.Windows;
 
 namespace Snet.Windows.Controls.tray;
 

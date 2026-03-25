@@ -215,12 +215,15 @@ namespace Snet.Windows.Controls.drag
             }
         }
 
-        //当在已显示的控件左键点松开后
+        /// <summary>
+        /// 鼠标左键松开事件处理<br/>
+        /// 停止拖动状态，启动控件渐隐消失效果，并通知外部按钮已松开
+        /// </summary>
         private void ControlsShow_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
             IsMouseDown = false;
             if (ControlsObj == null) return;
-            new Thread(new ParameterizedThreadStart(ControlsVanish)).Start(ControlsObj);
+            ControlsVanish(ControlsObj);
             ControlsObj = null;
             ActionEvenTrigger(ButtonState.Up, sender as Button);
         }
@@ -287,42 +290,38 @@ namespace Snet.Windows.Controls.drag
 
 
         /// <summary>
-        /// 控件消失
+        /// 控件渐隐消失效果<br/>
+        /// 使用异步方式逐步降低控件透明度，消失后从容器中移除<br/>
+        /// 替代旧的 new Thread + Task.Delay(1).Wait() 实现，避免线程阻塞和资源浪费
         /// </summary>
-        /// <param name="element">控件对象</param>
-        void ControlsVanish(object element)
+        /// <param name="element">需要执行消失动画的控件对象</param>
+        async void ControlsVanish(object element)
         {
-            FrameworkElement? fe = element as FrameworkElement;
-            double opacity = 1;//记录当前窗体的透明度  
-            while (true)
+            if (element is not FrameworkElement fe)
+                return;
+
+            // 逐步降低透明度实现渐隐效果
+            for (double opacity = 1.0; opacity > 0; opacity -= 0.01)
             {
-                Application.Current.Dispatcher.Invoke(new Action(() =>
+                await Application.Current.Dispatcher.InvokeAsync(() =>
                 {
-                    opacity -= 0.01;
                     fe.Opacity = opacity;
-                }));
-                if (opacity <= 0)
-                {
-                    if (LlayoutContainer.GetType().Equals(typeof(Canvas)))
-                    {
-                        Canvas? layout = LlayoutContainer as Canvas;
-                        Application.Current.Dispatcher.Invoke(new Action(() =>
-                        {
-                            layout.Children.Remove(fe);
-                        }));
-                    }
-                    else if (LlayoutContainer.GetType().Equals(typeof(Grid)))
-                    {
-                        Grid? layout = LlayoutContainer as Grid;
-                        Application.Current.Dispatcher.Invoke(new Action(() =>
-                        {
-                            layout.Children.Remove(fe);
-                        }));
-                    }
-                    return;
-                }
-                Task.Delay(1).Wait();
+                });
+                await Task.Delay(1);
             }
+
+            // 透明度归零后，从容器中移除控件
+            await Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                if (LlayoutContainer is Canvas canvas)
+                {
+                    canvas.Children.Remove(fe);
+                }
+                else if (LlayoutContainer is Grid grid)
+                {
+                    grid.Children.Remove(fe);
+                }
+            });
         }
         #endregion
 

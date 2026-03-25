@@ -121,10 +121,16 @@ namespace Snet.Windows.Controls.drag
         #endregion
 
         #region 重写方法
+        /// <summary>
+        /// 获取指定索引位置的可视子元素（返回布局容器 Grid）。
+        /// </summary>
         protected override Visual GetVisualChild(int index)
         {
             return Llayout;
         }
+        /// <summary>
+        /// 获取可视子元素数量（固定返回 1）。
+        /// </summary>
         protected override int VisualChildrenCount
         {
             get
@@ -132,6 +138,10 @@ namespace Snet.Windows.Controls.drag
                 return 1;
             }
         }
+        /// <summary>
+        /// 重写布局排列方法。<br/>
+        /// 将装饰器布局容器安排在控件周围，偏移半个拖拽点大小以使拖拽点居中在边缘。
+        /// </summary>
         protected override Size ArrangeOverride(Size finalSize)
         {
             //直接给容器布局，容器内部的装饰器会自动布局。
@@ -268,7 +278,11 @@ namespace Snet.Windows.Controls.drag
         #endregion
 
         #region 事件
-        //拖拽大小逻辑
+        /// <summary>
+        /// 拖拽大小逻辑事件处理。<br/>
+        /// 根据拖拽方向（由 Thumb 的对齐方式决定）计算新的宽高和边距，<br/>
+        /// 受最小/最大尺寸限制。
+        /// </summary>
         private void Control_DragDelta(object sender, DragDeltaEventArgs e)
         {
             FrameworkElement Control = Controls as FrameworkElement;  //要拖动的控件
@@ -323,7 +337,10 @@ namespace Snet.Windows.Controls.drag
             }
         }
 
-        //鼠标左键按下
+        /// <summary>
+        /// 鼠标左键按下事件处理。<br/>
+        /// 记录按下位置和当前边距，捕获鼠标以实现拖动。
+        /// </summary>
         private void Control_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             var c = sender as FrameworkElement;
@@ -332,14 +349,20 @@ namespace Snet.Windows.Controls.drag
             MouseDownMargin = c.Margin;
             c.CaptureMouse();
         }
-        //鼠标左键松开
+        /// <summary>
+        /// 鼠标左键松开事件处理。<br/>
+        /// 停止拖动并释放鼠标捕获。
+        /// </summary>
         private void Control_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
             var c = sender as FrameworkElement;
             IsMouseDown = false;
             c.ReleaseMouseCapture();
         }
-        //鼠标移动
+        /// <summary>
+        /// 鼠标移动事件处理。<br/>
+        /// 根据鼠标位移计算新的 Margin 值，实现控件的自由拖动。
+        /// </summary>
         private void Control_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
         {
             if (IsMouseDown)

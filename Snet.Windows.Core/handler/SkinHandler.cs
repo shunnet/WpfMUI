@@ -12,7 +12,13 @@ using ColorConverter = System.Windows.Media.ColorConverter;
 namespace Snet.Windows.Core.handler
 {
     /// <summary>
-    /// 皮肤处理器类，用于设置和获取应用程序皮肤主题，并支持同步与异步事件通知
+    /// 皮肤（主题）处理器，统一管理应用程序的主题切换。<br/>
+    /// 支持以下功能：<br/>
+    /// - MaterialDesign 主题切换<br/>
+    /// - Wpf.Ui 主题切换<br/>
+    /// - 自定义资源字典切换<br/>
+    /// - 同步与异步事件通知<br/>
+    /// - JSON 持久化皮肤配置
     /// </summary>
     public class SkinHandler
     {
@@ -60,10 +66,18 @@ namespace Snet.Windows.Core.handler
         #endregion
 
         #region 私有方法
-        private static PaletteHelper paletteHelper = new PaletteHelper();
+
         /// <summary>
-        /// 修改当前主题样式（由调用者指定修改内容） 
+        /// MaterialDesign 调色板辅助器（单例缓存，避免重复创建）
         /// </summary>
+        private static readonly PaletteHelper paletteHelper = new();
+
+        /// <summary>
+        /// 修改当前 MaterialDesign 主题样式。<br/>
+        /// 获取当前主题对象，执行调用者指定的修改操作后重新应用。<br/>
+        /// 注意：Theme 对象绑定 UI 线程，modificationFunc 中不可跨线程操作。
+        /// </summary>
+        /// <param name="modificationFunc">对 Theme 对象执行的修改操作（异步委托）</param>
         private static async Task ModifyThemeAsync(Func<Theme, Task> modificationFunc)
         {
             Theme theme = paletteHelper.GetTheme();
@@ -197,9 +211,11 @@ namespace Snet.Windows.Core.handler
 
 
         /// <summary>
-        /// 修改主题模板
+        /// 更新 MaterialDesign 主题样式。<br/>
+        /// 根据皮肤类型设置主要色、次要色和高亮色，<br/>
+        /// 并切换明暗主题模板。
         /// </summary>
-        /// <param name="skinType">皮肤</param>
+        /// <param name="skinType">目标皮肤类型</param>
         public static async Task UpdateMaterialDesignThemeAsync(SkinType skinType)
         {
             await ModifyThemeAsync(theme =>
@@ -228,9 +244,11 @@ namespace Snet.Windows.Core.handler
         }
 
         /// <summary>
-        /// 修改主题模板
+        /// 更新 Wpf.Ui 主题样式。<br/>
+        /// 通过 ApplicationThemeManager 应用明暗主题。
         /// </summary>
-        /// <param name="skinType">皮肤</param>
+        /// <param name="skinType">目标皮肤类型</param>
+        /// <returns>已完成的任务</returns>
         public static Task UpdateWpfUIAsync(SkinType skinType)
         {
             ApplicationThemeManager.Apply(skinType == SkinType.Dark ? ApplicationTheme.Dark : ApplicationTheme.Light);

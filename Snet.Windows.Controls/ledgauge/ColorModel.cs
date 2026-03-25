@@ -1,48 +1,75 @@
 using Snet.Windows.Core.mvvm;
-using System.Diagnostics;
 using System.Drawing;
 namespace Snet.Windows.Controls.ledgauge;
 
+/// <summary>
+/// 颜色模型类，支持 RGB、HSL、YUV 色彩空间的双向转换。<br/>
+/// 修改任何一个颜色分量时，自动同步更新其他色彩空间的值。<br/>
+/// 继承 BindNotify 实现 MVVM 属性变更通知。
+/// </summary>
 public class ColorModel : BindNotify
 {
+    /// <summary>当前颜色值</summary>
     private Color color;
 
+    /// <summary>Alpha 透明度通道（0-255）</summary>
     private int alpha;
 
+    /// <summary>红色通道值（0-255）</summary>
     private double red;
 
+    /// <summary>绿色通道值（0-255）</summary>
     private double green;
 
+    /// <summary>蓝色通道值（0-255）</summary>
     private double blue;
 
+    /// <summary>色相值（0-360 度）</summary>
     private double hue;
 
+    /// <summary>饱和度（0.0-1.0）</summary>
     private double saturation;
 
+    /// <summary>亮度（0.0-1.0）</summary>
     private double lightness;
 
+    /// <summary>YUV Y 分量（亮度）</summary>
     private double y;
 
+    /// <summary>YUV U 分量（蓝色差值）</summary>
     private double u;
 
+    /// <summary>YUV V 分量（红色差值）</summary>
     private double v;
 
+    /// <summary>标志位：是否正在执行 RGB 到 HSL 的转换（防止循环调用）</summary>
     private bool convertingRgbToHsl;
 
+    /// <summary>标志位：是否正在执行 HSL 到 RGB 的转换（防止循环调用）</summary>
     private bool convertingHslToRgb;
 
+    /// <summary>标志位：是否正在执行 RGB 到 YUV 的转换（防止循环调用）</summary>
     private bool convertingRgbToYuv;
 
+    /// <summary>标志位：是否正在执行 YUV 到 RGB 的转换（防止循环调用）</summary>
     private bool convertingYuvToRgb;
 
+    /// <summary>RGB 通道值范围：0-255</summary>
     private static readonly Range<double> rgbRange = new Range<double>(0.0, 255.0);
 
+    /// <summary>YUV 分量值范围：0-255</summary>
     private static readonly Range<double> yuvRange = new Range<double>(0.0, 255.0);
 
+    /// <summary>饱和度/亮度值范围：0.0-1.0</summary>
     private static readonly Range<double> slRange = new Range<double>(0.0, 1.0);
 
+    /// <summary>比例值范围：0.0-1.0（用于颜色混合）</summary>
     private static readonly Range<double> ratioRange = new Range<double>(0.0, 1.0);
 
+    /// <summary>
+    /// 获取或设置当前颜色值。<br/>
+    /// 设置时自动拆解 ARGB 分量并触发属性变更通知。
+    /// </summary>
     public Color Color
     {
         [DebuggerStepThrough]
@@ -239,10 +266,17 @@ public class ColorModel : BindNotify
         }
     }
 
+    /// <summary>
+    /// 默认构造函数，创建一个未初始化的颜色模型实例。
+    /// </summary>
     public ColorModel()
     {
     }
 
+    /// <summary>
+    /// 通过 System.Drawing.Color 创建颜色模型实例，自动拆解 ARGB 并转换 HSL 和 YUV。
+    /// </summary>
+    /// <param name="color">源颜色值。</param>
     public ColorModel(Color color)
     {
         alpha = color.A;
@@ -253,6 +287,12 @@ public class ColorModel : BindNotify
         RgbToYuv();
     }
 
+    /// <summary>
+    /// 通过 int 类型 RGB 值创建颜色模型，Alpha 默认为 255（不透明）。
+    /// </summary>
+    /// <param name="r">红色通道值（0-255）</param>
+    /// <param name="g">绿色通道值（0-255）</param>
+    /// <param name="b">蓝色通道值（0-255）</param>
     public ColorModel(int r, int g, int b)
     {
         alpha = 255;
@@ -263,6 +303,12 @@ public class ColorModel : BindNotify
         RgbToYuv();
     }
 
+    /// <summary>
+    /// 通过 byte 类型 RGB 值创建颜色模型，Alpha 默认为 255（不透明）。
+    /// </summary>
+    /// <param name="r">红色通道值</param>
+    /// <param name="g">绿色通道值</param>
+    /// <param name="b">蓝色通道值</param>
     public ColorModel(byte r, byte g, byte b)
     {
         alpha = 255;
@@ -273,16 +319,29 @@ public class ColorModel : BindNotify
         RgbToYuv();
     }
 
+    /// <summary>
+    /// 通过 HSL（色相、饱和度、亮度）值创建颜色模型实例。
+    /// </summary>
+    /// <param name="hue">色相值（0-360 度）</param>
+    /// <param name="saturation">饱和度值（0.0-1.0）</param>
+    /// <param name="lightness">亮度值（0.0-1.0）</param>
     public ColorModel(double hue, double saturation, double lightness)
     {
         alpha = 255;
-        hue = LimitHue(hue);
-        saturation = slRange.Cap(saturation);
-        lightness = slRange.Cap(lightness);
+        // 注意：此处赋值给类字段 this.hue/saturation/lightness，而非参数自身
+        this.hue = LimitHue(hue);
+        this.saturation = slRange.Cap(saturation);
+        this.lightness = slRange.Cap(lightness);
         HslToRgb();
         RgbToYuv();
     }
 
+    /// <summary>
+    /// 将色相值限制在 0-360 度范围内。<br/>
+    /// 对负值进行向上取整周期补偿，对超出 360 的值取模。
+    /// </summary>
+    /// <param name="hue">原始色相值。</param>
+    /// <returns>限制后的色相值（0-360）。</returns>
     private static double LimitHue(double hue)
     {
         if (hue < 0.0)
@@ -293,6 +352,13 @@ public class ColorModel : BindNotify
         return hue;
     }
 
+    /// <summary>
+    /// 将两个颜色按指定比例进行混合。
+    /// </summary>
+    /// <param name="color1">第一个颜色。</param>
+    /// <param name="color2">第二个颜色。</param>
+    /// <param name="ratio">混合比例（0.0-1.0），0.0 为纯 color1，1.0 为纯 color2。</param>
+    /// <returns>混合后的颜色。</returns>
     public static Color MixColors(Color color1, Color color2, double ratio = 0.5)
     {
         ratio = ratioRange.Cap(ratio);
@@ -303,6 +369,13 @@ public class ColorModel : BindNotify
         return Color.FromArgb((byte)Math.Round(a), (byte)Math.Round(a2), (byte)Math.Round(a3));
     }
 
+    /// <summary>
+    /// 从混合颜色中反向提取原始颜色。
+    /// </summary>
+    /// <param name="mixedColor">混合后的颜色。</param>
+    /// <param name="color1">已知的第一个颜色。</param>
+    /// <param name="ratio">混合时使用的比例。</param>
+    /// <returns>提取出的第二个颜色。</returns>
     public static Color UnMixColors(Color mixedColor, Color color1, double ratio)
     {
         ratio = ratioRange.Cap(ratio);
@@ -313,6 +386,10 @@ public class ColorModel : BindNotify
         return Color.FromArgb(blue: (byte)Math.Round(((double)(int)mixedColor.B - num * (double)(int)color1.B) * num2), red: (byte)Math.Round(a), green: (byte)Math.Round(a2));
     }
 
+    /// <summary>
+    /// 将当前 RGB 值转换为 HSL（色相、饱和度、亮度）。<br/>
+    /// 使用 convertingHslToRgb 标志防止循环调用。
+    /// </summary>
     private void RgbToHsl()
     {
         if (convertingHslToRgb)
@@ -355,6 +432,10 @@ public class ColorModel : BindNotify
         convertingRgbToHsl = false;
     }
 
+    /// <summary>
+    /// 将当前 HSL 值转换为 RGB。<br/>
+    /// 使用 convertingRgbToHsl 标志防止循环调用。
+    /// </summary>
     private void HslToRgb()
     {
         if (!convertingRgbToHsl)
@@ -383,6 +464,13 @@ public class ColorModel : BindNotify
         }
     }
 
+    /// <summary>
+    /// HSL 到 RGB 转换的辅助函数，计算单个颜色通道值。
+    /// </summary>
+    /// <param name="rm1">中间值 1。</param>
+    /// <param name="rm2">中间值 2。</param>
+    /// <param name="rh">色相偏移值。</param>
+    /// <returns>计算得到的 RGB 通道值（0-255）。</returns>
     private static double Convert(double rm1, double rm2, double rh)
     {
         if (rh > 360.0)
@@ -408,6 +496,10 @@ public class ColorModel : BindNotify
         return rgbRange.Cap(255.0 * rm1);
     }
 
+    /// <summary>
+    /// 将当前 RGB 值转换为 YUV 色彩空间。<br/>
+    /// 使用 convertingYuvToRgb 标志防止循环调用。
+    /// </summary>
     private void RgbToYuv()
     {
         if (!convertingYuvToRgb)
@@ -423,6 +515,10 @@ public class ColorModel : BindNotify
         }
     }
 
+    /// <summary>
+    /// 将当前 YUV 值转换为 RGB 色彩空间。<br/>
+    /// 使用 convertingRgbToYuv 标志防止循环调用。
+    /// </summary>
     private void YuvToRgb()
     {
         if (!convertingRgbToYuv)

@@ -5,8 +5,10 @@ using System.Collections.Concurrent;
 namespace Snet.Windows.Core.handler
 {
     /// <summary>
-    /// 注入 WPF MVVM<br/>
-    /// 请设置 《UseWPF》true《/UseWPF》
+    /// WPF MVVM 依赖注入容器，支持 Window、UserControl、Page 的视图-视图模型自动绑定。<br/>
+    /// 使用 ConcurrentDictionary 缓存已创建的实例（按 Type.GUID 索引），<br/>
+    /// 支持缓存模式（Singleton）和瞬态模式（Transient）两种注入方式。<br/>
+    /// 请确保项目文件中已设置 &lt;UseWPF&gt;true&lt;/UseWPF&gt;。
     /// </summary>
     public class InjectionWpf : InjectionHandler
     {
