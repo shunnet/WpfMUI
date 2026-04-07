@@ -1,10 +1,31 @@
-# <img src="https://api.shunnet.top/pic/nuget.png" height="32"> WpfMUI  
+<h1 align="center">WpfMUI</h1>
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)  
-[![Repo](https://img.shields.io/badge/Repository-shunnet/WpfMUI-blue)](https://github.com/shunnet/WpfMUI)  
+<p align="center">
+  <img width="120" height="120" src="https://api.shunnet.top/pic/nuget.png" alt="Snet Logo"/>
+</p>
 
-> 🎨 **基于 WPF 的现代化自定义界面库**  
-> 内置常用控件与界面基础架构，助力快速开发 🚀  
+<p align="center">
+  <b>基于 WPF 的现代化自定义界面库</b>
+</p>
+
+<p align="center">
+
+  <img src="https://img.shields.io/badge/.NET-8.0-blue"/>
+  <img src="https://img.shields.io/badge/.NET-10.0-blue"/>
+  <img src="https://img.shields.io/badge/license-MIT-green"/>
+  <img src="https://img.shields.io/github/stars/shunnet/WpfMUI?style=social"/>
+
+</p>
+
+<p align="center">
+  内置常用控件与界面基础架构，助力快速开发
+</p>
+
+<p align="center">
+  <a href="https://shunnet.top"><b>🌐 官方网站</b></a> ·
+  <a href="https://github.com/shunnet/WpfMUI"><b>📦 GitHub</b></a>
+  <a href="https://shunnet.top/7EUf6"><b>🎬 演示视频</b></a>
+</p>
 
 
 ## 📦 库结构  
@@ -13,12 +34,7 @@
   🔹 核心界面库，封装所有基础界面操作与公共逻辑  
 
 - **Snet.Windows.Controls**  
-  🔹 控件库，继承自 `Snet.Windows.Core`，目前已集成：  
-  - 🖱️ 自定义按钮  
-  - 📊 图表控件  
-  - 💬 消息提示框  
-  - 📝 属性展示框  
-  - … **持续扩展中** ✨  
+  🔹 控件库，继承自 `Snet.Windows.Core`，实现一些常用的自定义按钮
 
 
 ## ✨ 特性亮点  
