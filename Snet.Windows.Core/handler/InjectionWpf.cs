@@ -13,19 +13,19 @@ namespace Snet.Windows.Core.handler
     public class InjectionWpf : InjectionHandler
     {
         /// <summary>
-        /// 窗口缓存
+        /// 窗口缓存（使用 Type 作为 Key，引用比较 O(1)，比 GUID 更高效）
         /// </summary>
-        private static readonly ConcurrentDictionary<Guid, System.Windows.Window> WindowCache = new();
+        private static readonly ConcurrentDictionary<Type, System.Windows.Window> WindowCache = new();
 
         /// <summary>
-        /// 页面缓存
+        /// 页面缓存（使用 Type 作为 Key，引用比较 O(1)，比 GUID 更高效）
         /// </summary>
-        private static readonly ConcurrentDictionary<Guid, System.Windows.Controls.Page> PageCache = new();
+        private static readonly ConcurrentDictionary<Type, System.Windows.Controls.Page> PageCache = new();
 
         /// <summary>
-        /// 用户控件缓存
+        /// 用户控件缓存（使用 Type 作为 Key，引用比较 O(1)，比 GUID 更高效）
         /// </summary>
-        private static readonly ConcurrentDictionary<Guid, System.Windows.Controls.UserControl> UserControlCache = new();
+        private static readonly ConcurrentDictionary<Type, System.Windows.Controls.UserControl> UserControlCache = new();
 
         /// <summary>
         /// 注入窗口
@@ -71,7 +71,7 @@ namespace Snet.Windows.Core.handler
                 }
 
                 //从缓存中获取
-                if (cache && WindowCache.TryGetValue(typeof(T).GUID, out var cacheData))
+                if (cache && WindowCache.TryGetValue(typeof(T), out var cacheData))
                 {
                     return (T)cacheData;
                 }
@@ -93,7 +93,7 @@ namespace Snet.Windows.Core.handler
                 if (cache)
                 {
                     // 设置缓存
-                    WindowCache[typeof(T).GUID] = instance;
+                    WindowCache[typeof(T)] = instance;
                     //覆盖之前的注入
                     AddService(s => s.AddSingleton<T>(instance));
                     AddService(s => s.AddSingleton<M>(viewModel));
@@ -152,7 +152,7 @@ namespace Snet.Windows.Core.handler
                 }
 
                 //从缓存中获取
-                if (cache && UserControlCache.TryGetValue(typeof(T).GUID, out var cacheData))
+                if (cache && UserControlCache.TryGetValue(typeof(T), out var cacheData))
                 {
                     return (T)cacheData;
                 }
@@ -174,7 +174,7 @@ namespace Snet.Windows.Core.handler
                 if (cache)
                 {
                     // 设置缓存
-                    UserControlCache[typeof(T).GUID] = instance;
+                    UserControlCache[typeof(T)] = instance;
                     //覆盖之前的注入
                     AddService(s => s.AddSingleton<T>(instance));
                     AddService(s => s.AddSingleton<M>(viewModel));
@@ -233,7 +233,7 @@ namespace Snet.Windows.Core.handler
                 }
 
                 //从缓存中获取
-                if (cache && PageCache.TryGetValue(typeof(T).GUID, out var cacheData))
+                if (cache && PageCache.TryGetValue(typeof(T), out var cacheData))
                 {
                     return (T)cacheData;
                 }
@@ -255,7 +255,7 @@ namespace Snet.Windows.Core.handler
                 if (cache)
                 {
                     // 设置缓存
-                    PageCache[typeof(T).GUID] = instance;
+                    PageCache[typeof(T)] = instance;
                     //覆盖之前的注入
                     AddService(s => s.AddSingleton<T>(instance));
                     AddService(s => s.AddSingleton<M>(viewModel));

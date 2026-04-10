@@ -29,8 +29,9 @@ internal static class Hicon
     {
         try
         {
-            // 获取当前进程的主模块文件名
-            var processName = Process.GetCurrentProcess().MainModule?.FileName;
+            // 获取当前进程的主模块文件名（使用 using 防止进程句柄泄漏）
+            using var process = Process.GetCurrentProcess();
+            var processName = process.MainModule?.FileName;
 
             if (string.IsNullOrEmpty(processName))
             {

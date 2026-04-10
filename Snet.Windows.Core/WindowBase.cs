@@ -83,6 +83,8 @@ namespace Snet.Windows.Core
         private Button? closeButton;              // 关闭按钮
         private Button? maximizeNormalButton;     // 最大化还原按钮
         private Button? minimizeButton;           // 最小化按钮
+        private Button? languageButton;           // 语言切换按钮
+        private Button? skinButton;               // 皮肤切换按钮
         private Border? maximizeBorder;           // 最大化补偿边框
         private TextBlock? systemVer;             // 系统版本标签
         private FrameworkElement? ver;            // 版本元素
@@ -100,8 +102,8 @@ namespace Snet.Windows.Core
         {
             // 设置初始皮肤
             SkinHandler.SetSkin(SkinHandler.GetSkin(), false);
-            // 设置初始语言
-            LanguageHandler.SetLanguage(LanguageHandler.GetLanguage());
+            // 触发 LanguageHandler 静态构造函数完成初始语言设置（其内部已调用 SetLanguage，无需重复调用）
+            _ = LanguageHandler.GetLanguage();
             StyleProperty.OverrideMetadata(typeof(WindowBase), new FrameworkPropertyMetadata(null, new CoerceValueCallback(OnCoerceStyle)));
         }
 
@@ -595,6 +597,14 @@ namespace Snet.Windows.Core
         /// </summary>
         private void InitializeWindowButtons()
         {
+            languageButton = GetTemplateChild("PART_LanguageButton") as Button;
+            if (languageButton != null)
+                languageButton.Visibility = LanguageEnabled ? Visibility.Visible : Visibility.Collapsed;
+
+            skinButton = GetTemplateChild("PART_SkinButton") as Button;
+            if (skinButton != null)
+                skinButton.Visibility = SkinEnabled ? Visibility.Visible : Visibility.Collapsed;
+
             minimizeButton = GetTemplateChild("PART_MinimizeButton") as Button;
             maximizeNormalButton = GetTemplateChild("PART_MaximizeNormalButton") as Button;
             closeButton = GetTemplateChild("PART_CloseButton") as Button;
@@ -616,7 +626,9 @@ namespace Snet.Windows.Core
 
             if (VerEnabled && systemVer != null)
             {
-                var mainModule = System.Diagnostics.Process.GetCurrentProcess().MainModule;
+                // 使用 using 确保 Process 句柄正确释放，避免句柄泄漏
+                using var process = System.Diagnostics.Process.GetCurrentProcess();
+                var mainModule = process.MainModule;
                 systemVer.Text = mainModule != null
                     ? System.Diagnostics.FileVersionInfo.GetVersionInfo(mainModule.FileName).FileVersion
                     : string.Empty;
@@ -630,11 +642,18 @@ namespace Snet.Windows.Core
         /// <summary>
         /// 强制样式回调
         /// </summary>
+        /// <summary>
+        /// 样式强制回调，当样式为 null 时从资源中查找默认样式。<br/>
+        /// 使用 null 条件运算符防止 DependencyObject 不是 FrameworkElement 时抛出空引用异常。
+        /// </summary>
+        /// <param name="d">目标依赖对象</param>
+        /// <param name="baseValue">当前样式值</param>
+        /// <returns>最终应用的样式</returns>
         private static object OnCoerceStyle(DependencyObject d, object baseValue)
         {
             if (null == baseValue)
             {
-                baseValue = (d as FrameworkElement).TryFindResource(typeof(WindowBase));
+                baseValue = (d as FrameworkElement)?.TryFindResource(typeof(WindowBase));
             }
             return baseValue;
         }
@@ -667,38 +686,17 @@ namespace Snet.Windows.Core
 
         #endregion
 
-        #region 语言和皮肤操作
-
-        /// <summary>
-        /// 语言切换事件处理
-        /// </summary>
-        private void OnLanguage(object sender, RoutedEventArgs e)
-        {
-            var language = LanguageHandler.GetLanguage() == LanguageType.zh
-                ? LanguageType.en
-                : LanguageType.zh;
-
-            LanguageHandler.SetLanguage(language);
-        }
-
-        /// <summary>
-        /// 皮肤切换事件处理
-        /// </summary>
-        private void OnSkin(object sender, RoutedEventArgs e)
-        {
-            var skin = SkinHandler.GetSkin() == SkinType.Dark
-                ? SkinType.Light
-                : SkinType.Dark;
-            Application.Current.Dispatcher.InvokeAsync(() => SkinHandler.SetSkin(skin));
-        }
-
-        #endregion
-
         #region 注册表操作（优化显示效果）
 
-        private readonly string registrieIni = $"{WindowHandler.BasePath}\\registrie.ini";
+        /// <summary>
+        /// 注册表修改标记文件路径（所有实例共享，无需每实例分配）
+        /// </summary>
+        private static readonly string registrieIni = $"{WindowHandler.BasePath}\\registrie.ini";
 
-        private readonly List<RegistryModel> registries = new()
+        /// <summary>
+        /// 需要修改的注册表项集合（所有实例共享，优化拖拽窗口显示效果）
+        /// </summary>
+        private static readonly List<RegistryModel> registries = new()
         {
             // 设置为"自定义视觉效果"
             new RegistryModel("Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\VisualEffects",

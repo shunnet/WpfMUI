@@ -23,8 +23,9 @@ namespace Snet.Windows.Controls.handler
         {
             try
             {
-                // 获取当前程序完整路径
-                string exeFullPath = System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName
+                // 获取当前程序完整路径（使用 using 防止进程句柄泄漏）
+                using var proc = System.Diagnostics.Process.GetCurrentProcess();
+                string exeFullPath = proc.MainModule?.FileName
                                 ?? System.Reflection.Assembly.GetEntryAssembly()?.Location
                                 ?? AppDomain.CurrentDomain.BaseDirectory;
 
@@ -96,7 +97,9 @@ namespace Snet.Windows.Controls.handler
                 if (IsRunAsAdmin())
                     return; // 已经是管理员，无需重启
 
-                string exePath = Process.GetCurrentProcess().MainModule?.FileName ?? AppContext.BaseDirectory + AppDomain.CurrentDomain.FriendlyName;
+                // 获取当前程序路径（使用 using 防止进程句柄泄漏）
+                using var proc = Process.GetCurrentProcess();
+                string exePath = proc.MainModule?.FileName ?? AppContext.BaseDirectory + AppDomain.CurrentDomain.FriendlyName;
 
                 ProcessStartInfo psi = new ProcessStartInfo
                 {

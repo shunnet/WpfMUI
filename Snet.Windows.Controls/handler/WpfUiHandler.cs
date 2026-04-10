@@ -17,6 +17,13 @@ namespace Snet.Windows.Controls.handler
     /// </summary>
     public static class WpfUiHandler
     {
+        /// <summary>Wpf.Ui 主题资源 URI 格式模板</summary>
+        private static readonly string ThemeUriFormat = "pack://application:,,,/Wpf.Ui;component/Resources/Theme/{0}.xaml";
+        /// <summary>浅色主题资源 URI（缓存避免重复拼接）</summary>
+        private static readonly string LightThemeUri = string.Format(ThemeUriFormat, "Light");
+        /// <summary>深色主题资源 URI（缓存避免重复拼接）</summary>
+        private static readonly string DarkThemeUri = string.Format(ThemeUriFormat, "Dark");
+
         /// <summary>
         /// 更新 Wpf.Ui 主题资源。<br/>
         /// 查找并替换全局合并资源中的旧主题资源字典，确保主题切换无闪烁。
@@ -27,23 +34,17 @@ namespace Snet.Windows.Controls.handler
         {
             //设置默认样式
             skin ??= SkinType.Dark;
-            //格式
-            string format = "pack://application:,,,/Wpf.Ui;component/Resources/Theme/{0}.xaml";
-            //白天资源
-            string light = string.Format(format, "Light");
-            //黑夜资源
-            string dark = string.Format(format, "Dark");
 
-            // 新的资源地址
-            string newResource = string.Format(format, skin);
+            // 新的资源地址（使用缓存的 URI 格式）
+            string newResource = string.Format(ThemeUriFormat, skin);
 
             //新的资源对象
             ResourceDictionary newResourceDictionary = new ResourceDictionary { Source = new Uri(newResource, UriKind.RelativeOrAbsolute) };
 
             //检索的旧资源对象
-            ResourceDictionary oldResourceDictionary = default;
+            ResourceDictionary oldResourceDictionary = null;
 
-            //检索资源
+            //检索资源（使用缓存的 URI 字符串进行比较）
             foreach (var item in Application.Current.Resources.MergedDictionaries)
             {
                 if (item.Source != null)
@@ -51,14 +52,17 @@ namespace Snet.Windows.Controls.handler
                     switch (skin)
                     {
                         case SkinType.Dark:
-                            if (item.Source.AbsoluteUri == light)
+                            if (item.Source.AbsoluteUri == LightThemeUri)
                                 oldResourceDictionary = item;
                             break;
                         case SkinType.Light:
-                            if (item.Source.AbsoluteUri == dark)
+                            if (item.Source.AbsoluteUri == DarkThemeUri)
                                 oldResourceDictionary = item;
                             break;
                     }
+                    // 找到即退出，避免不必要的遍历
+                    if (oldResourceDictionary != null)
+                        break;
                 }
             }
 

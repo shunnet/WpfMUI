@@ -28,9 +28,9 @@ namespace Snet.Windows.Core.handler
         /// </summary>
         private static readonly string resourcePathContains = "Snet.Windows.Core;component/themes";
         /// <summary>
-        /// 资源文件缓存
+        /// 资源文件缓存（Key = 资源路径，避免使用 GetHashCode 导致的哈希碰撞）
         /// </summary>
-        private static ConcurrentDictionary<int, string> resourceFileCache = new();
+        private static ConcurrentDictionary<string, string> resourceFileCache = new();
 
         /// <summary>
         /// 图标缓存（Key = "path|key"，Value = DrawingImage）
@@ -104,7 +104,7 @@ namespace Snet.Windows.Core.handler
         public static void Loading(string resourceFile)
         {
             // 直接同步调用，避免 .GetAwaiter().GetResult() 在 UI 线程上造成死锁
-            resourceFileCache.AddOrUpdate(resourceFile.GetHashCode(), resourceFile, (k, v) => resourceFile);
+            resourceFileCache[resourceFile] = resourceFile;
             HandlerAsync();
         }
 
@@ -116,7 +116,7 @@ namespace Snet.Windows.Core.handler
         public static async Task LoadingAsync(string resourceFile)
         {
             //存在则更新,不存在则添加
-            resourceFileCache.AddOrUpdate(resourceFile.GetHashCode(), resourceFile, (k, v) => resourceFile);
+            resourceFileCache[resourceFile] = resourceFile;
 
             // 执行处理
             await HandlerAsync();

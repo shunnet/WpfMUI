@@ -6,12 +6,17 @@ using System.Windows.Input;
 namespace Snet.Windows.Controls.pagebar
 {
     /// <summary>
-    /// 页码条
+    /// 页码条控件<br/>
+    /// 支持数据分页导航，包括上一页/下一页、页码跳转、省略号和每页大小设置<br/>
+    /// 通过缓存 PageBarItem 实例减少重复创建，提高性能
     /// </summary>
     [TemplatePart(Name = PageSizePartName, Type = typeof(TextBox))]
     [StyleTypedProperty(Property = "ItemContainerStyle", StyleTargetType = typeof(PageBarItem))]
     public partial class PageBarControl : ItemsControl
     {
+        /// <summary>
+        /// 构造函数：初始化页码条控件组件和异步翻页命令
+        /// </summary>
         public PageBarControl()
         {
             InitializeComponent();
@@ -20,19 +25,25 @@ namespace Snet.Windows.Controls.pagebar
 
         #region 常量
 
+        /// <summary>页大小输入框模板部件名称</summary>
         public const string PageSizePartName = "PART_PageSizeTextBox";
 
         #endregion
 
         #region 缓存 & 命令
 
+        /// <summary>页码项缓存列表，避免重复创建 PageBarItem 实例</summary>
         private readonly List<PageBarItem> _pageItemCache = new();
+        /// <summary>异步翻页命令</summary>
         private readonly IAsyncRelayCommand<object> _pageNumberCommand;
 
         #endregion
 
         #region 静态构造
 
+        /// <summary>
+        /// 静态构造函数：重写默认样式键以支持自定义模板
+        /// </summary>
         static PageBarControl()
         {
             DefaultStyleKeyProperty.OverrideMetadata(typeof(PageBarControl), new FrameworkPropertyMetadata(typeof(PageBarControl)));
@@ -42,6 +53,9 @@ namespace Snet.Windows.Controls.pagebar
 
         #region 模板
 
+        /// <summary>
+        /// 应用模板时初始化页大小输入框的回车键事件
+        /// </summary>
         public override void OnApplyTemplate()
         {
             base.OnApplyTemplate();
@@ -64,33 +78,42 @@ namespace Snet.Windows.Controls.pagebar
 
         #region 依赖属性
 
-        // 外部传入的最大显示分页数量
+        /// <summary>最大显示页码数量依赖属性，默认为 7</summary>
         public static readonly DependencyProperty MaxDisplayedPageCountProperty =
             DependencyProperty.Register("MaxDisplayedPageCount", typeof(int), typeof(PageBarControl),
                 new FrameworkPropertyMetadata(7, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, OnMaxDisplayedPageCountChanged));
 
+        /// <summary>
+        /// 获取或设置页码条中最多显示的页码按钮数量
+        /// </summary>
         public int MaxDisplayedPageCount
         {
             get => (int)GetValue(MaxDisplayedPageCountProperty);
             set => SetValue(MaxDisplayedPageCountProperty, value);
         }
 
+        /// <summary>最大显示页码数量变更回调，刷新页码条</summary>
         private static void OnMaxDisplayedPageCountChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             var pageBar = (PageBarControl)d;
             _ = pageBar.RefreshPageBarAsync();
         }
 
+        /// <summary>每页数据量依赖属性</summary>
         public static readonly DependencyProperty PageSizeProperty =
             DependencyProperty.Register("PageSize", typeof(int), typeof(PageBarControl),
                 new FrameworkPropertyMetadata(default(int), FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, OnPageSizeChanged));
 
+        /// <summary>
+        /// 获取或设置每页显示的数据条数
+        /// </summary>
         public int PageSize
         {
             get => (int)GetValue(PageSizeProperty);
             set => SetValue(PageSizeProperty, value);
         }
 
+        /// <summary>每页大小变更回调，重置页码并刷新页码条</summary>
         private static void OnPageSizeChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             var pageBar = (PageBarControl)d;
@@ -99,16 +122,21 @@ namespace Snet.Windows.Controls.pagebar
             pageBar.RaisePageSizeChanged((int)e.OldValue, (int)e.NewValue);
         }
 
+        /// <summary>当前页码依赖属性，默认为 1</summary>
         public static readonly DependencyProperty PageIndexProperty =
             DependencyProperty.Register("PageIndex", typeof(int), typeof(PageBarControl),
                 new FrameworkPropertyMetadata(1, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, OnPageIndexChanged));
 
+        /// <summary>
+        /// 获取或设置当前页码（从 1 开始）
+        /// </summary>
         public int PageIndex
         {
             get => (int)GetValue(PageIndexProperty);
             set => SetValue(PageIndexProperty, value);
         }
 
+        /// <summary>页码变更回调，刷新页码条并触发事件</summary>
         private static void OnPageIndexChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             var pageBar = (PageBarControl)d;
@@ -116,16 +144,21 @@ namespace Snet.Windows.Controls.pagebar
             pageBar.RaisePageIndexChanged((int)e.OldValue, (int)e.NewValue);
         }
 
+        /// <summary>数据总条数依赖属性</summary>
         public static readonly DependencyProperty TotalProperty =
             DependencyProperty.Register("Total", typeof(int), typeof(PageBarControl),
                 new FrameworkPropertyMetadata(default(int), FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, OnTotalChanged));
 
+        /// <summary>
+        /// 获取或设置数据总条数，用于计算总页数
+        /// </summary>
         public int Total
         {
             get => (int)GetValue(TotalProperty);
             set => SetValue(TotalProperty, value);
         }
 
+        /// <summary>总数变更回调，刷新页码条</summary>
         private static void OnTotalChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             var pageBar = (PageBarControl)d;
@@ -136,36 +169,48 @@ namespace Snet.Windows.Controls.pagebar
 
         #region 事件 & 命令
 
+        /// <summary>页大小变更路由事件</summary>
         public static readonly RoutedEvent PageSizeChangedEvent =
             EventManager.RegisterRoutedEvent("PageSizeChanged", RoutingStrategy.Bubble, typeof(RoutedPropertyChangedEventHandler<int>), typeof(PageBarControl));
 
+        /// <summary>页大小变更事件</summary>
         public event RoutedPropertyChangedEventHandler<int> PageSizeChanged
         {
             add => AddHandler(PageSizeChangedEvent, value);
             remove => RemoveHandler(PageSizeChangedEvent, value);
         }
 
+        /// <summary>页码变更路由事件</summary>
         public static readonly RoutedEvent PageIndexChangedEvent =
             EventManager.RegisterRoutedEvent("PageIndexChanged", RoutingStrategy.Bubble, typeof(RoutedPropertyChangedEventHandler<int>), typeof(PageBarControl));
 
+        /// <summary>页码变更事件</summary>
         public event RoutedPropertyChangedEventHandler<int> PageIndexChanged
         {
             add => AddHandler(PageIndexChangedEvent, value);
             remove => RemoveHandler(PageIndexChangedEvent, value);
         }
 
+        /// <summary>页大小变更命令依赖属性</summary>
         public static readonly DependencyProperty PageSizeChangedCommandProperty =
             DependencyProperty.Register("PageSizeChangedCommand", typeof(ICommand), typeof(PageBarControl), new PropertyMetadata(default(ICommand)));
 
+        /// <summary>
+        /// 获取或设置页大小变更时执行的命令
+        /// </summary>
         public ICommand PageSizeChangedCommand
         {
             get => (ICommand)GetValue(PageSizeChangedCommandProperty);
             set => SetValue(PageSizeChangedCommandProperty, value);
         }
 
+        /// <summary>页码变更命令依赖属性</summary>
         public static readonly DependencyProperty PageIndexChangedCommandProperty =
             DependencyProperty.Register("PageIndexChangedCommand", typeof(ICommand), typeof(PageBarControl), new PropertyMetadata(default(ICommand)));
 
+        /// <summary>
+        /// 获取或设置页码变更时执行的命令
+        /// </summary>
         public ICommand PageIndexChangedCommand
         {
             get => (ICommand)GetValue(PageIndexChangedCommandProperty);
@@ -176,6 +221,11 @@ namespace Snet.Windows.Controls.pagebar
 
         #region 私有方法
 
+        /// <summary>
+        /// 触发页大小变更事件和命令
+        /// </summary>
+        /// <param name="oldValue">旧的页大小</param>
+        /// <param name="newValue">新的页大小</param>
         private void RaisePageSizeChanged(int oldValue, int newValue)
         {
             var args = new RoutedPropertyChangedEventArgs<int>(oldValue, newValue)
@@ -186,6 +236,11 @@ namespace Snet.Windows.Controls.pagebar
             PageSizeChangedCommand?.Execute(newValue);
         }
 
+        /// <summary>
+        /// 触发页码变更事件和命令
+        /// </summary>
+        /// <param name="oldValue">旧的页码</param>
+        /// <param name="newValue">新的页码</param>
         private void RaisePageIndexChanged(int oldValue, int newValue)
         {
             var args = new RoutedPropertyChangedEventArgs<int>(oldValue, newValue)
@@ -196,6 +251,10 @@ namespace Snet.Windows.Controls.pagebar
             PageIndexChangedCommand?.Execute(newValue);
         }
 
+        /// <summary>
+        /// 页码点击回调，更新当前页码
+        /// </summary>
+        /// <param name="obj">点击的页码值</param>
         private Task PageNumberChangedAsync(object obj)
         {
             if (obj is int num)

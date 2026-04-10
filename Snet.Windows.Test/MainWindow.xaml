@@ -13,7 +13,9 @@
     snet:ResxLocalizationProvider.DefaultDictionary="Language"
     AnimationTime="2000"
     Icon="/Icon.ico"
+    LanguageEnabled="True"
     LoadAnimationEnabled="True"
+    SkinEnabled="True"
     WindowStartupLocation="CenterScreen">
     <StackPanel>
         <snet:ButtonControl

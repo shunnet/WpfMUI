@@ -34,6 +34,11 @@ namespace Snet.Windows.Controls.handler
         private readonly StringBuilder _sbCache = new(4096);
 
         /// <summary>
+        /// 用于累积 Info 内容的 StringBuilder，避免重复的字符串拼接分配
+        /// </summary>
+        private readonly StringBuilder _infoBuilder = new(4096);
+
+        /// <summary>
         /// 获取或设置当前显示的日志内容
         /// 这个属性通常会被绑定到WPF界面的TextBox或TextBlock控件
         /// </summary>
@@ -246,11 +251,12 @@ namespace Snet.Windows.Controls.handler
             if (_disposed) return;
 
             // 内存管理：如果内容超过最大长度，清空旧内容
-            if (Info.Length + text.Length > maxLength)
-                Info = string.Empty;
+            if (_infoBuilder.Length + text.Length > maxLength)
+                _infoBuilder.Clear();
 
-            // 追加新内容
-            Info += text;
+            // 追加新内容（使用 StringBuilder 避免重复的字符串分配）
+            _infoBuilder.Append(text);
+            Info = _infoBuilder.ToString();
 
             // 触发事件，通知订阅者内容已更新
             OnInfoEventHandler(this, EventInfoResult.CreateSuccessResult(Info));
@@ -283,6 +289,7 @@ namespace Snet.Windows.Controls.handler
             // 清空显示内容
             Info = string.Empty;
             _sbCache.Clear();
+            _infoBuilder.Clear();
 
             // 通知订阅者内容已清空
             await OnInfoEventHandlerAsync(this, EventInfoResult.CreateSuccessResult(""));

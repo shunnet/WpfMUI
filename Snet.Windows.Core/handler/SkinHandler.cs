@@ -63,6 +63,30 @@ namespace Snet.Windows.Core.handler
 
         private static readonly Snet.Model.data.LanguageModel _skinLanguageModel = new("Snet.Windows.Controls", "Language", "Snet.Windows.Controls.dll");
 
+        /// <summary>
+        /// 浅色主题资源字典 URI（静态缓存，避免每次切换时重复拼接字符串）
+        /// </summary>
+        private static readonly string _lightThemeUri = "pack://application:,,,/Snet.Windows.Core;component/themes/LightTheme.xaml";
+
+        /// <summary>
+        /// 深色主题资源字典 URI（静态缓存，避免每次切换时重复拼接字符串）
+        /// </summary>
+        private static readonly string _darkThemeUri = "pack://application:,,,/Snet.Windows.Core;component/themes/DarkTheme.xaml";
+
+        /// <summary>
+        /// MaterialDesign 深色主题颜色常量（静态缓存，避免每次切换时重复调用 ColorConverter.ConvertFromString）
+        /// </summary>
+        private static readonly Color _darkPrimaryColor = (Color)ColorConverter.ConvertFromString("#505050");
+        private static readonly Color _darkSecondaryColor = (Color)ColorConverter.ConvertFromString("#F0E8E8");
+        private static readonly Color _darkPrimaryLight = (Color)ColorConverter.ConvertFromString("#616161");
+
+        /// <summary>
+        /// MaterialDesign 浅色主题颜色常量（静态缓存，避免每次切换时重复调用 ColorConverter.ConvertFromString）
+        /// </summary>
+        private static readonly Color _lightPrimaryColor = (Color)ColorConverter.ConvertFromString("#F6F6F6");
+        private static readonly Color _lightSecondaryColor = (Color)ColorConverter.ConvertFromString("#272424");
+        private static readonly Color _lightPrimaryLight = (Color)ColorConverter.ConvertFromString("#C6C6C6");
+
         #endregion
 
         #region 私有方法
@@ -105,15 +129,9 @@ namespace Snet.Windows.Core.handler
         /// <param name="notice">是否通知</param>
         private static void setSkin(SkinType skinType, bool notice)
         {
-            //格式
-            string format = "pack://application:,,,/Snet.Windows.Core;component/themes/{0}Theme.xaml";
-            //白天资源
-            string light = string.Format(format, "Light");
-            //黑夜资源
-            string dark = string.Format(format, "Dark");
-
-            // 新的资源地址
-            string newResource = string.Format(format, skinType);
+            // 使用缓存的资源 URI，避免每次切换时重复拼接字符串
+            string newResource = skinType == SkinType.Dark ? _darkThemeUri : _lightThemeUri;
+            string oldThemeUri = skinType == SkinType.Dark ? _lightThemeUri : _darkThemeUri;
 
             //新的资源对象
             ResourceDictionary newResourceDictionary = new ResourceDictionary { Source = new Uri(newResource, UriKind.RelativeOrAbsolute) };
@@ -121,22 +139,13 @@ namespace Snet.Windows.Core.handler
             //检索的旧资源对象
             ResourceDictionary oldResourceDictionary = default;
 
-            //检索资源
+            //检索旧主题资源字典（找到即退出，避免无谓遍历）
             foreach (var item in Application.Current.Resources.MergedDictionaries)
             {
-                if (item.Source != null)
+                if (item.Source != null && item.Source.AbsoluteUri == oldThemeUri)
                 {
-                    switch (skinType)
-                    {
-                        case SkinType.Dark:
-                            if (item.Source.AbsoluteUri == light)
-                                oldResourceDictionary = item;
-                            break;
-                        case SkinType.Light:
-                            if (item.Source.AbsoluteUri == dark)
-                                oldResourceDictionary = item;
-                            break;
-                    }
+                    oldResourceDictionary = item;
+                    break;
                 }
             }
 
@@ -226,16 +235,16 @@ namespace Snet.Windows.Core.handler
                      switch (skinType)
                      {
                          case SkinType.Dark:
-                             internalTheme.SetDarkTheme();//模板
-                             internalTheme.SetPrimaryColor((Color)ColorConverter.ConvertFromString("#505050")); //主要颜色
-                             internalTheme.SetSecondaryColor((Color)ColorConverter.ConvertFromString("#F0E8E8"));//次要颜色
-                             internalTheme.PrimaryLight = (Color)ColorConverter.ConvertFromString("#616161");  //文本框选中后背景色
+                             internalTheme.SetDarkTheme();
+                             internalTheme.SetPrimaryColor(_darkPrimaryColor);
+                             internalTheme.SetSecondaryColor(_darkSecondaryColor);
+                             internalTheme.PrimaryLight = _darkPrimaryLight;
                              break;
                          case SkinType.Light:
-                             internalTheme.SetLightTheme();//模板
-                             internalTheme.SetPrimaryColor((Color)ColorConverter.ConvertFromString("#F6F6F6"));//主要颜色
-                             internalTheme.SetSecondaryColor((Color)ColorConverter.ConvertFromString("#272424"));//次要颜色
-                             internalTheme.PrimaryLight = (Color)ColorConverter.ConvertFromString("#C6C6C6");//文本框选中后背景色
+                             internalTheme.SetLightTheme();
+                             internalTheme.SetPrimaryColor(_lightPrimaryColor);
+                             internalTheme.SetSecondaryColor(_lightSecondaryColor);
+                             internalTheme.PrimaryLight = _lightPrimaryLight;
                              break;
                      }
                  }

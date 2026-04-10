@@ -340,6 +340,7 @@ namespace Snet.Windows.Controls.ledgauge
             }
             lampBrush.GradientStops = new GradientStopCollection(list);
         }
+
         /// <summary>
         /// 控件启用状态变更事件<br/>
         /// 启用时恢复灯光和透明度，禁用时停止闪烁并降低透明度
@@ -393,7 +394,8 @@ namespace Snet.Windows.Controls.ledgauge
                 isFlashingIntervalChangePending = false;
             }
             isFlashingStateOn = !isFlashingStateOn;
-            base.Dispatcher.Invoke(delegate
+            // 使用 BeginInvoke 替代 Invoke，避免阻塞定时器线程等待 UI 线程完成
+            base.Dispatcher.BeginInvoke(delegate
             {
                 ApplyColor(Color, isFlashingStateOn, base.IsEnabled);
             }, DispatcherPriority.Render);

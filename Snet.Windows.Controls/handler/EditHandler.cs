@@ -181,8 +181,8 @@ namespace Snet.Windows.Controls.handler
         {
             if (keywords == null) return;
 
-            bool firstInit = _kwMap.Count == 0;
-            if (firstInit)
+            // 如果已有关键字（非首次初始化），先清空旧数据再重新填充
+            if (_kwMap.Count > 0)
             {
                 _kwMap.Clear();
                 _kwBrushCache.Clear();
