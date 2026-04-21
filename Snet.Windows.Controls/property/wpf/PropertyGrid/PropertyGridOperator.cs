@@ -11,6 +11,7 @@ namespace Snet.Windows.Controls.property.wpf
 {
     using Snet.Utility;
     using Snet.Windows.Controls.property.core.DataAnnotations;
+    using Snet.Windows.Controls.property.wpf.Operators;
     using Snet.Windows.Core.handler;
     using System;
     using System.Collections;
@@ -23,9 +24,9 @@ namespace Snet.Windows.Controls.property.wpf
     using System.Windows.Data;
 
     /// <summary>
-    /// Creates a model for the <see cref="PropertyGrid" /> control.
-    /// </summary>
-    public class PropertyGridOperator : IPropertyGridOperator
+	/// Creates a model for the <see cref="PropertyGrid" /> control.
+	/// </summary>
+	public class PropertyGridOperator : DefaultLocalizableOperator, IPropertyGridOperator
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="PropertyGridOperator" /> class.
@@ -106,7 +107,7 @@ namespace Snet.Windows.Controls.property.wpf
         /// <param name="isEnumerable">if set to <c>true</c> [is enumerable].</param>
         /// <param name="options">The options.</param>
         /// <returns>
-        /// A list of <see cref="Tab" /> .
+        /// A sorted list of <see cref="Tab" /> .
         /// </returns>
         public virtual IEnumerable<Tab> CreateModel(object instance, bool isEnumerable, IPropertyGridOptions options)
         {
@@ -131,14 +132,49 @@ namespace Snet.Windows.Controls.property.wpf
                 var group = tab.Groups.FirstOrDefault(g => g.Header == category);
                 if (group == null)
                 {
-                    group = new Group { Header = pi.Category };
+                    group = new Group { Header = pi.Category, Name = pi.CategoryIdentifier };
                     tab.Groups.Add(group);
                 }
+
+                #region Set tab sort index
+
+                if (tab.TabIndex == null)
+                {
+                    tab.TabIndex = pi.TabSortIndex;
+                }
+                else if (pi.TabSortIndex != null && pi.TabSortIndex != tab.TabIndex)
+                {
+                    throw new ApplicationException(
+                        String.Format("Two or more different tab indecies ({0} and {1}) are set for same tab '{2}'.",
+                            tab.TabIndex, pi.TabSortIndex, tabHeader
+                    ));
+                }
+
+                #endregion
+
+                #region Set group sort index
+
+                if (group.GroupSortIndex == null)
+                {
+                    group.GroupSortIndex = pi.GroupSortIndex;
+                }
+                else if (pi.GroupSortIndex != null && pi.GroupSortIndex != group.GroupSortIndex)
+                {
+                    throw new ApplicationException(
+                        String.Format("Two or more different group indecies ({0} and {1}) are set for same group '{2}'.",
+                            group.GroupSortIndex, pi.GroupSortIndex, group.Name
+                    ));
+                }
+
+                #endregion
 
                 group.Properties.Add(pi);
             }
 
-            return tabs.Values.ToList();
+            return tabs.Values
+                .OrderBy(t => t.TabIndex ?? 0) // sorting tabs
+                .Select(t => t.SortGroups()) // sorting groups inside tab
+                .ToList();
         }
 
         /// <summary>
@@ -380,32 +416,6 @@ namespace Snet.Windows.Controls.property.wpf
         }
 
         /// <summary>
-        /// Gets the localized description.
-        /// </summary>
-        /// <param name="key">The key.</param>
-        /// <param name="declaringType">Type of the declaring.</param>
-        /// <returns>
-        /// The localized description.
-        /// </returns>
-        protected virtual string GetLocalizedDescription(string key, Type declaringType)
-        {
-            return key;
-        }
-
-        /// <summary>
-        /// Gets the localized string.
-        /// </summary>
-        /// <param name="key">The key.</param>
-        /// <param name="declaringType">The declaring type.</param>
-        /// <returns>
-        /// The localized string.
-        /// </returns>
-        protected virtual string GetLocalizedString(string key, Type declaringType)
-        {
-            return key;
-        }
-
-        /// <summary>
         /// Sets the properties.
         /// </summary>
         /// <param name="pi">The property item.</param>
@@ -417,7 +427,7 @@ namespace Snet.Windows.Controls.property.wpf
 
             // find the declaring type
             var declaringType = pi.Descriptor.ComponentType;
-            var propertyInfo = instance.GetType().GetProperty(pi.Descriptor.Name);
+            var propertyInfo = instance.GetType().GetProperty(pi.Descriptor.Name, pi.Descriptor.PropertyType);
             if (propertyInfo != null)
             {
                 declaringType = propertyInfo.DeclaringType;
@@ -469,8 +479,13 @@ namespace Snet.Windows.Controls.property.wpf
             var displayName = this.GetDisplayName(pi.Descriptor, declaringType);
             var description = this.GetDescription(pi.Descriptor, declaringType);
 
-            // Localize the strings
+            pi.CategoryIdentifier = categoryName;
 
+            // set tab/group sort index
+            pi.TabSortIndex = ca2?.TabSortIndex;
+            pi.GroupSortIndex = ca2?.GroupSortIndex;
+
+            // snet 语言加载设置
             switch (LanguageHandler.GetLanguage())
             {
                 case Model.@enum.LanguageType.zh:
@@ -484,7 +499,6 @@ namespace Snet.Windows.Controls.property.wpf
                     pi.DisplayName = this.GetLocalizedString(displayName, declaringType);
                     break;
             }
-
             pi.Description = this.GetLocalizedDescription(description, declaringType);
             pi.Category = this.GetLocalizedString(categoryName, this.CurrentCategoryDeclaringType);
             pi.Tab = this.GetLocalizedString(tabName, this.CurrentCategoryDeclaringType);
@@ -512,6 +526,15 @@ namespace Snet.Windows.Controls.property.wpf
             if (pi.Descriptor.PropertyType == typeof(TimeSpan) && pi.Converter == null)
             {
                 pi.Converter = new TimeSpanToStringConverter();
+                pi.ConverterParameter = pi.FormatString;
+            }
+
+            var underlyingType = Nullable.GetUnderlyingType(pi.Descriptor.PropertyType);
+            if ((pi.Descriptor.PropertyType == typeof(DateTime) || underlyingType == typeof(DateTime))
+                && pi.Converter == null
+                && !string.IsNullOrWhiteSpace(pi.FormatString))
+            {
+                pi.Converter = new DateTimeToStringConverter();
                 pi.ConverterParameter = pi.FormatString;
             }
         }
@@ -643,7 +666,7 @@ namespace Snet.Windows.Controls.property.wpf
                                 }
                             }
 
-                            object[] descriptionAttributes = elementType.GetProperty(column.PropertyName)?.GetCustomAttributes(typeof(Snet.Windows.Controls.property.core.DataAnnotations.DescriptionAttribute), true);
+                            object[] descriptionAttributes = elementType.GetProperty(column.PropertyName)?.GetCustomAttributes(typeof(core.DataAnnotations.DescriptionAttribute), true);
                             if (descriptionAttributes != null && descriptionAttributes.Length > 0)
                             {
                                 toolTip = ((core.DataAnnotations.DescriptionAttribute)descriptionAttributes[0]).Description;
@@ -653,7 +676,7 @@ namespace Snet.Windows.Controls.property.wpf
                         var cd = new ColumnDefinition
                         {
                             PropertyName = column.PropertyName,
-                            Header = column.Header,
+                            Header = this.GetLocalizedString(column.Header, declaringType: elementType),
                             FormatString = column.FormatString,
                             Width = (GridLength)(glc.ConvertFromInvariantString(column.Width) ?? GridLength.Auto),
                             IsReadOnly = column.IsReadOnly,
@@ -754,7 +777,7 @@ namespace Snet.Windows.Controls.property.wpf
                 pi.IsEditable = ea.AllowEdit;
             }
 
-            var ea2 = attribute as Snet.Windows.Controls.property.core.DataAnnotations.EditableAttribute;
+            var ea2 = attribute as core.DataAnnotations.EditableAttribute;
             if (ea2 != null)
             {
                 pi.IsEditable = ea2.AllowEdit;

@@ -75,7 +75,7 @@ namespace Snet.Windows.Controls.property
                 new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
 
         /// <summary>
-        /// 获取或设置导入/导出按钮的显示状态。<br/>
+        /// 获取或设置确认/取消按钮的显示状态。<br/>
         /// 默认为 Collapsed（隐藏）。
         /// </summary>
         public Visibility ButtonVisibility

@@ -103,6 +103,12 @@ namespace Snet.Windows.Controls.property.wpf
         public BitmapSource Icon { get; set; }
 
         /// <summary>
+        /// Gets or sets the tab sort index.
+        /// </summary>
+        /// <value>The tab sort index.</value>
+        public uint? TabIndex { get; set; }
+
+        /// <summary>
         /// Determines whether the tab contains the specified property.
         /// </summary>
         /// <param name="propertyName">Name of the property.</param>
@@ -143,6 +149,16 @@ namespace Snet.Windows.Controls.property.wpf
         {
             // validate all properties in this tab
             this.HasErrors = this.Groups.Any(g => g.Properties.Any(p => ndei.HasErrors));
+        }
+
+        /// <summary>
+        /// Sort groups by <seealso cref="Group.GroupSortIndex"/>
+        /// </summary>
+        /// <returns></returns>
+        public Tab SortGroups()
+        {
+            this.Groups = this.Groups.OrderBy(x => x.GroupSortIndex ?? 0).ToList();
+            return this;
         }
     }
 }

@@ -13,6 +13,7 @@ namespace Snet.Windows.Controls.property.wpf
     using System.Windows.Input;
     using System.Windows.Media;
     using System.Windows.Media.Imaging;
+
     /// <summary>
     /// Provides a behavior that let you capture the contents of a control to a bitmap and copy it to the clipboard.
     /// </summary>

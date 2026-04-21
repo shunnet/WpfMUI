@@ -10,6 +10,7 @@
 namespace Snet.Windows.Controls.property.wpf
 {
     using Snet.Windows.Controls.property.core.DataAnnotations;
+    using Snet.Windows.Controls.property.wpf.Operators;
     using System;
     using System.Collections;
     using System.Collections.Generic;
@@ -220,13 +221,40 @@ namespace Snet.Windows.Controls.property.wpf
             new UIPropertyMetadata(new PropertyGridControlFactory()));
 
         /// <summary>
+        /// Identifies the <see cref="LocalizableOperator"/> dependency property.
+        /// </summary>
+        public static readonly DependencyProperty LocalizableOperatorProperty = DependencyProperty.Register(
+            nameof(LocalizableOperator),
+            typeof(ILocalizableOperator),
+            typeof(PropertyGrid),
+            new PropertyMetadata(null, (d, e) =>
+            {
+                var newLocalizableOperator = (ILocalizableOperator)e.NewValue;
+                var operatorValue = (IPropertyGridOperator)d.GetValue(OperatorProperty);
+                if (operatorValue != null)
+                {
+                    operatorValue.UseLocalizableOperator(newLocalizableOperator);
+                }
+            })
+            );
+
+        /// <summary>
         /// Identifies the <see cref="PropertyItem"/> dependency property.
         /// </summary>
         public static readonly DependencyProperty OperatorProperty = DependencyProperty.Register(
             nameof(Operator),
             typeof(IPropertyGridOperator),
             typeof(PropertyGrid),
-            new UIPropertyMetadata(new PropertyGridOperator()));
+            new UIPropertyMetadata(new PropertyGridOperator(), (d, e) =>
+            {
+                var operatorValue = (IPropertyGridOperator)e.NewValue;
+                var newLocalizableOperator = (ILocalizableOperator)d.GetValue(LocalizableOperatorProperty);
+                if (operatorValue != null)
+                {
+                    operatorValue.UseLocalizableOperator(newLocalizableOperator);
+                }
+            })
+            );
 
         /// <summary>
         /// Identifies the <see cref="RequiredAttribute"/> dependency property.
@@ -701,6 +729,15 @@ namespace Snet.Windows.Controls.property.wpf
             {
                 this.SetValue(ControlFactoryProperty, value);
             }
+        }
+
+        /// <summary>
+        /// Gets or sets the localizable operator.
+        /// </summary>        
+        public ILocalizableOperator LocalizableOperator
+        {
+            get => (ILocalizableOperator)this.GetValue(LocalizableOperatorProperty);
+            set => this.SetValue(LocalizableOperatorProperty, value);
         }
 
         /// <summary>
@@ -1402,13 +1439,15 @@ namespace Snet.Windows.Controls.property.wpf
             var propertyLabel = this.CreateLabel(pi);
             var propertyControl = this.CreatePropertyControl(pi);
             ContentControl errorControl = null;
+            PropertyControlFactoryOptions validationOptions = null;
+
             if (propertyControl != null)
             {
                 this.ConfigurePropertyControl(pi, propertyControl);
 
                 if (instance is IDataErrorInfo || instance is INotifyDataErrorInfo)
                 {
-                    PropertyControlFactoryOptions options = new PropertyControlFactoryOptions
+                    validationOptions = new PropertyControlFactoryOptions
                     {
                         ValidationErrorTemplate = this.ValidationErrorTemplate,
                         ValidationErrorStyle = this.ValidationErrorStyle
@@ -1419,9 +1458,7 @@ namespace Snet.Windows.Controls.property.wpf
                         Validation.SetErrorTemplate(propertyControl, this.ValidationTemplate);
                     }
 
-                    this.ControlFactory.SetValidationErrorStyle(propertyControl, options);
-
-                    errorControl = this.ControlFactory.CreateErrorControl(pi, instance, tab, options);
+                    errorControl = this.ControlFactory.CreateErrorControl(pi, instance, tab, validationOptions);
 
                     // Add a row with the error control to the panel
                     // The error control is placed in column 1
@@ -1440,6 +1477,11 @@ namespace Snet.Windows.Controls.property.wpf
             if (propertyControl != null)
             {
                 propertyPanel.Children.Add(propertyControl);
+
+                // NOTE: We intentionally do NOT call SetValidationErrorStyle here.
+                // Applying ValidationErrorStyle would override any implicit styles from Style.Resources,
+                // preventing custom styling (issue #455). Users can still use ValidationTemplate
+                // and the error control for validation visualization.
             }
 
             this.ConfigureLabel(pi, propertyLabel);
@@ -1580,6 +1622,20 @@ namespace Snet.Windows.Controls.property.wpf
                                 Grid.SetRow(propertyControl, 1);
                                 Grid.SetColumn(propertyControl, 0);
                                 Grid.SetColumnSpan(propertyControl, 2);
+
+                                if (pi.FillTab)
+                                {
+                                    // Row 0 (label) should size to its natural height.
+                                    // Row 1 (property control) should fill all remaining space.
+                                    // Any additional rows (e.g. validation error rows) should also size to their natural height.
+                                    propertyPanel.RowDefinitions[0].Height = GridLength.Auto;
+                                    propertyPanel.RowDefinitions[1].Height = new GridLength(1, GridUnitType.Star);
+                                    for (var i = 2; i < propertyPanel.RowDefinitions.Count; i++)
+                                    {
+                                        propertyPanel.RowDefinitions[i].Height = GridLength.Auto;
+                                    }
+                                }
+
                                 if (errorControl != null)
                                 {
                                     Grid.SetRow(errorControl, 2);
@@ -1688,6 +1744,7 @@ namespace Snet.Windows.Controls.property.wpf
                 {
                     Content = pi.DisplayName,
                     VerticalAlignment = VerticalAlignment.Center,
+                    //snet 新增
                     HorizontalAlignment = HorizontalAlignment.Right,
                     Margin = new Thickness(5 + indentation, 0, 4, 0)
                 };
@@ -1726,6 +1783,7 @@ namespace Snet.Windows.Controls.property.wpf
                 propertyLabel = new Label
                 {
                     Content = pi.DisplayName,
+                    //snet 修改
                     VerticalAlignment = VerticalAlignment.Center,
                     Margin = new Thickness(indentation, 0, 4, 0)
                 };
@@ -1772,6 +1830,11 @@ namespace Snet.Windows.Controls.property.wpf
                 if (e.NewValue is INotifyCollectionChanged notifyCollectionChanged)
                 {
                     CollectionChangedEventManager.AddHandler(notifyCollectionChanged, this.OnSelectedObjectsCollectionChanged);
+                    // Initialize CurrentObject with the current items
+                    if (e.NewValue is IEnumerable enumerable)
+                    {
+                        this.SetCurrentObjectFromSelectedObjects(enumerable);
+                    }
                 }
                 else if (e.NewValue is IEnumerable enumerable)
                 {

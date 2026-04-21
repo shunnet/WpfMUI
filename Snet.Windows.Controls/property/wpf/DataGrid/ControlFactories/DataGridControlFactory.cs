@@ -157,6 +157,24 @@ namespace Snet.Windows.Controls.property.wpf
                 return c;
             }
 
+            // If BackgroundBindingPath is empty, it means a static Background was set
+            if (string.IsNullOrEmpty(d.BackgroundBindingPath) && d.BackgroundBindingSource is Brush brush)
+            {
+                // Check if the element supports Background property (Panel or Control)
+                if (c is Panel || c is Control)
+                {
+                    c.SetValue(Panel.BackgroundProperty, brush);
+                    return c;
+                }
+                // For elements that don't support Background (like TextBlock), use a Border container
+                var staticContainer = new Border
+                {
+                    Child = c,
+                    Background = brush
+                };
+                return staticContainer;
+            }
+
             var container = new Border { Child = c };
             var binding = new Binding(d.BackgroundBindingPath) { Source = d.BackgroundBindingSource };
             container.SetBinding(Border.BackgroundProperty, binding);
@@ -466,11 +484,11 @@ namespace Snet.Windows.Controls.property.wpf
             };
 
             c.Loaded += (sender, args) =>
-                {
-                    var tb = (TextBox)sender;
-                    tb.CaretIndex = tb.Text.Length;
-                    tb.SelectAll();
-                };
+            {
+                var tb = (TextBox)sender;
+                tb.CaretIndex = tb.Text.Length;
+                tb.SelectAll();
+            };
 
             var binding = this.CreateBinding(d);
             c.SetBinding(TextBox.TextProperty, binding);
@@ -531,6 +549,14 @@ namespace Snet.Windows.Controls.property.wpf
                 return;
             }
 
+            // If BackgroundBindingPath is empty, it means a static Background was set
+            // Set it directly instead of creating a binding
+            if (string.IsNullOrEmpty(d.BackgroundBindingPath) && d.BackgroundBindingSource is Brush brush)
+            {
+                c.Background = brush;
+                return;
+            }
+
             var binding = new Binding(d.BackgroundBindingPath) { Source = d.BackgroundBindingSource };
             c.SetBinding(Control.BackgroundProperty, binding);
         }
@@ -544,6 +570,14 @@ namespace Snet.Windows.Controls.property.wpf
         {
             if (d.BackgroundBindingPath == null)
             {
+                return;
+            }
+
+            // If BackgroundBindingPath is empty, it means a static Background was set
+            // Set it directly instead of creating a binding
+            if (string.IsNullOrEmpty(d.BackgroundBindingPath) && d.BackgroundBindingSource is Brush brush)
+            {
+                container.Background = brush;
                 return;
             }
 

@@ -9,12 +9,13 @@
 
 namespace Snet.Windows.Controls.property.wpf
 {
+    using Snet.Windows.Controls.property.wpf.Operators;
     using System.Collections.Generic;
 
     /// <summary>
     /// Defines functionality to build the model for a <see cref="PropertyGrid" />.
     /// </summary>
-    public interface IPropertyGridOperator
+    public interface IPropertyGridOperator : ILocalizableOperator, ICustomLocalizableOperator
     {
         /// <summary>
         /// Creates the model.

@@ -571,7 +571,7 @@ namespace Snet.Windows.Controls.property.wpf
                     itemsToDrop.Add(dragSource);
                 }
 
-                dropTarget.Drop(itemsToDrop, this.dropPosition, (DragDropEffect)e.Effects, (Snet.Windows.Controls.property.core.DragDropKeyStates)this.initialKeyStates);
+                dropTarget.Drop(itemsToDrop, this.dropPosition, (DragDropEffect)e.Effects, (core.DragDropKeyStates)this.initialKeyStates);
 
                 e.Handled = true;
             }

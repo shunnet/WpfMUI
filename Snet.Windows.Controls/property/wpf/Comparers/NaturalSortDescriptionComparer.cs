@@ -50,10 +50,10 @@ namespace Snet.Windows.Controls.property.wpf
         public int Compare(object x, object y)
         {
             Func<SortDescription, object, object, object> getValue = (s, o1, o2) =>
-                {
-                    var o = s.Direction == ListSortDirection.Ascending ? o1 : o2;
-                    return o.GetType().GetProperty(s.PropertyName).GetValue(o);
-                };
+            {
+                var o = s.Direction == ListSortDirection.Ascending ? o1 : o2;
+                return o.GetType().GetProperty(s.PropertyName).GetValue(o);
+            };
 
             // Get the sequences of values for each object
             var values1 = this.SortDescriptions.Select(s => getValue(s, x, y));

@@ -32,10 +32,19 @@ namespace Snet.Windows.Controls.property.wpf
         public string Description { get; set; }
 
         /// <summary>
-        /// Gets or sets the header.
+        /// Gets or sets the header (localizable).
         /// </summary>
         /// <value>The header.</value>
         public string Header { get; set; }
+
+        /// <summary>
+        /// Gets or sets the group identifier (non-localizable).
+        /// </summary>
+        /// <remarks>
+        /// May be used in resolving the <see cref="Icon"/> property value.
+        /// </remarks>
+        /// <value>The name.</value>
+        public string Name { get; set; }
 
         /// <summary>
         /// Gets or sets the icon.
@@ -47,6 +56,12 @@ namespace Snet.Windows.Controls.property.wpf
         /// Gets the properties.
         /// </summary>
         public List<PropertyItem> Properties { get; private set; }
+
+        /// <summary>
+        /// Gets or sets the group sort index.
+        /// </summary>
+        /// <value>The group sort index.</value>
+        public uint? GroupSortIndex { get; set; }
 
         /// <summary>
         /// The to string.

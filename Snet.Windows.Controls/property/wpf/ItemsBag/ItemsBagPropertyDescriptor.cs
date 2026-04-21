@@ -16,9 +16,30 @@ namespace Snet.Windows.Controls.property.wpf
     /// Provides a property descriptor for an object in the <see cref="ItemsBag" />.
     /// </summary>
     /// <remarks>
-    /// In order to support "indeterminate values" of the objects in the bag (at least one object have a 
-    /// value that is different from the others), this property descriptor returns nullable types for value 
-    /// types. Such indeterminate values are represented by <c>null</c> values.
+    /// <para>
+    /// This property descriptor works with reflection to get and set property values on multiple objects
+    /// in the <see cref="ItemsBag"/>. To support "indeterminate values" (when objects in the bag have
+    /// different values for the same property), this descriptor uses <c>null</c> to represent the indeterminate state.
+    /// </para>
+    /// <para>
+    /// For value types (such as <see cref="bool"/>, <see cref="int"/>, <see cref="double"/>, structs, enums, etc.),
+    /// this requires converting the property type to its nullable version (e.g., <see cref="bool"/> becomes
+    /// <see cref="Nullable{Boolean}"/>). This is done automatically through the <see cref="PropertyType"/> property.
+    /// </para>
+    /// <para>
+    /// Reference types (such as <see cref="string"/>, classes) are already nullable, so they are used as-is.
+    /// </para>
+    /// <para>
+    /// When <see cref="GetValue"/> is called, it returns:
+    /// </para>
+    /// <list type="bullet">
+    /// <item><description><c>null</c> if the objects in the bag have different values (indeterminate state)</description></item>
+    /// <item><description>The common value if all objects have the same value</description></item>
+    /// </list>
+    /// <para>
+    /// When <see cref="SetValue"/> is called with a non-null value, it sets that value on all objects in the bag.
+    /// Setting <c>null</c> is supported for reference types and nullable value types, but not for non-nullable value types.
+    /// </para>
     /// </remarks>
     public class ItemsBagPropertyDescriptor : PropertyDescriptor
     {
@@ -124,7 +145,7 @@ namespace Snet.Windows.Controls.property.wpf
             foreach (var obj in bag.Objects)
             {
                 var type = obj.GetType();
-                var pi = type.GetProperty(this.Name);
+                var pi = type.GetProperty(this.Name, this.defaultDescriptor.PropertyType);
                 if (pi == null)
                 {
                     continue;
@@ -166,8 +187,11 @@ namespace Snet.Windows.Controls.property.wpf
             foreach (var obj in bag.Objects)
             {
                 var type = obj.GetType();
-                var pi = type.GetProperty(this.Name);
-                pi.SetValue(obj, value, null);
+                var pi = type.GetProperty(this.Name, this.defaultDescriptor.PropertyType);
+                if (pi != null)
+                {
+                    pi.SetValue(obj, value, null);
+                }
             }
 
             bag.RaisePropertyChanged(this.Name);

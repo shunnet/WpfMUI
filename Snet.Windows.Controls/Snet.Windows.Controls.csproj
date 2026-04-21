@@ -27,6 +27,14 @@
     <PackageReference Include="AvalonEdit" Version="6.3.1.120" />
   </ItemGroup>
   <ItemGroup>
+    <Resource Include="property\wpf\Controls\ColorPicker\ColorPicker.png" />
+    <Resource Include="property\wpf\Controls\ColorPicker\Hsv.png" />
+    <Resource Include="property\wpf\DataGrid\Cursors\AutoFill.cur" />
+    <Resource Include="property\wpf\DataGrid\Cursors\Cross.cur" />
+    <Resource Include="property\wpf\DataGrid\Cursors\DownArrow.cur" />
+    <Resource Include="property\wpf\DataGrid\Cursors\RightArrow.cur" />
+  </ItemGroup>
+  <ItemGroup>
     <Compile Update="Language.Designer.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>

@@ -1,7 +1,10 @@
 ﻿using CommunityToolkit.Mvvm.Input;
+using MaterialDesignThemes.Wpf;
+using Snet.Core.communication.net.tcp.service;
 using Snet.Core.handler;
 using Snet.Utility;
 using Snet.Windows.Controls.data;
+using Snet.Windows.Controls.property;
 using Snet.Windows.Core.mvvm;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
@@ -21,8 +24,11 @@ namespace Snet.Windows.Test
             ComboBoxSelectedItem = ComboBoxItemsSource[0];
 
             TextBoxText = "测试控件";
-        }
 
+
+            bd = basics;
+        }
+        TcpServiceData.Basics basics = new TcpServiceData.Basics();
         private void LanguageHandler_OnLanguageEvent(object? sender, Model.data.EventLanguageResult e)
         {
             Debug.WriteLine(e.ToJson(true));
@@ -49,14 +55,26 @@ namespace Snet.Windows.Test
         public IAsyncRelayCommand Hello3 => p_Hello3 ??= new AsyncRelayCommand(HelloAsync3);
         IAsyncRelayCommand p_Hello3;
 
+        public IAsyncRelayCommand Hello4 => p_Hello4 ??= new AsyncRelayCommand(HelloAsync4);
+        IAsyncRelayCommand p_Hello4;
+
+
+
+        /// <summary>
+        /// 属性框
+        /// </summary>
+        public object bd
+        {
+            get => GetProperty(() => bd);
+            set => SetProperty(() => bd, value);
+        }
+
 
         public async Task HelloAsync1()
         {
             string title = App.LanguageOperate.GetLanguageValue("Hello");
             string message = App.LanguageOperate.GetLanguageValue("Welcome") + $"\r\n{ComboBoxSelectedItem?.Key}\r\n{TextBoxText}";
             await Snet.Windows.Controls.message.MessageBox.Show(message, title, Snet.Windows.Controls.@enum.MessageBoxButton.OKCancel, Snet.Windows.Controls.@enum.MessageBoxImage.Information);
-
-
         }
 
         public async Task HelloAsync2()
@@ -64,8 +82,6 @@ namespace Snet.Windows.Test
             string title = App.LanguageOperate.GetLanguageValue("Hello");
             string message = App.LanguageOperate.GetLanguageValue("Welcome") + $"\r\n{ComboBoxSelectedItem?.Key}\r\n{TextBoxText}";
             await Snet.Windows.Controls.message.MessageBox.Show(message, title, Snet.Windows.Controls.@enum.MessageBoxButton.Yes, Snet.Windows.Controls.@enum.MessageBoxImage.Information);
-
-
         }
 
         public async Task HelloAsync3()
@@ -73,12 +89,22 @@ namespace Snet.Windows.Test
             string title = App.LanguageOperate.GetLanguageValue("Hello");
             string message = App.LanguageOperate.GetLanguageValue("Welcome") + $"\r\n{ComboBoxSelectedItem?.Key}\r\n{TextBoxText}";
             await Snet.Windows.Controls.message.MessageBox.Show(message, title, Snet.Windows.Controls.@enum.MessageBoxButton.YesNo, Snet.Windows.Controls.@enum.MessageBoxImage.Information);
-
-
         }
 
+        PropertyControl control = new PropertyControl();
+        public async Task HelloAsync4()
+        {
+            control.ButtonVisibility = System.Windows.Visibility.Visible;
+            control.SetBasics(basics);
+            if ((await DialogHost.Show(control, "DialogHost")).ToBool())
+            {
+                var data = control.GetBasics().GetSource<TcpServiceData.Basics>();
 
-
+                string title = App.LanguageOperate.GetLanguageValue("Hello");
+                string message = data.ToJson(true);
+                await Snet.Windows.Controls.message.MessageBox.Show(message, title, Snet.Windows.Controls.@enum.MessageBoxButton.YesNo, Snet.Windows.Controls.@enum.MessageBoxImage.Information);
+            }
+        }
 
 
 

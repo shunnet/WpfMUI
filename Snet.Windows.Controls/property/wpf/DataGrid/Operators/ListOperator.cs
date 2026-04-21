@@ -61,7 +61,7 @@ namespace Snet.Windows.Controls.property.wpf
                     var cd = new ColumnDefinition
                     {
                         PropertyName = descriptor.Name,
-                        Header = info.Name,
+                        Header = this.GetLocalizedString(info.Name, declaringType: descriptor.ComponentType),
                         HorizontalAlignment = this.DefaultHorizontalAlignment,
                         Width = this.DefaultColumnWidth
                     };
@@ -93,7 +93,7 @@ namespace Snet.Windows.Controls.property.wpf
                     var cd = new ColumnDefinition
                     {
                         PropertyName = descriptor.Name,
-                        Header = descriptor.Name,
+                        Header = this.GetLocalizedString(descriptor.Name, declaringType: descriptor.ComponentType),
                         HorizontalAlignment = this.DefaultHorizontalAlignment,
                         Width = this.DefaultColumnWidth
                     };
@@ -109,7 +109,7 @@ namespace Snet.Windows.Controls.property.wpf
             yield return
                 new ColumnDefinition
                 {
-                    Header = itemsType.Name,
+                    Header = this.GetLocalizedString(itemsType.Name, itemsType),
                     HorizontalAlignment = this.DefaultHorizontalAlignment,
                     Width = this.DefaultColumnWidth
                 };
@@ -216,7 +216,7 @@ namespace Snet.Windows.Controls.property.wpf
         public override string GetBindingPath(CellRef cell)
         {
             var pd = this.GetPropertyDefinition(cell);
-            if (pd?.PropertyName != null)
+            if (!string.IsNullOrEmpty(pd?.PropertyName))
             {
                 return pd.PropertyName;
             }

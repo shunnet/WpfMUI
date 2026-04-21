@@ -9,12 +9,13 @@
 
 namespace Snet.Windows.Controls.property.wpf
 {
+    using Snet.Windows.Controls.property.wpf.Operators;
     using System;
 
     /// <summary>
     /// Specifies DataGrid functionality that depends on the type of items source.
     /// </summary>
-    public interface IDataGridOperator
+    public interface IDataGridOperator : ILocalizableOperator, ICustomLocalizableOperator
     {
         /// <summary>
         /// Auto-generates the columns.

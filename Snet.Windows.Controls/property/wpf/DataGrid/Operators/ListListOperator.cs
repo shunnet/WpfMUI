@@ -154,7 +154,7 @@ namespace Snet.Windows.Controls.property.wpf
                 yield return
                      new ColumnDefinition
                      {
-                         Header = innerType.Name,
+                         Header = this.GetLocalizedString(innerType.Name, declaringType: innerType),
                          HorizontalAlignment = this.DefaultHorizontalAlignment,
                          Width = this.DefaultColumnWidth
                      };

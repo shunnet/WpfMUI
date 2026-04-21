@@ -86,7 +86,6 @@
                             <TabControl
                                 x:Name="PART_Tabs"
                                 AutomationProperties.AutomationId="Tabs"
-                                DockPanel.Dock="Top"
                                 Focusable="false"
                                 SelectedIndex="{Binding Path=SelectedTabIndex, RelativeSource={RelativeSource TemplatedParent}}"
                                 TabStripPlacement="{TemplateBinding TabStripPlacement}" />

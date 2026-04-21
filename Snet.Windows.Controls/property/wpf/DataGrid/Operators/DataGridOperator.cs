@@ -10,6 +10,7 @@
 namespace Snet.Windows.Controls.property.wpf
 {
     using Snet.Windows.Controls.property.core.DataAnnotations;
+    using Snet.Windows.Controls.property.wpf.Operators;
     using System;
     using System.Collections;
     using System.Collections.Generic;
@@ -24,7 +25,7 @@ namespace Snet.Windows.Controls.property.wpf
     /// </summary>
     /// <remarks>An operator implements operations for a <see cref="DataGrid" /> based on the different data its 
     /// <see cref="DataGrid.ItemsSource" /> binds to.</remarks>
-    public abstract class DataGridOperator : IDataGridOperator
+    public abstract class DataGridOperator : DefaultLocalizableOperator, IDataGridOperator
     {
         /// <summary>
         /// The property descriptors.
@@ -519,7 +520,7 @@ namespace Snet.Windows.Controls.property.wpf
         {
             var pd = this.GetPropertyDefinition(cell);
             var item = this.GetItem(cell);
-            return pd.PropertyName != null ? item : this.Owner.ItemsSource;
+            return !string.IsNullOrEmpty(pd.PropertyName) ? item : this.Owner.ItemsSource;
         }
 
         /// <summary>
