@@ -92,6 +92,33 @@ namespace Snet.Windows.Core.handler
         }
 
         /// <summary>
+        /// 获取当前系统设置语言（读取配置文件）
+        /// </summary>
+        /// <param name="token">取消通知</param>
+        /// <returns>语言类型</returns>
+        public static async Task<LanguageType> GetLanguageAsync(CancellationToken token = default)
+        {
+            try
+            {
+                if (!File.Exists(path_language))
+                {
+                    // 默认保存当前语言
+                    var currentLang = await Snet.Core.handler.LanguageHandler.GetLanguageAsync(token);
+                    File.WriteAllTextAsync(path_language, new UseLanguageModel(currentLang).ToJson(), token);
+                    return currentLang;
+                }
+
+                // 读取并反序列化
+                return (await File.ReadAllTextAsync(path_language, token)).ToJsonEntity<UseLanguageModel>().LanguageType;
+            }
+            catch
+            {
+                // 出现异常时返回默认语言
+                return LanguageType.zh;
+            }
+        }
+
+        /// <summary>
         /// 设置当前系统语言（并保存配置文件）
         /// </summary>
         /// <param name="languageType">语言类型</param>
@@ -111,6 +138,30 @@ namespace Snet.Windows.Core.handler
 
             // 保存配置到本地文件
             File.WriteAllText(path_language, new UseLanguageModel(languageType).ToJson());
+        }
+
+
+        /// <summary>
+        /// 设置当前系统语言（并保存配置文件）
+        /// </summary>
+        /// <param name="token">取消通知</param>
+        /// <param name="languageType">语言类型</param>
+        public static async Task SetLanguageAsync(LanguageType languageType, CancellationToken token = default)
+        {
+            // 设置当前线程文化
+            Snet.Windows.Core.localize.wpf.Engine.LocalizeDictionary.Instance.Culture = CultureInfo.GetCultureInfo(languageType.ToString());
+
+            // 通知核心语言模块更新语言
+            await languageType.SetLanguageAsync(token);
+
+            // 确保路径存在
+            if (!Directory.Exists(WindowHandler.BasePath))
+            {
+                Directory.CreateDirectory(WindowHandler.BasePath);
+            }
+
+            // 保存配置到本地文件
+            await File.WriteAllTextAsync(path_language, new UseLanguageModel(languageType).ToJson(), token);
         }
 
         #endregion

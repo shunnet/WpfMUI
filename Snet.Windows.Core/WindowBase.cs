@@ -103,7 +103,7 @@ namespace Snet.Windows.Core
             // 设置初始皮肤
             SkinHandler.SetSkin(SkinHandler.GetSkin(), false);
             // 触发 LanguageHandler 静态构造函数完成初始语言设置（其内部已调用 SetLanguage，无需重复调用）
-            _ = LanguageHandler.GetLanguage();
+            _ = LanguageHandler.GetLanguageAsync().ConfigureAwait(false);
             StyleProperty.OverrideMetadata(typeof(WindowBase), new FrameworkPropertyMetadata(null, new CoerceValueCallback(OnCoerceStyle)));
         }
 
@@ -351,7 +351,7 @@ namespace Snet.Windows.Core
         public override void OnApplyTemplate()
         {
             base.OnApplyTemplate();
-            _ = LoadAnimationAsync(LoadAnimationEnabled);
+            _ = LoadAnimationAsync(LoadAnimationEnabled).ConfigureAwait(false);
             InitializeTemplateControls();
         }
 

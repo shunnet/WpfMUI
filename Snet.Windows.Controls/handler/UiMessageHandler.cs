@@ -135,7 +135,7 @@ namespace Snet.Windows.Controls.handler
             try
             {
                 // 发送取消信号，通知后台任务停止
-                _logCts.Cancel();
+                await _logCts.CancelAsync();
 
                 // 等待后台任务完成当前工作并退出
                 if (_logTask != null)
@@ -333,9 +333,9 @@ namespace Snet.Windows.Controls.handler
             try
             {
                 // 异步停止服务，但不等待完成（避免死锁风险）
-                _ = StopAsync();
+                _ = StopAsync().ConfigureAwait(false);
                 // 清空所有内容
-                _ = ClearAsync();
+                _ = ClearAsync().ConfigureAwait(false);
             }
             catch (Exception ex)
             {

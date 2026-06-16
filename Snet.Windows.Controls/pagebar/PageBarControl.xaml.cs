@@ -96,7 +96,7 @@ namespace Snet.Windows.Controls.pagebar
         private static void OnMaxDisplayedPageCountChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             var pageBar = (PageBarControl)d;
-            _ = pageBar.RefreshPageBarAsync();
+            _ = pageBar.RefreshPageBarAsync().ConfigureAwait(false);
         }
 
         /// <summary>每页数据量依赖属性</summary>
@@ -118,7 +118,7 @@ namespace Snet.Windows.Controls.pagebar
         {
             var pageBar = (PageBarControl)d;
             pageBar.PageIndex = 1;
-            _ = pageBar.RefreshPageBarAsync();
+            _ = pageBar.RefreshPageBarAsync().ConfigureAwait(false);
             pageBar.RaisePageSizeChanged((int)e.OldValue, (int)e.NewValue);
         }
 
@@ -140,7 +140,7 @@ namespace Snet.Windows.Controls.pagebar
         private static void OnPageIndexChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             var pageBar = (PageBarControl)d;
-            _ = pageBar.RefreshPageBarAsync();
+            _ = pageBar.RefreshPageBarAsync().ConfigureAwait(false);
             pageBar.RaisePageIndexChanged((int)e.OldValue, (int)e.NewValue);
         }
 
@@ -162,7 +162,7 @@ namespace Snet.Windows.Controls.pagebar
         private static void OnTotalChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             var pageBar = (PageBarControl)d;
-            _ = pageBar.RefreshPageBarAsync();
+            _ = pageBar.RefreshPageBarAsync().ConfigureAwait(false);
         }
 
         #endregion

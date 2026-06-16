@@ -153,10 +153,10 @@ namespace Snet.Windows.Core.handler
             ReplaceResources(newResourceDictionary, oldResourceDictionary);
 
             // 修改 MaterialDesign 主题
-            _ = UpdateMaterialDesignThemeAsync(skinType);
+            _ = UpdateMaterialDesignThemeAsync(skinType).ConfigureAwait(false);
 
             // 修改 Wpf.Ui 主题
-            _ = UpdateWpfUIAsync(skinType);
+            _ = UpdateWpfUIAsync(skinType).ConfigureAwait(false);
 
             //是否通知
             if (notice)
@@ -165,7 +165,7 @@ namespace Snet.Windows.Core.handler
             }
 
             // 持久化保存皮肤设置
-            _ = SaveAsync(skinType);
+            _ = SaveAsync(skinType).ConfigureAwait(false);
         }
 
         /// <summary>
