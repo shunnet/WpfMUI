@@ -1,4 +1,5 @@
-﻿using Snet.Utility;
+﻿using Snet.Model.@event;
+using Snet.Utility;
 using Snet.Windows.Core.@enum;
 using System.Text.Json.Serialization;
 

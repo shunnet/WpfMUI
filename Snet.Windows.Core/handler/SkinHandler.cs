@@ -1,4 +1,5 @@
 ﻿using MaterialDesignThemes.Wpf;
+using Snet.Model.@event;
 using Snet.Utility;
 using Snet.Windows.Core.data;
 using Snet.Windows.Core.@enum;
@@ -13,12 +14,7 @@ namespace Snet.Windows.Core.handler
 {
     /// <summary>
     /// 皮肤（主题）处理器，统一管理应用程序的主题切换。<br/>
-    /// 支持以下功能：<br/>
-    /// - MaterialDesign 主题切换<br/>
-    /// - Wpf.Ui 主题切换<br/>
-    /// - 自定义资源字典切换<br/>
-    /// - 同步与异步事件通知<br/>
-    /// - JSON 持久化皮肤配置
+    /// 不支持异步操作
     /// </summary>
     public class SkinHandler
     {
@@ -46,10 +42,10 @@ namespace Snet.Windows.Core.handler
         /// <summary>
         /// 内部方法：统一触发同步与异步事件
         /// </summary>
-        private static void OnSkinEventHandler(object? sender, EventSkinResult e)
+        private static async void OnSkinEventHandlerAsync(object? sender, EventSkinResult e)
         {
             OnSkinEvent?.Invoke(sender, e);
-            OnSkinEventWrapperAsync.InvokeAsync(sender, e);
+            await OnSkinEventWrapperAsync.InvokeAsync(sender, e);
         }
 
         #endregion
@@ -61,6 +57,9 @@ namespace Snet.Windows.Core.handler
         /// </summary>
         private static readonly string _pathSkin = Path.Combine(WindowHandler.BasePath, "skin.json");
 
+        /// <summary>
+        /// 获取默认语言模型（使用内置资源）
+        /// </summary>
         private static readonly Snet.Model.data.LanguageModel _skinLanguageModel = new("Snet.Windows.Controls", "Language", "Snet.Windows.Controls.dll");
 
         /// <summary>
@@ -83,9 +82,13 @@ namespace Snet.Windows.Core.handler
         /// <summary>
         /// MaterialDesign 浅色主题颜色常量（静态缓存，避免每次切换时重复调用 ColorConverter.ConvertFromString）
         /// </summary>
-        private static readonly Color _lightPrimaryColor = (Color)ColorConverter.ConvertFromString("#F6F6F6");
+        private static readonly Color _lightPrimaryColor = (Color)ColorConverter.ConvertFromString("#F5F5F5");
         private static readonly Color _lightSecondaryColor = (Color)ColorConverter.ConvertFromString("#272424");
         private static readonly Color _lightPrimaryLight = (Color)ColorConverter.ConvertFromString("#C6C6C6");
+        /// <summary>
+        /// 白天模板的背景颜色
+        /// </summary>
+        private static readonly Color _lightCardsBackground = (Color)ColorConverter.ConvertFromString("#FEFEFE");
 
         #endregion
 
@@ -102,11 +105,13 @@ namespace Snet.Windows.Core.handler
         /// 注意：Theme 对象绑定 UI 线程，modificationFunc 中不可跨线程操作。
         /// </summary>
         /// <param name="modificationFunc">对 Theme 对象执行的修改操作（异步委托）</param>
-        private static async Task ModifyThemeAsync(Func<Theme, Task> modificationFunc)
+        private static void ModifyTheme(Action<Theme> modificationFunc)
         {
             Theme theme = paletteHelper.GetTheme();
             if (modificationFunc != null)
-                await modificationFunc(theme);
+            {
+                modificationFunc(theme);
+            }
             paletteHelper.SetTheme(theme);
         }
 
@@ -118,16 +123,6 @@ namespace Snet.Windows.Core.handler
         /// 设置指定皮肤类型的主题样式并保存
         /// </summary>
         public static void SetSkin(SkinType skinType, bool notice = true)
-        {
-            setSkin(skinType, notice);
-        }
-
-        /// <summary>
-        /// 私有设置皮肤
-        /// </summary>
-        /// <param name="skinType">皮肤类型</param>
-        /// <param name="notice">是否通知</param>
-        private static void setSkin(SkinType skinType, bool notice)
         {
             // 使用缓存的资源 URI，避免每次切换时重复拼接字符串
             string newResource = skinType == SkinType.Dark ? _darkThemeUri : _lightThemeUri;
@@ -153,24 +148,23 @@ namespace Snet.Windows.Core.handler
             ReplaceResources(newResourceDictionary, oldResourceDictionary);
 
             // 修改 MaterialDesign 主题
-            _ = UpdateMaterialDesignThemeAsync(skinType).ConfigureAwait(false);
+            UpdateMaterialDesignTheme(skinType);
 
             // 修改 Wpf.Ui 主题
-            _ = UpdateWpfUIAsync(skinType).ConfigureAwait(false);
+            UpdateWpfUI(skinType);
 
             //是否通知
             if (notice)
             {
-                OnSkinEventHandler(skinType == SkinType.Dark ? "#505050" : "#F6F6F6", new EventSkinResult(true, Snet.Core.handler.LanguageHandler.GetLanguageValue("皮肤设置成功", _skinLanguageModel), skinType));
+                OnSkinEventHandlerAsync(skinType == SkinType.Dark ? "#505050" : "#F5F5F5", new EventSkinResult(true, Snet.Core.handler.LanguageHandler.GetLanguageValue("皮肤设置成功", _skinLanguageModel), skinType));
             }
 
             // 持久化保存皮肤设置
-            _ = SaveAsync(skinType).ConfigureAwait(false);
+            Save(skinType);
         }
 
         /// <summary>
         /// 替换全局资源（线程安全、最小化 UI 闪烁）
-        /// ⚠ 必须在 UI 线程执行，禁止异步调用
         /// </summary>
         /// <param name="newDict">新资源</param>
         /// <param name="oldDict">旧资源</param>
@@ -218,38 +212,37 @@ namespace Snet.Windows.Core.handler
             }
         }
 
-
         /// <summary>
         /// 更新 MaterialDesign 主题样式。<br/>
         /// 根据皮肤类型设置主要色、次要色和高亮色，<br/>
         /// 并切换明暗主题模板。
         /// </summary>
         /// <param name="skinType">目标皮肤类型</param>
-        public static async Task UpdateMaterialDesignThemeAsync(SkinType skinType)
+        public static void UpdateMaterialDesignTheme(SkinType skinType)
         {
-            await ModifyThemeAsync(theme =>
-             {
-                 // 主题对象绑定 UI 线程，不可在 Task.Run 中操作
-                 if (theme is Theme internalTheme)
-                 {
-                     switch (skinType)
-                     {
-                         case SkinType.Dark:
-                             internalTheme.SetDarkTheme();
-                             internalTheme.SetPrimaryColor(_darkPrimaryColor);
-                             internalTheme.SetSecondaryColor(_darkSecondaryColor);
-                             internalTheme.PrimaryLight = _darkPrimaryLight;
-                             break;
-                         case SkinType.Light:
-                             internalTheme.SetLightTheme();
-                             internalTheme.SetPrimaryColor(_lightPrimaryColor);
-                             internalTheme.SetSecondaryColor(_lightSecondaryColor);
-                             internalTheme.PrimaryLight = _lightPrimaryLight;
-                             break;
-                     }
-                 }
-                 return Task.CompletedTask;
-             });
+            ModifyTheme(theme =>
+            {
+                // 主题对象绑定 UI 线程，不可在 Task.Run 中操作
+                if (theme is Theme internalTheme)
+                {
+                    switch (skinType)
+                    {
+                        case SkinType.Dark:
+                            internalTheme.SetDarkTheme();
+                            internalTheme.SetPrimaryColor(_darkPrimaryColor);
+                            internalTheme.SetSecondaryColor(_darkSecondaryColor);
+                            internalTheme.PrimaryLight = _darkPrimaryLight;
+                            break;
+                        case SkinType.Light:
+                            internalTheme.SetLightTheme();
+                            internalTheme.SetPrimaryColor(_lightPrimaryColor);
+                            internalTheme.SetSecondaryColor(_lightSecondaryColor);
+                            internalTheme.PrimaryLight = _lightPrimaryLight;
+                            internalTheme.Cards.Background = _lightCardsBackground;
+                            break;
+                    }
+                }
+            });
         }
 
         /// <summary>
@@ -258,26 +251,15 @@ namespace Snet.Windows.Core.handler
         /// </summary>
         /// <param name="skinType">目标皮肤类型</param>
         /// <returns>已完成的任务</returns>
-        public static Task UpdateWpfUIAsync(SkinType skinType)
+        public static void UpdateWpfUI(SkinType skinType)
         {
             ApplicationThemeManager.Apply(skinType == SkinType.Dark ? ApplicationTheme.Dark : ApplicationTheme.Light);
-            return Task.CompletedTask;
         }
 
         /// <summary>
         /// 获取当前皮肤类型（从本地配置读取）
         /// </summary>
-        public static async Task<SkinType> GetSkinAsync() => await ObtainAsync();
-
-        /// <summary>
-        /// 获取当前皮肤类型（从本地配置读取）
-        /// </summary>
-        public static SkinType GetSkin() => Obtain();
-
-        /// <summary>
-        /// 获取本地配置中的皮肤设置（若无则创建默认配置）
-        /// </summary>
-        public static SkinType Obtain()
+        public static SkinType GetSkin()
         {
             try
             {
@@ -286,27 +268,6 @@ namespace Snet.Windows.Core.handler
                     Save(SkinType.Dark); // 默认保存为 Dark
                 }
                 var model = File.ReadAllText(_pathSkin).ToJsonEntity<UseSkinModel>();
-                return model.SkinType;
-            }
-            catch
-            {
-                return SkinType.Dark; // 容错返回默认值
-            }
-        }
-
-        /// <summary>
-        /// 获取本地配置中的皮肤设置（若无则创建默认配置）
-        /// </summary>
-        public static async Task<SkinType> ObtainAsync()
-        {
-            try
-            {
-                if (!File.Exists(_pathSkin))
-                {
-                    await SaveAsync(SkinType.Dark); // 默认保存为 Dark
-                }
-                var json = await File.ReadAllTextAsync(_pathSkin);
-                var model = json.ToJsonEntity<UseSkinModel>();
                 return model.SkinType;
             }
             catch
@@ -328,21 +289,6 @@ namespace Snet.Windows.Core.handler
 
             File.WriteAllText(_pathSkin, new UseSkinModel(skinType).ToJson());
         }
-
-        /// <summary>
-        /// 保存当前皮肤设置到本地配置文件
-        /// </summary>
-        public static async Task SaveAsync(SkinType skinType)
-        {
-            // 确保路径存在
-            if (!Directory.Exists(WindowHandler.BasePath))
-            {
-                Directory.CreateDirectory(WindowHandler.BasePath);
-            }
-
-            await File.WriteAllTextAsync(_pathSkin, new UseSkinModel(skinType).ToJson());
-        }
-
         #endregion
     }
 }

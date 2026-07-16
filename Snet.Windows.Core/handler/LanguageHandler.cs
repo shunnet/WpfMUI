@@ -12,16 +12,6 @@ namespace Snet.Windows.Core.handler
     /// </summary>
     public class LanguageHandler
     {
-        /// <summary>
-        /// 静态构造函数<br/>
-        /// 实例化时自动获取当前语言并设置<br/>
-        /// 为了让底层知道当前使用的什么语言
-        /// </summary>
-        static LanguageHandler()
-        {
-            SetLanguage(GetLanguage());
-        }
-
         #region 常量与字段
 
         /// <summary>
@@ -48,8 +38,7 @@ namespace Snet.Windows.Core.handler
         /// <param name="key">翻译关键字</param>
         /// <param name="languageModel">语言模型，可选</param>
         /// <returns>翻译内容，如果不存在返回 null</returns>
-        public static string? GetLanguageValue(string key, Snet.Model.data.LanguageModel? languageModel = null)
-            => Snet.Core.handler.LanguageHandler.GetLanguageValue(key, languageModel);
+        public static string? GetLanguageValue(string key, Snet.Model.data.LanguageModel? languageModel = null) => Snet.Core.handler.LanguageHandler.GetLanguageValue(key, languageModel);
 
         /// <summary>
         /// 根据关键字获取翻译文本（异步）
@@ -58,8 +47,7 @@ namespace Snet.Windows.Core.handler
         /// <param name="languageModel">语言模型，可选</param>
         /// <param name="token">取消令牌</param>
         /// <returns>翻译内容，如果不存在返回 null</returns>
-        public static Task<string?> GetLanguageValueAsync(string key, Snet.Model.data.LanguageModel? languageModel = null, CancellationToken token = default)
-            => Snet.Core.handler.LanguageHandler.GetLanguageValueAsync(key, languageModel, token);
+        public static Task<string?> GetLanguageValueAsync(string key, Snet.Model.data.LanguageModel? languageModel = null, CancellationToken token = default) => Snet.Core.handler.LanguageHandler.GetLanguageValueAsync(key, languageModel, token);
 
         #endregion
 
@@ -82,7 +70,8 @@ namespace Snet.Windows.Core.handler
                 }
 
                 // 读取并反序列化
-                return File.ReadAllText(path_language).ToJsonEntity<UseLanguageModel>().LanguageType;
+                string str = File.ReadAllText(path_language);
+                return str.ToJsonEntity<UseLanguageModel>().LanguageType;
             }
             catch
             {
@@ -92,10 +81,10 @@ namespace Snet.Windows.Core.handler
         }
 
         /// <summary>
-        /// 获取当前系统设置语言（读取配置文件）
+        /// 获取当前使用的语言异步
         /// </summary>
-        /// <param name="token">取消通知</param>
-        /// <returns>语言类型</returns>
+        /// <param name="token">传播应取消操作的通知</param>
+        /// <returns>返回语言类型</returns>
         public static async Task<LanguageType> GetLanguageAsync(CancellationToken token = default)
         {
             try
@@ -104,12 +93,13 @@ namespace Snet.Windows.Core.handler
                 {
                     // 默认保存当前语言
                     var currentLang = await Snet.Core.handler.LanguageHandler.GetLanguageAsync(token);
-                    File.WriteAllTextAsync(path_language, new UseLanguageModel(currentLang).ToJson(), token);
+                    await File.WriteAllTextAsync(path_language, new UseLanguageModel(currentLang).ToJson(), token);
                     return currentLang;
                 }
 
                 // 读取并反序列化
-                return (await File.ReadAllTextAsync(path_language, token)).ToJsonEntity<UseLanguageModel>().LanguageType;
+                string str = await File.ReadAllTextAsync(path_language, token);
+                return str.ToJsonEntity<UseLanguageModel>().LanguageType;
             }
             catch
             {
@@ -117,6 +107,7 @@ namespace Snet.Windows.Core.handler
                 return LanguageType.zh;
             }
         }
+
 
         /// <summary>
         /// 设置当前系统语言（并保存配置文件）
@@ -137,15 +128,16 @@ namespace Snet.Windows.Core.handler
             }
 
             // 保存配置到本地文件
-            File.WriteAllText(path_language, new UseLanguageModel(languageType).ToJson());
+            UseLanguageModel model = new UseLanguageModel(languageType);
+            File.WriteAllText(path_language, model.ToJson());
         }
 
-
         /// <summary>
-        /// 设置当前系统语言（并保存配置文件）
+        /// 设置语言异步
         /// </summary>
-        /// <param name="token">取消通知</param>
         /// <param name="languageType">语言类型</param>
+        /// <param name="token">传播应取消操作的通知</param>
+        /// <returns>成功与失败</returns>
         public static async Task SetLanguageAsync(LanguageType languageType, CancellationToken token = default)
         {
             // 设置当前线程文化
@@ -161,8 +153,11 @@ namespace Snet.Windows.Core.handler
             }
 
             // 保存配置到本地文件
-            await File.WriteAllTextAsync(path_language, new UseLanguageModel(languageType).ToJson(), token);
+            UseLanguageModel model = new UseLanguageModel(languageType);
+            await File.WriteAllTextAsync(path_language, model.ToJson(), token);
         }
+
+
 
         #endregion
     }

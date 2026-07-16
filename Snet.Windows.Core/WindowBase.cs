@@ -102,9 +102,9 @@ namespace Snet.Windows.Core
         {
             // 设置初始皮肤
             SkinHandler.SetSkin(SkinHandler.GetSkin(), false);
-            // 触发 LanguageHandler 静态构造函数完成初始语言设置（其内部已调用 SetLanguage，无需重复调用）
-            _ = LanguageHandler.GetLanguageAsync().ConfigureAwait(false);
+
             StyleProperty.OverrideMetadata(typeof(WindowBase), new FrameworkPropertyMetadata(null, new CoerceValueCallback(OnCoerceStyle)));
+
         }
 
         /// <summary>
@@ -113,8 +113,8 @@ namespace Snet.Windows.Core
         public WindowBase()
         {
             //绑定点击命令
-            LanguageCommand = new AsyncRelayCommand(OnLanguageCommand);
-            SkinCommand = new AsyncRelayCommand(OnSkinCommand);
+            LanguageCommand = new AsyncRelayCommand(OnLanguageCommandAsync);
+            SkinCommand = new AsyncRelayCommand(OnSkinCommandAsync);
             this.Loaded += OnLoaded;
             this.SourceInitialized += OnSourceInitialized;
             Application.Current.Dispatcher.InvokeAsync(() =>
@@ -122,6 +122,8 @@ namespace Snet.Windows.Core
                 // 设置初始皮肤
                 SkinHandler.SetSkin(SkinHandler.GetSkin(), true);
             }, DispatcherPriority.Loaded);
+            //设置语言
+            LanguageHandler.SetLanguage(LanguageHandler.GetLanguage());
         }
 
         #endregion
@@ -147,11 +149,10 @@ namespace Snet.Windows.Core
         /// 在深色（Dark）和浅色（Light）模式之间切换，并异步更新原生背景色以避免闪烁。
         /// </summary>
         /// <returns>已完成的任务</returns>
-        private Task OnSkinCommand()
+        private async Task OnSkinCommandAsync()
         {
             SkinHandler.SetSkin(SkinHandler.GetSkin() == SkinType.Dark ? SkinType.Light : SkinType.Dark);
-            Dispatcher.InvokeAsync(UpdateNativeBackground, DispatcherPriority.Loaded);
-            return Task.CompletedTask;
+            await Dispatcher.InvokeAsync(UpdateNativeBackground, DispatcherPriority.Background);
         }
 
         /// <summary>
@@ -173,12 +174,7 @@ namespace Snet.Windows.Core
         /// 在中文（zh）和英文（en）之间切换，并通过 LanguageHandler 持久化设置。
         /// </summary>
         /// <returns>已完成的任务</returns>
-        private Task OnLanguageCommand()
-        {
-            LanguageHandler.SetLanguage(LanguageHandler.GetLanguage() == LanguageType.zh ? LanguageType.en : LanguageType.zh);
-            return Task.CompletedTask;
-        }
-
+        private async Task OnLanguageCommandAsync() => await LanguageHandler.SetLanguageAsync(Snet.Core.handler.LanguageHandler.GetLanguage() == LanguageType.zh ? LanguageType.en : LanguageType.zh);
 
         #endregion
 
