@@ -1,4 +1,5 @@
 ﻿using Microsoft.Xaml.Behaviors;
+using Snet.Windows.Core.data;
 using System.Windows;
 using System.Windows.Input;
 
@@ -14,58 +15,134 @@ namespace Snet.Windows.Core.mvvm
         #region 依赖属性定义
 
         /// <summary>
-        /// 绑定命令参数。如果为 null，则使用事件参数。
+        /// 命令参数。
         /// </summary>
         public static readonly DependencyProperty CommandParameterProperty =
-            DependencyProperty.Register(nameof(CommandParameter), typeof(object), typeof(EventCommand), new PropertyMetadata(null));
+            DependencyProperty.Register(
+                nameof(CommandParameter),
+                typeof(object),
+                typeof(EventCommand),
+                new PropertyMetadata(null));
+
 
         /// <summary>
-        /// 要执行的命令（实现了 ICommand 的 ViewModel 方法）。
+        /// 要执行的 ICommand。
         /// </summary>
         public static readonly DependencyProperty CommandProperty =
-            DependencyProperty.Register(nameof(Command), typeof(ICommand), typeof(EventCommand), new PropertyMetadata(null));
+            DependencyProperty.Register(
+                nameof(Command),
+                typeof(ICommand),
+                typeof(EventCommand),
+                new PropertyMetadata(null));
+
+
+        /// <summary>
+        /// 是否启用 EventCommandArgs 包装模式。
+        /// </summary>
+        public static readonly DependencyProperty UseEventCommandArgsProperty =
+            DependencyProperty.Register(
+                nameof(UseEventCommandArgs),
+                typeof(bool),
+                typeof(EventCommand),
+                new PropertyMetadata(false));
 
         #endregion
 
         #region 属性封装
 
         /// <summary>
-        /// 要执行的命令。
+        /// 获取或设置要执行的命令。
         /// </summary>
-        public ICommand Command
+        public ICommand? Command
         {
-            get => (ICommand)GetValue(CommandProperty);
+            get => (ICommand?)GetValue(CommandProperty);
             set => SetValue(CommandProperty, value);
         }
 
+
         /// <summary>
-        /// 命令的参数。如果未设置，则默认使用事件传入参数。
+        /// 获取或设置命令参数。
         /// </summary>
-        public object CommandParameter
+        public object? CommandParameter
         {
             get => GetValue(CommandParameterProperty);
             set => SetValue(CommandParameterProperty, value);
         }
 
+
+        /// <summary>
+        /// 获取或设置是否使用 EventCommandArgs 包装事件参数。
+        /// </summary>
+        public bool UseEventCommandArgs
+        {
+            get => (bool)GetValue(UseEventCommandArgsProperty);
+            set => SetValue(UseEventCommandArgsProperty, value);
+        }
+
         #endregion
 
         /// <summary>
-        /// 当触发器触发时执行命令。
+        /// EventTrigger 触发时执行。
         /// </summary>
         /// <param name="parameter">触发事件传入的参数</param>
-        protected override void Invoke(object parameter)
+        protected override void Invoke(object? parameter)
         {
-            var cmd = Command;
-
-            if (cmd == null)
+            if (Command == null)
                 return;
 
-            var commandParameter = CommandParameter ?? parameter;
 
-            if (cmd.CanExecute(commandParameter))
+            object? commandParameter;
+
+
+            if (UseEventCommandArgs)
             {
-                cmd.Execute(commandParameter);
+                commandParameter = new EventCommandArgs
+                {
+                    // WPF 路由事件优先使用 Source
+                    // 普通事件使用绑定控件本身
+                    Source =
+                        parameter is RoutedEventArgs routedArgs
+                            ? routedArgs.Source
+                            : AssociatedObject,
+
+
+                    // WPF 路由事件的最初触发对象
+                    OriginalSource =
+                        parameter is RoutedEventArgs routedArgs2
+                            ? routedArgs2.OriginalSource
+                            : AssociatedObject,
+
+
+                    // 保存原始事件参数
+                    EventArgs = parameter,
+
+
+                    // 保存 XAML 指定参数
+                    Parameter = CommandParameter
+                };
+            }
+            else
+            {
+                // 保持旧版本行为
+                //
+                // 例如：
+                // CommandParameter="{Binding Item}"
+                //
+                // VM 收到 Item
+                //
+                // 未设置 CommandParameter：
+                // VM 收到 EventArgs
+                commandParameter = CommandParameter ?? parameter;
+            }
+
+
+            if (Command.CanExecute(commandParameter))
+            {
+                Command.Execute(commandParameter);
             }
         }
+
+
+
     }
 }
