@@ -1,5 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-using Snet.Utility;
+using Snet.Core;
 using System.Collections.Concurrent;
 
 namespace Snet.Windows.Core.handler
@@ -40,9 +40,26 @@ namespace Snet.Windows.Core.handler
         /// 注入的对象是否需要设置缓存，如果不缓存则返回新的实例
         /// </param>
         /// <returns>对应的实例</returns>
-        public static T Window<T, M>(bool cache = false)
-            where T : System.Windows.Window
-            where M : class
+        public static T Window<T, M>(bool cache = false) where T : System.Windows.Window where M : class
+        {
+            return WindowAsync<T, M>(cache).GetAwaiter().GetResult();
+        }
+
+        /// <summary>
+        /// 注入窗口
+        /// </summary>
+        /// <typeparam name="T">
+        /// 对象类型<br/>
+        /// System.Windows.Window
+        /// </typeparam>
+        /// <typeparam name="M">视图</typeparam>
+        /// <param name="cache">
+        /// 缓存<br/>
+        /// 注入的对象是否需要设置缓存，如果不缓存则返回新的实例
+        /// </param>
+        /// <param name="token">取消通知</param>
+        /// <returns>对应的实例</returns>
+        public static async Task<T> WindowAsync<T, M>(bool cache = false, CancellationToken token = default) where T : System.Windows.Window where M : class
         {
             try
             {
@@ -51,22 +68,22 @@ namespace Snet.Windows.Core.handler
                 {
                     if (!ExistService<T>())
                     {
-                        AddService(s => s.AddSingleton<T>());
+                        await AddServiceAsync(s => s.AddSingleton<T>(), token);
                     }
                     if (!ExistService<M>())
                     {
-                        AddService(s => s.AddSingleton<M>());
+                        await AddServiceAsync(s => s.AddSingleton<M>(), token);
                     }
                 }
                 else
                 {
                     if (!ExistService<T>())
                     {
-                        AddService(s => s.AddTransient<T>());
+                        await AddServiceAsync(s => s.AddTransient<T>(), token);
                     }
                     if (!ExistService<M>())
                     {
-                        AddService(s => s.AddTransient<M>());
+                        await AddServiceAsync(s => s.AddTransient<M>(), token);
                     }
                 }
 
@@ -95,8 +112,8 @@ namespace Snet.Windows.Core.handler
                     // 设置缓存
                     WindowCache[typeof(T)] = instance;
                     //覆盖之前的注入
-                    AddService(s => s.AddSingleton<T>(instance));
-                    AddService(s => s.AddSingleton<M>(viewModel));
+                    await AddServiceAsync(s => s.AddSingleton<T>(instance), token);
+                    await AddServiceAsync(s => s.AddSingleton<M>(viewModel), token);
                 }
 
                 //返回新的实例
@@ -121,9 +138,26 @@ namespace Snet.Windows.Core.handler
         /// 注入的对象是否需要设置缓存，如果不缓存则返回新的实例
         /// </param>
         /// <returns>对应的实例</returns>
-        public static T UserControl<T, M>(bool cache = false)
-            where T : System.Windows.Controls.UserControl
-            where M : class
+        public static T UserControl<T, M>(bool cache = false) where T : System.Windows.Controls.UserControl where M : class
+        {
+            return UserControlAsync<T, M>(cache).GetAwaiter().GetResult();
+        }
+
+        /// <summary>
+        /// 注入用户控件
+        /// </summary>
+        /// <typeparam name="T">
+        /// 对象类型<br/>
+        /// System.Windows.Controls.UserControl
+        /// </typeparam>
+        /// <typeparam name="M">视图</typeparam>
+        /// <param name="cache">
+        /// 缓存<br/>
+        /// 注入的对象是否需要设置缓存，如果不缓存则返回新的实例
+        /// </param>
+        /// <param name="token">取消通知</param>
+        /// <returns>对应的实例</returns>
+        public static async Task<T> UserControlAsync<T, M>(bool cache = false, CancellationToken token = default) where T : System.Windows.Controls.UserControl where M : class
         {
             try
             {
@@ -132,22 +166,22 @@ namespace Snet.Windows.Core.handler
                 {
                     if (!ExistService<T>())
                     {
-                        AddService(s => s.AddSingleton<T>());
+                        await AddServiceAsync(s => s.AddSingleton<T>(), token);
                     }
                     if (!ExistService<M>())
                     {
-                        AddService(s => s.AddSingleton<M>());
+                        await AddServiceAsync(s => s.AddSingleton<M>(), token);
                     }
                 }
                 else
                 {
                     if (!ExistService<T>())
                     {
-                        AddService(s => s.AddTransient<T>());
+                        await AddServiceAsync(s => s.AddTransient<T>(), token);
                     }
                     if (!ExistService<M>())
                     {
-                        AddService(s => s.AddTransient<M>());
+                        await AddServiceAsync(s => s.AddTransient<M>(), token);
                     }
                 }
 
@@ -176,8 +210,8 @@ namespace Snet.Windows.Core.handler
                     // 设置缓存
                     UserControlCache[typeof(T)] = instance;
                     //覆盖之前的注入
-                    AddService(s => s.AddSingleton<T>(instance));
-                    AddService(s => s.AddSingleton<M>(viewModel));
+                    await AddServiceAsync(s => s.AddSingleton<T>(instance), token);
+                    await AddServiceAsync(s => s.AddSingleton<M>(viewModel), token);
                 }
 
                 //返回新的实例
@@ -202,9 +236,26 @@ namespace Snet.Windows.Core.handler
         /// 注入的对象是否需要设置缓存，如果不缓存则返回新的实例
         /// </param>
         /// <returns>对应的实例</returns>
-        public static T Page<T, M>(bool cache = true)
-            where T : System.Windows.Controls.Page
-            where M : class
+        public static T Page<T, M>(bool cache = true) where T : System.Windows.Controls.Page where M : class
+        {
+            return PageAsync<T, M>(cache).GetAwaiter().GetResult();
+        }
+
+        /// <summary>
+        /// 注入页面
+        /// </summary>
+        /// <typeparam name="T">
+        /// 对象类型<br/>
+        /// System.Windows.Controls.Page
+        /// </typeparam>
+        /// <typeparam name="M">视图</typeparam>
+        /// <param name="cache">
+        /// 缓存<br/>
+        /// 注入的对象是否需要设置缓存，如果不缓存则返回新的实例
+        /// </param>
+        /// <param name="token">取消通知</param>
+        /// <returns>对应的实例</returns>
+        public static async Task<T> PageAsync<T, M>(bool cache = true, CancellationToken token = default) where T : System.Windows.Controls.Page where M : class
         {
             try
             {
@@ -213,22 +264,22 @@ namespace Snet.Windows.Core.handler
                 {
                     if (!ExistService<T>())
                     {
-                        AddService(s => s.AddSingleton<T>());
+                        await AddServiceAsync(s => s.AddSingleton<T>(), token);
                     }
                     if (!ExistService<M>())
                     {
-                        AddService(s => s.AddSingleton<M>());
+                        await AddServiceAsync(s => s.AddSingleton<M>(), token);
                     }
                 }
                 else
                 {
                     if (!ExistService<T>())
                     {
-                        AddService(s => s.AddTransient<T>());
+                        await AddServiceAsync(s => s.AddTransient<T>(), token);
                     }
                     if (!ExistService<M>())
                     {
-                        AddService(s => s.AddTransient<M>());
+                        await AddServiceAsync(s => s.AddTransient<M>(), token);
                     }
                 }
 
@@ -257,8 +308,8 @@ namespace Snet.Windows.Core.handler
                     // 设置缓存
                     PageCache[typeof(T)] = instance;
                     //覆盖之前的注入
-                    AddService(s => s.AddSingleton<T>(instance));
-                    AddService(s => s.AddSingleton<M>(viewModel));
+                    await AddServiceAsync(s => s.AddSingleton<T>(instance), token);
+                    await AddServiceAsync(s => s.AddSingleton<M>(viewModel), token);
                 }
 
                 //返回新的实例

@@ -1677,7 +1677,13 @@ namespace Snet.Windows.Controls.property.wpf
                         }
                         else
                         {
-                            labelPanel.ToolTip = this.CreateToolTip(pi.Description);
+                            //labelPanel.ToolTip = this.CreateToolTip(pi.Description);
+                            Binding binding = new Binding("Description")
+                            {
+                                Source = pi,   // 明确数据源
+                                UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged
+                            };
+                            labelPanel.SetBinding(ToolTipService.ToolTipProperty, binding);
                         }
                     }
 
@@ -1748,7 +1754,6 @@ namespace Snet.Windows.Controls.property.wpf
                     HorizontalAlignment = HorizontalAlignment.Right,
                     Margin = new Thickness(5 + indentation, 0, 4, 0)
                 };
-
                 cb.SetBinding(
                     ToggleButton.IsCheckedProperty,
                     pi.OptionalDescriptor != null ? new Binding(pi.OptionalDescriptor.Name) : new Binding(pi.Descriptor.Name) { Converter = NullToBoolConverter });
@@ -1762,16 +1767,13 @@ namespace Snet.Windows.Controls.property.wpf
             {
                 var rb = new RadioButton
                 {
-                    Content = pi.DisplayName,
                     GroupName = pi.RadioDescriptor.Name,
                     VerticalAlignment = VerticalAlignment.Center,
                     Margin = new Thickness(5 + indentation, 0, 4, 0)
                 };
 
                 var converter = new EnumToBooleanConverter { EnumType = pi.RadioDescriptor.PropertyType };
-                rb.SetBinding(
-                    ToggleButton.IsCheckedProperty,
-                    new Binding(pi.RadioDescriptor.Name) { Converter = converter, ConverterParameter = pi.RadioValue });
+                rb.SetBinding(ToggleButton.IsCheckedProperty, new Binding(pi.RadioDescriptor.Name) { Converter = converter, ConverterParameter = pi.RadioValue });
 
                 var g = new Grid();
                 g.Children.Add(rb);
@@ -1780,13 +1782,19 @@ namespace Snet.Windows.Controls.property.wpf
 
             if (propertyLabel == null)
             {
+                //语言修改同步通知
                 propertyLabel = new Label
                 {
-                    Content = pi.DisplayName,
-                    //snet 修改
                     VerticalAlignment = VerticalAlignment.Center,
                     Margin = new Thickness(indentation, 0, 4, 0)
                 };
+                propertyLabel.DataContext = pi;
+                Binding binding = new Binding("DisplayName")
+                {
+                    UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged
+                };
+                propertyLabel.SetBinding(Label.ContentProperty, binding);
+
             }
 
             return propertyLabel;

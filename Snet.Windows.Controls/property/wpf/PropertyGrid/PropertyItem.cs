@@ -146,7 +146,19 @@ namespace Snet.Windows.Controls.property.wpf
         /// Gets or sets the tool tip.
         /// </summary>
         /// <value>The tool tip.</value>
-        public string Description { get; set; }
+        public string Description
+        {
+            get
+            {
+                return this.description;
+            }
+
+            set
+            {
+                this.SetValue(ref this.description, value);
+            }
+        }
+        private string description;
 
         /// <summary>
         /// Gets or sets the property descriptor.
@@ -160,11 +172,24 @@ namespace Snet.Windows.Controls.property.wpf
         /// <value><c>true</c> if this property is read only; otherwise, <c>false</c>.</value>
         public bool IsReadOnly { get; set; }
 
+
         /// <summary>
         /// Gets or sets the display name.
         /// </summary>
         /// <value>The display name.</value>
-        public string DisplayName { get; set; }
+        public string DisplayName
+        {
+            get
+            {
+                return this.displayName;
+            }
+
+            set
+            {
+                this.SetValue(ref this.displayName, value);
+            }
+        }
+        private string displayName;
 
         /// <summary>
         /// Gets or sets the file path default extension.

@@ -4,6 +4,7 @@ using ICSharpCode.AvalonEdit.Document;
 using ICSharpCode.AvalonEdit.Editing;
 using ICSharpCode.AvalonEdit.Rendering;
 using Snet.Windows.Controls.data;
+using Snet.Windows.Core.@enum;
 using Snet.Windows.Core.handler;
 using System.Windows;
 using System.Windows.Controls;
@@ -153,7 +154,7 @@ namespace Snet.Windows.Controls.handler
             SkinHandler.OnSkinEventAsync += SkinHandler_OnSkinEventAsync;
 
             // 默认应用浅色主题<br/>
-            SetTheme(false);
+            SetTheme(SkinHandler.GetSkin());
         }
 
         /// <summary>
@@ -558,15 +559,15 @@ namespace Snet.Windows.Controls.handler
             _hoverTooltip.VerticalOffset = posInView.Y + 20;
             _hoverTooltip.IsOpen = true;
         }
-
         /// <summary>
         /// 设置编辑器主题<br/>
         /// </summary>
-        private void SetTheme(bool isDark)
+        public void SetTheme(SkinType isDark)
         {
-            _isDark = isDark;
-            _editor.Background = isDark ? _dark : _light;
-            _editor.Foreground = isDark ? Brushes.LightGray : Brushes.Black;
+            bool status = isDark == SkinType.Dark;
+            _isDark = status;
+            _editor.Background = status ? _dark : _light;
+            _editor.Foreground = status ? Brushes.LightGray : Brushes.Black;
             _editor.TextArea.Background = _editor.Background;
             _editor.TextArea.Foreground = _editor.Foreground;
 
@@ -658,11 +659,7 @@ namespace Snet.Windows.Controls.handler
         /// </summary>
         private Task SkinHandler_OnSkinEventAsync(object? sender, Snet.Windows.Core.data.EventSkinResult e)
         {
-            switch (e.Skin.Value)
-            {
-                case Snet.Windows.Core.@enum.SkinType.Dark: SetTheme(true); break;
-                case Snet.Windows.Core.@enum.SkinType.Light: SetTheme(false); break;
-            }
+            SetTheme(e.Skin.Value);
             return Task.CompletedTask;
         }
     }

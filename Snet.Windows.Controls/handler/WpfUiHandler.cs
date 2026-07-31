@@ -154,6 +154,8 @@ namespace Snet.Windows.Controls.handler
         /// <param name="autoZoom">设置一个值，窗体大于此值则自动打开菜单，反之隐藏，0 不使用此功能</param>
         public static void SelectNavigationViewDefaultItem(this Window window, NavigationView navigation, Type type, LanguageModel model, string containerName, int autoZoom = 0)
         {
+            languageModel = model;
+
             //窗体加载完成后设置默认打开界面
             window.Loaded += (object sender, System.Windows.RoutedEventArgs e)
                 => navigation.Navigate(type);
@@ -194,15 +196,18 @@ namespace Snet.Windows.Controls.handler
             Snet.Core.handler.LanguageHandler.OnLanguageEventAsync += async (object? sender, Snet.Model.data.EventLanguageResult e)
                 => await LanguageHandler_OnLanguageEventAsync(sender, e, navigation, model);
 
-            //让其只触发一次
-            bool SelectionChanged = false;
             //当数据源发送变化则触发
-            navigation.SelectionChanged += async (NavigationView sender, RoutedEventArgs args) =>
-            {
-                if (SelectionChanged) return;
-                SelectionChanged = true;
-                await LanguageHandler_OnLanguageEventAsync(sender, null, navigation, model);
-            };
+            navigation.SelectionChanged += Navigation_SelectionChanged;
+        }
+        /// <summary>
+        /// 语言模型
+        /// </summary>
+        private static LanguageModel languageModel;
+        private static void Navigation_SelectionChanged(NavigationView sender, RoutedEventArgs args)
+        {
+            //让其只触发一次
+            sender.SelectionChanged -= Navigation_SelectionChanged;
+            LanguageHandler_OnLanguageEventAsync(sender, null, sender, languageModel);
         }
 
 

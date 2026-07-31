@@ -9,6 +9,7 @@
 
 namespace Snet.Windows.Controls.property.wpf
 {
+    using Snet.Model.@enum;
     using Snet.Utility;
     using Snet.Windows.Controls.property.core.DataAnnotations;
     using Snet.Windows.Controls.property.wpf.Operators;
@@ -22,11 +23,12 @@ namespace Snet.Windows.Controls.property.wpf
     using System.Linq;
     using System.Windows;
     using System.Windows.Data;
+    using DataType = System.ComponentModel.DataAnnotations.DataType;
 
     /// <summary>
-	/// Creates a model for the <see cref="PropertyGrid" /> control.
-	/// </summary>
-	public class PropertyGridOperator : DefaultLocalizableOperator, IPropertyGridOperator
+    /// Creates a model for the <see cref="PropertyGrid" /> control.
+    /// </summary>
+    public class PropertyGridOperator : DefaultLocalizableOperator, IPropertyGridOperator
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="PropertyGridOperator" /> class.
@@ -39,6 +41,8 @@ namespace Snet.Windows.Controls.property.wpf
             this.ModifyCamelCaseDisplayNames = true;
             this.InheritCategories = true;
         }
+
+
 
         /// <summary>
         /// Gets or sets the default name of the category.
@@ -485,21 +489,13 @@ namespace Snet.Windows.Controls.property.wpf
             pi.TabSortIndex = ca2?.TabSortIndex;
             pi.GroupSortIndex = ca2?.GroupSortIndex;
 
-            // snet 语言加载设置
-            switch (LanguageHandler.GetLanguage())
+            // 语言变化事件
+            SetLang(pi, declaringType, displayName, description, LanguageHandler.GetLanguage());
+            Snet.Core.handler.LanguageHandler.OnLanguageEventAsync += async (s, e) =>
             {
-                case Model.@enum.LanguageType.zh:
-                    pi.DisplayName = this.GetLocalizedString(description, declaringType);
-                    if (pi.DisplayName.IsNullOrWhiteSpace())
-                    {
-                        pi.DisplayName = this.GetLocalizedString(displayName, declaringType);
-                    }
-                    break;
-                case Model.@enum.LanguageType.en:
-                    pi.DisplayName = this.GetLocalizedString(displayName, declaringType);
-                    break;
-            }
-            pi.Description = this.GetLocalizedDescription(description, declaringType);
+                SetLang(pi, declaringType, displayName, description, LanguageHandler.GetLanguage());
+            };
+
             pi.Category = this.GetLocalizedString(categoryName, this.CurrentCategoryDeclaringType);
             pi.Tab = this.GetLocalizedString(tabName, this.CurrentCategoryDeclaringType);
 
@@ -536,6 +532,33 @@ namespace Snet.Windows.Controls.property.wpf
             {
                 pi.Converter = new DateTimeToStringConverter();
                 pi.ConverterParameter = pi.FormatString;
+            }
+        }
+
+        /// <summary>
+        /// 设置语言
+        /// </summary>
+        private void SetLang(PropertyItem pi, Type declaringType, string displayName, string description, LanguageType language)
+        {
+            // snet 语言加载设置
+            switch (language)
+            {
+                case Model.@enum.LanguageType.zh:
+                    pi.DisplayName = this.GetLocalizedString(description, declaringType);
+                    if (pi.DisplayName.IsNullOrWhiteSpace())
+                    {
+                        pi.DisplayName = pi.PropertyName;
+                    }
+                    pi.Description = pi.PropertyName;
+                    break;
+                case Model.@enum.LanguageType.en:
+                    pi.DisplayName = this.GetLocalizedString(displayName, declaringType);
+                    pi.Description = this.GetLocalizedString(description, declaringType);
+                    if (pi.Description.IsNullOrWhiteSpace())
+                    {
+                        pi.Description = pi.PropertyName;
+                    }
+                    break;
             }
         }
 
