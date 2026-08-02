@@ -4,13 +4,13 @@
     <AccelerateBuildsInVisualStudio>True</AccelerateBuildsInVisualStudio>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Version>26.211.1</Version>
+    <Version>26.214.1</Version>
     <Authors>Shun</Authors>
     <UseWPF>True</UseWPF>
     <AuthorsName>Shun</AuthorsName>
     <CompanyName>Snet</CompanyName>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
-    <PackageProjectUrl>https://shunnet.top</PackageProjectUrl>
+    <PackageProjectUrl>https://snet.cn</PackageProjectUrl>
     <Product>Windows</Product>
     <Description>界面组件：Core（核心部件、模型、枚举、处理、Mvvm、绑定、通知、资源、模板）</Description>
     <PackageIcon>icon.png</PackageIcon>
@@ -27,7 +27,7 @@
     <PackageReference Include="WPF-UI" Version="4.3.0" />
     <PackageReference Include="MaterialDesignThemes" Version="5.3.2" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
-    <PackageReference Include="Snet.Core" Version="26.211.1" />
+    <PackageReference Include="Snet.Core" Version="26.214.1" />
     <PackageReference Include="System.Management" Version="10.0.10" />
   </ItemGroup>
   <ItemGroup>

@@ -1,7 +1,7 @@
-<h1 align="center">WpfMUI</h1>
+﻿<h1 align="center">WpfMUI</h1>
 
 <p align="center">
-  <img width="120" height="120" src="https://api.shunnet.top/pic/nuget.png" alt="Snet Logo"/>
+  <img width="120" height="120" src="https://api.snet.cn/pic/nuget.png" alt="Snet Logo"/>
 </p>
 
 <p align="center">
@@ -22,9 +22,9 @@
 </p>
 
 <p align="center">
-  <a href="https://shunnet.top"><b>🌐 官方网站</b></a> ·
+  <a href="https://snet.cn"><b>🌐 官方网站</b></a> ·
   <a href="https://github.com/shunnet/WpfMUI"><b>📦 GitHub</b></a>
-  <a href="https://shunnet.top/7EUf6"><b>🎬 演示视频</b></a>
+  <a href="https://snet.cn/7EUf6"><b>🎬 演示视频</b></a>
 </p>
 
 
@@ -66,7 +66,7 @@ dotnet add package Snet.Windows.Controls
 
 ## 🙏 致谢  
 
-- 🌐 [Shunnet.top](https://shunnet.top)  
+- 🌐 [Snet.cn](https://snet.cn)  
 - 🖥️ [WPF-UI](https://github.com/lepoco/wpfui)  
 - 🧩 [CommunityToolkit](https://github.com/CommunityToolkit/dotnet)  
 - 🎨 [MaterialDesignInXAML](https://github.com/MaterialDesignInXamlToolkit)  
@@ -83,4 +83,4 @@ dotnet add package Snet.Windows.Controls
 
 ## 🌍 查阅  
 
-👉 [点击跳转](https://shunnet.top/7EUf6)  
+👉 [点击跳转](https://snet.cn/7EUf6)  

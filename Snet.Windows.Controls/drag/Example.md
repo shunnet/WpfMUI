@@ -1,40 +1,40 @@
-  /*
-     ¶¯»­ÍÏ¶¯£¬°üº¬ÁË¿Ø¼şµÄÒÆ¶¯ÓëËõ·Å´óĞ¡
-     ×¢Òâ£º µ¥¸ö´°ÌåÖĞÖ»ÄÜ¶¨ÒåÒ»¸ö²¼¾ÖÈİÆ÷£¬Õâ¸ö²¼¾ÖÈİÆ÷£¬²»ÄÜÉèÖÃMargin£¬²»ÄÜÉèÖÃ¹Ì¶¨¿í¸ß
-     by:Shunnet.top 2022/6/8
-    -----------------------------ÏÂÃæÊÇÊ¹ÓÃ·½·¨---------------------------
+ï»¿  /*
+     åŠ¨ç”»æ‹–åŠ¨ï¼ŒåŒ…å«äº†æ§ä»¶çš„ç§»åŠ¨ä¸ç¼©æ”¾å¤§å°
+     æ³¨æ„ï¼š å•ä¸ªçª—ä½“ä¸­åªèƒ½å®šä¹‰ä¸€ä¸ªå¸ƒå±€å®¹å™¨ï¼Œè¿™ä¸ªå¸ƒå±€å®¹å™¨ï¼Œä¸èƒ½è®¾ç½®Marginï¼Œä¸èƒ½è®¾ç½®å›ºå®šå®½é«˜
+     by:Snet.cn 2022/6/8
+    -----------------------------ä¸‹é¢æ˜¯ä½¿ç”¨æ–¹æ³•---------------------------
      */
 
-    #region ºó¶Ë´úÂë
+    #region åç«¯ä»£ç 
     /*
     	/// <summary>
-        /// ÈıºÏÒ»  
-        /// µ¥¸ö´°ÌåÖĞÖ»ÄÜ¶¨ÒåÒ»¸ö²¼¾ÖÈİÆ÷£¬Õâ¸ö²¼¾ÖÈİÆ÷£¬²»ÄÜÉèÖÃMargin£¬²»ÄÜÉèÖÃ¹Ì¶¨¿í¸ß
+        /// ä¸‰åˆä¸€  
+        /// å•ä¸ªçª—ä½“ä¸­åªèƒ½å®šä¹‰ä¸€ä¸ªå¸ƒå±€å®¹å™¨ï¼Œè¿™ä¸ªå¸ƒå±€å®¹å™¨ï¼Œä¸èƒ½è®¾ç½®Marginï¼Œä¸èƒ½è®¾ç½®å›ºå®šå®½é«˜
         /// </summary>
         DragControlsAnimate dragControlsAnimate;
         public MainWindow()
         {
             InitializeComponent();
-            dragControlsAnimate = new DragControlsAnimate(this, Pane);   //ÄãµÃ¶¨ÒåÒ»¸öÈİÆ÷´«ÈİÆ÷¶ÔÏó»òÕßName
+            dragControlsAnimate = new DragControlsAnimate(this, Pane);   //ä½ å¾—å®šä¹‰ä¸€ä¸ªå®¹å™¨ä¼ å®¹å™¨å¯¹è±¡æˆ–è€…Name
             dragControlsAnimate.Insert(ConShow1);
             dragControlsAnimate.Insert(ConShow2);
             dragControlsAnimate.MessageEvenTrigger += MessageEvenTrigger;
             dragControlsAnimate.DragEvenTrigger += DragEvenTrigger;
         }
         /// <summary>
-        /// ÏûÏ¢
+        /// æ¶ˆæ¯
         /// </summary>
-        /// <param name="Message">ÏûÏ¢</param>
-        /// <param name="element">ÄÄ¸ö¿Ø¼şÏÔÊ¾µÄÏûÏ¢</param>
+        /// <param name="Message">æ¶ˆæ¯</param>
+        /// <param name="element">å“ªä¸ªæ§ä»¶æ˜¾ç¤ºçš„æ¶ˆæ¯</param>
         public void MessageEvenTrigger(string Message, FrameworkElement element)
         {
-            Console.WriteLine($"¿Ø¼şName:{element.Name}->Å×³öÏûÏ¢£º{Message}");
+            Console.WriteLine($"æ§ä»¶Name:{element.Name}->æŠ›å‡ºæ¶ˆæ¯ï¼š{Message}");
         }
         /// <summary>
-        /// ÌáĞÑÍÏ×§ÊÂ¼ş¿ªÊ¼ÁË£¬Çë´«ĞèÒªÍÏ¶¯µÄ°´Å¥¶ÔÏó
+        /// æé†’æ‹–æ‹½äº‹ä»¶å¼€å§‹äº†ï¼Œè¯·ä¼ éœ€è¦æ‹–åŠ¨çš„æŒ‰é’®å¯¹è±¡
         /// </summary>
-        /// <param name="element">ÔÚÄÄ¸ö¿Ø¼şÉÏ´¥·¢ÁËÍÏ×§</param>
-        /// <returns>·µ»ØÒÑ¾­´´½¨ÁËĞÂµÄ¿Ø¼ş¶ÔÏó  -   ÊÇ·ñĞèÒªÒÆ¶¯   -  ÊÇ·ñĞèÒªÍÏ×§´óĞ¡</returns>
+        /// <param name="element">åœ¨å“ªä¸ªæ§ä»¶ä¸Šè§¦å‘äº†æ‹–æ‹½</param>
+        /// <returns>è¿”å›å·²ç»åˆ›å»ºäº†æ–°çš„æ§ä»¶å¯¹è±¡  -   æ˜¯å¦éœ€è¦ç§»åŠ¨   -  æ˜¯å¦éœ€è¦æ‹–æ‹½å¤§å°</returns>
         public (FrameworkElement NewControl, bool IsMove, bool IsDragSize) DragEvenTrigger(FrameworkElement ShowControl)
         {
             FrameworkElement NewControl = new FrameworkElement();
@@ -56,33 +56,33 @@
             return (NewControl, IsMove, IsDragSize);
         }
         /// <summary>
-        /// ´´½¨Í¼±ê
+        /// åˆ›å»ºå›¾æ ‡
         /// </summary>
-        /// <param name="dashboardDataMode">Í¼±êÀàĞÍ</param>
+        /// <param name="dashboardDataMode">å›¾æ ‡ç±»å‹</param>
         private Label InitControls(int A)
         {
-            return new Label() { Background = new SolidColorBrush(A == 0 ? Colors.AliceBlue : Colors.AntiqueWhite), Width = 100, Height = 100,Content= "×Ô¶¨Òå¿Ø¼ş" }; 
+            return new Label() { Background = new SolidColorBrush(A == 0 ? Colors.AliceBlue : Colors.AntiqueWhite), Width = 100, Height = 100,Content= "è‡ªå®šä¹‰æ§ä»¶" }; 
         }
     */
     #endregion
 
-    #region Ç°¶Ë´úÂë
+    #region å‰ç«¯ä»£ç 
     /*
          <Window x:Class="WpfApp5.MainWindow"
             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-            Title="CanvasÓëGrid ÖĞÍÏ¶¯¶¯»­+Ëõ·Å+ÒÆ¶¯ Shunnet.top" Height="500" Width="800" >
+            Title="Canvasä¸Grid ä¸­æ‹–åŠ¨åŠ¨ç”»+ç¼©æ”¾+ç§»åŠ¨ Snet.cn" Height="500" Width="800" >
         <!--<Canvas Name="Pane" Background="DarkGray">
-            <Label Content="ÕâÊÇÊ¹ÓÃCanvasÈİÆ÷²¼¾Ö,µ¥¸ö´°ÌåÖĞÖ»ÄÜ¶¨ÒåÒ»¸ö²¼¾ÖÈİÆ÷£¬Õâ¸ö²¼¾ÖÈİÆ÷£¬²»ÄÜÉèÖÃMargin£¬²»ÄÜÉèÖÃ¹Ì¶¨¿í¸ß" Foreground="Red" FontWeight="Bold"/>
-            <Button Content="²»ÄÜÍÏ¶¯" Width="90" Height="50" Name="ConShow1" VerticalAlignment="Top" HorizontalAlignment="Left"  Margin="0,30,0,0"/>
-            <Button Content="¿ÉÒÔÍÏ¶¯" Width="90" Height="50" Name="ConShow2" VerticalAlignment="Top" HorizontalAlignment="Left"  Margin="100,30,0,0"/>
+            <Label Content="è¿™æ˜¯ä½¿ç”¨Canvaså®¹å™¨å¸ƒå±€,å•ä¸ªçª—ä½“ä¸­åªèƒ½å®šä¹‰ä¸€ä¸ªå¸ƒå±€å®¹å™¨ï¼Œè¿™ä¸ªå¸ƒå±€å®¹å™¨ï¼Œä¸èƒ½è®¾ç½®Marginï¼Œä¸èƒ½è®¾ç½®å›ºå®šå®½é«˜" Foreground="Red" FontWeight="Bold"/>
+            <Button Content="ä¸èƒ½æ‹–åŠ¨" Width="90" Height="50" Name="ConShow1" VerticalAlignment="Top" HorizontalAlignment="Left"  Margin="0,30,0,0"/>
+            <Button Content="å¯ä»¥æ‹–åŠ¨" Width="90" Height="50" Name="ConShow2" VerticalAlignment="Top" HorizontalAlignment="Left"  Margin="100,30,0,0"/>
         </Canvas>-->
         <Grid Name="Pane" Background="DarkGray">
-            <Label Content="ÕâÊÇÊ¹ÓÃGRIDÈİÆ÷²¼¾Ö,µ¥¸ö´°ÌåÖĞÖ»ÄÜ¶¨ÒåÒ»¸ö²¼¾ÖÈİÆ÷£¬Õâ¸ö²¼¾ÖÈİÆ÷£¬²»ÄÜÉèÖÃMargin£¬²»ÄÜÉèÖÃ¹Ì¶¨¿í¸ß" Foreground="Red" FontWeight="Bold"/>
-            <Button Content="²»ÄÜÍÏ¶¯" Width="90" Height="50" Name="ConShow1" VerticalAlignment="Top" HorizontalAlignment="Left"  Margin="0,30,0,0"/>
-            <Button Content="¿ÉÒÔÍÏ¶¯" Width="90" Height="50" Name="ConShow2" VerticalAlignment="Top" HorizontalAlignment="Left"  Margin="100,30,0,0"/>
+            <Label Content="è¿™æ˜¯ä½¿ç”¨GRIDå®¹å™¨å¸ƒå±€,å•ä¸ªçª—ä½“ä¸­åªèƒ½å®šä¹‰ä¸€ä¸ªå¸ƒå±€å®¹å™¨ï¼Œè¿™ä¸ªå¸ƒå±€å®¹å™¨ï¼Œä¸èƒ½è®¾ç½®Marginï¼Œä¸èƒ½è®¾ç½®å›ºå®šå®½é«˜" Foreground="Red" FontWeight="Bold"/>
+            <Button Content="ä¸èƒ½æ‹–åŠ¨" Width="90" Height="50" Name="ConShow1" VerticalAlignment="Top" HorizontalAlignment="Left"  Margin="0,30,0,0"/>
+            <Button Content="å¯ä»¥æ‹–åŠ¨" Width="90" Height="50" Name="ConShow2" VerticalAlignment="Top" HorizontalAlignment="Left"  Margin="100,30,0,0"/>
         </Grid>
     </Window>
 

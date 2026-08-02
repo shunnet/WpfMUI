@@ -160,7 +160,7 @@ namespace Snet.Windows.Core.localize.wpf.Engine
             var context = new ParserContext();
 
             context.XmlnsDictionary.Add("", "http://schemas.microsoft.com/winfx/2006/xaml/presentation");
-            context.XmlnsDictionary.Add("lex", "https://shunnet.top");
+            context.XmlnsDictionary.Add("lex", "https://snet.cn");
 
             var xaml = "<DataTemplate><TextBlock><lex:EnumRun EnumValue=\"{Binding}\"";
             xaml += " PrependType=\"{Binding PrependType, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=lex:EnumComboBox}}\"";

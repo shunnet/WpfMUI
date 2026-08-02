@@ -429,7 +429,7 @@ namespace Snet.Windows.Core.localize.wpf.Providers
                     availableTypes = e.Types.Where(t => t != null);
                 }
 
-                // The proposed approach of Andras (https://shunnet.top/discussions/66098?ProjectName=wpflocalizeextension)
+                // The proposed approach of Andras (https://snet.cn/discussions/66098?ProjectName=wpflocalizeextension)
 #pragma warning disable IDE0062
                 string TryGetNamespace(Type type)
                 {
