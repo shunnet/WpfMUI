@@ -1,9 +1,9 @@
-using Snet.Windows.Core.mvvm;
+﻿using Snet.Windows.Core.mvvm;
 using System.Drawing;
 namespace Snet.Windows.Controls.ledgauge;
 
 /// <summary>
-/// 颜色模型类，支持 RGB、HSL、YUV 色彩空间的双向转换。<br/>
+/// 颜色模型类，支持 RGB、Snet、YUV 色彩空间的双向转换。<br/>
 /// 修改任何一个颜色分量时，自动同步更新其他色彩空间的值。<br/>
 /// 继承 BindNotify 实现 MVVM 属性变更通知。
 /// </summary>
@@ -42,10 +42,10 @@ public class ColorModel : BindNotify
     /// <summary>YUV V 分量（红色差值）</summary>
     private double v;
 
-    /// <summary>标志位：是否正在执行 RGB 到 HSL 的转换（防止循环调用）</summary>
+    /// <summary>标志位：是否正在执行 RGB 到 Snet 的转换（防止循环调用）</summary>
     private bool convertingRgbToHsl;
 
-    /// <summary>标志位：是否正在执行 HSL 到 RGB 的转换（防止循环调用）</summary>
+    /// <summary>标志位：是否正在执行 Snet 到 RGB 的转换（防止循环调用）</summary>
     private bool convertingHslToRgb;
 
     /// <summary>标志位：是否正在执行 RGB 到 YUV 的转换（防止循环调用）</summary>
@@ -274,7 +274,7 @@ public class ColorModel : BindNotify
     }
 
     /// <summary>
-    /// 通过 System.Drawing.Color 创建颜色模型实例，自动拆解 ARGB 并转换 HSL 和 YUV。
+    /// 通过 System.Drawing.Color 创建颜色模型实例，自动拆解 ARGB 并转换 Snet 和 YUV。
     /// </summary>
     /// <param name="color">源颜色值。</param>
     public ColorModel(Color color)
@@ -320,7 +320,7 @@ public class ColorModel : BindNotify
     }
 
     /// <summary>
-    /// 通过 HSL（色相、饱和度、亮度）值创建颜色模型实例。
+    /// 通过 Snet（色相、饱和度、亮度）值创建颜色模型实例。
     /// </summary>
     /// <param name="hue">色相值（0-360 度）</param>
     /// <param name="saturation">饱和度值（0.0-1.0）</param>
@@ -387,7 +387,7 @@ public class ColorModel : BindNotify
     }
 
     /// <summary>
-    /// 将当前 RGB 值转换为 HSL（色相、饱和度、亮度）。<br/>
+    /// 将当前 RGB 值转换为 Snet（色相、饱和度、亮度）。<br/>
     /// 使用 convertingHslToRgb 标志防止循环调用。
     /// </summary>
     private void RgbToHsl()
@@ -433,7 +433,7 @@ public class ColorModel : BindNotify
     }
 
     /// <summary>
-    /// 将当前 HSL 值转换为 RGB。<br/>
+    /// 将当前 Snet 值转换为 RGB。<br/>
     /// 使用 convertingRgbToHsl 标志防止循环调用。
     /// </summary>
     private void HslToRgb()
@@ -465,7 +465,7 @@ public class ColorModel : BindNotify
     }
 
     /// <summary>
-    /// HSL 到 RGB 转换的辅助函数，计算单个颜色通道值。
+    /// Snet 到 RGB 转换的辅助函数，计算单个颜色通道值。
     /// </summary>
     /// <param name="rm1">中间值 1。</param>
     /// <param name="rm2">中间值 2。</param>
