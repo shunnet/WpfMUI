@@ -1,9 +1,9 @@
-﻿using ICSharpCode.AvalonEdit;
-using ICSharpCode.AvalonEdit.CodeCompletion;
-using ICSharpCode.AvalonEdit.Document;
-using ICSharpCode.AvalonEdit.Editing;
-using ICSharpCode.AvalonEdit.Rendering;
-using Snet.Windows.Controls.data;
+﻿using Snet.Windows.Controls.data;
+using Snet.Windows.Controls.edit;
+using Snet.Windows.Controls.edit.CodeCompletion;
+using Snet.Windows.Controls.edit.Document;
+using Snet.Windows.Controls.edit.Editing;
+using Snet.Windows.Controls.edit.Rendering;
 using Snet.Windows.Core.@enum;
 using Snet.Windows.Core.handler;
 using System.Windows;

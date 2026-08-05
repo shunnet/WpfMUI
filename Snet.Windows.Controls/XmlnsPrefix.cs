@@ -8,3 +8,4 @@
 [assembly: XmlnsDefinition("https://snet.cn", "Snet.Windows.Controls.ledgauge")]
 [assembly: XmlnsDefinition("https://snet.cn", "Snet.Windows.Controls.pagebar")]
 [assembly: XmlnsDefinition("https://snet.cn", "Snet.Windows.Controls.tray.Controls")]
+[assembly: XmlnsDefinition("https://snet.cn", "Snet.Windows.Controls.edit")]

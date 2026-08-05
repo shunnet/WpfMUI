@@ -51,6 +51,12 @@ namespace Snet.Windows.Core.localize.wpf.Providers
                 if (depObj is System.Windows.Controls.ToolTip)
                     break;
 
+                // ContextMenu 与 ToolTip 一样不在逻辑/可视树中（仅通过 PlacementTarget 关联宿主），
+                // 永远无法找到父级，注册 ParentChangedNotifier 只会产生无意义的 FindAncestor 绑定错误
+                // 和静态字典条目残留，直接跳过。
+                if (depObj is System.Windows.Controls.ContextMenu)
+                    break;
+
                 if (!(depObj is Visual) && !(depObj is Visual3D) && !(depObj is FrameworkContentElement))
                     break;
 

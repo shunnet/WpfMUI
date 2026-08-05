@@ -116,10 +116,31 @@ namespace Snet.Windows.Core.localize.core.Base
                 OnParentChangedList[this.element].Add(onParentChanged);
             }
 
-            if (element.CheckAccess())
-                SetBinding();
+            // 元素尚未挂载（ContextMenu、未初始化的 DataGrid 列头等）时直接注册
+            // FindAncestor 绑定会因找不到父级而输出绑定错误日志。改为等待 Loaded
+            // 后再注册：元素挂载后父级已确定，绑定一次成功，错误日志消除。
+            // ContextMenu 不在逻辑/可视树中，永远不会触发 Loaded，因此也不会注册绑定，
+            // 其本地化上下文由宿主（PlacementTarget）提供，不受影响。
+            if (element.IsLoaded)
+            {
+                if (element.CheckAccess())
+                    SetBinding();
+                else
+                    element.Dispatcher.Invoke(new Action(SetBinding));
+            }
             else
-                element.Dispatcher.Invoke(new Action(SetBinding));
+            {
+                element.Loaded += Element_Loaded;
+            }
+        }
+
+        private void Element_Loaded(object sender, RoutedEventArgs e)
+        {
+            if (element != null && element.IsAlive && element.Target is FrameworkElement frameworkElement)
+            {
+                frameworkElement.Loaded -= Element_Loaded;
+                SetBinding();
+            }
         }
 
         /// <summary>
@@ -181,8 +202,13 @@ namespace Snet.Windows.Core.localize.core.Base
                 RelativeSource = new RelativeSource()
                 {
                     Mode = RelativeSourceMode.FindAncestor,
-                    AncestorType = typeof(FrameworkElement)
-                }
+                    AncestorType = typeof(FrameworkElement),
+                    AncestorLevel = 1
+                },
+                // 元素尚未挂载（ContextMenu、未初始化的 Header 等）时 FindAncestor 找不到源，
+                // 设置 FallbackValue 使绑定失败时静默回退为 null，避免 WPF 输出绑定错误日志；
+                // 元素挂载后绑定会自动重新解析，ParentChanged 通知仍能正常触发。
+                FallbackValue = null
             };
             BindingOperations.SetBinding((FrameworkElement)element.Target, ParentProperty, binding);
         }

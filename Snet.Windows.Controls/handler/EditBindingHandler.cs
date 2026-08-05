@@ -1,4 +1,4 @@
-﻿using ICSharpCode.AvalonEdit;
+﻿using Snet.Windows.Controls.edit;
 using System.Windows;
 
 namespace Snet.Windows.Controls.handler
