@@ -1,36 +1,36 @@
 <Project Sdk="Microsoft.NET.Sdk">
-	<PropertyGroup>
-		<TargetFrameworks>net8.0-windows;net10.0-windows</TargetFrameworks>
-		<AccelerateBuildsInVisualStudio>True</AccelerateBuildsInVisualStudio>
-		<ImplicitUsings>enable</ImplicitUsings>
-		<Nullable>enable</Nullable>
-		<Version>26.216.1</Version>
-		<Authors>Shun</Authors>
-		<UseWPF>True</UseWPF>
-		<AuthorsName>Shun</AuthorsName>
-		<CompanyName>Snet</CompanyName>
-		<GenerateDocumentationFile>True</GenerateDocumentationFile>
-		<PackageProjectUrl>https://snet.cn</PackageProjectUrl>
-		<Product>Windows</Product>
-		<Description>界面组件：Core（核心部件、模型、枚举、处理、Mvvm、绑定、通知、资源、模板）</Description>
-		<PackageIcon>icon.png</PackageIcon>
-		<PackageLicenseExpression>MIT</PackageLicenseExpression>
-		<PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
-		<PackageReadmeFile>README.md</PackageReadmeFile>
-	</PropertyGroup>
-	<ItemGroup>
-		<None Include="..\icon.png" Pack="true" PackagePath="\" />
-		<None Include="..\README.md" Pack="true" PackagePath="\" />
-	</ItemGroup>
-	<ItemGroup>
-		<PackageReference Include="WPF-UI" Version="4.3.0" />
-		<PackageReference Include="MaterialDesignThemes" Version="5.3.2" />
-		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
-		<PackageReference Include="Snet.Core" Version="26.216.1" />
-		<PackageReference Include="System.Management" Version="10.0.10" />
-		<PackageReference Include="System.Drawing.Common" Version="10.0.10" />
-	</ItemGroup>
-	<ItemGroup>
-		<Resource Include="resources\BackgroundPicture.png" />
-	</ItemGroup>
+  <PropertyGroup>
+    <TargetFrameworks>net8.0-windows;net10.0-windows</TargetFrameworks>
+    <AccelerateBuildsInVisualStudio>True</AccelerateBuildsInVisualStudio>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Version>26.217.1</Version>
+    <Authors>Shun</Authors>
+    <UseWPF>True</UseWPF>
+    <AuthorsName>Shun</AuthorsName>
+    <CompanyName>Snet</CompanyName>
+    <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    <PackageProjectUrl>https://snet.cn</PackageProjectUrl>
+    <Product>Windows</Product>
+    <Description>界面组件：Core（核心部件、模型、枚举、处理、Mvvm、绑定、通知、资源、模板）</Description>
+    <PackageIcon>icon.png</PackageIcon>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="..\icon.png" Pack="true" PackagePath="\" />
+    <None Include="..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="WPF-UI" Version="4.3.0" />
+    <PackageReference Include="MaterialDesignThemes" Version="5.3.2" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <PackageReference Include="Snet.Core" Version="26.216.1" />
+    <PackageReference Include="System.Management" Version="10.0.10" />
+    <PackageReference Include="System.Drawing.Common" Version="10.0.10" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="resources\BackgroundPicture.png" />
+  </ItemGroup>
 </Project>

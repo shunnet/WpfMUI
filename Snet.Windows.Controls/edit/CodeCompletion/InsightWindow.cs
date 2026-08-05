@@ -50,7 +50,7 @@ namespace Snet.Windows.Controls.edit.CodeCompletion
         {
             Rect caret = this.TextArea.Caret.CalculateCaretRectangle();
             Point pointOnScreen = this.TextArea.TextView.PointToScreen(caret.Location - this.TextArea.TextView.ScrollOffset);
-            Rect workingArea = System.Windows.Forms.Screen.FromPoint(pointOnScreen.ToSystemDrawing()).WorkingArea.ToWpf().TransformFromDevice(this);
+            Rect workingArea = ScreenHelper.GetWorkingArea(pointOnScreen).TransformFromDevice(this);
 
             MaxHeight = workingArea.Height;
             MaxWidth = Math.Min(workingArea.Width, Math.Max(1000, workingArea.Width * 0.6));

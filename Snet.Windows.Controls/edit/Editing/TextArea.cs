@@ -1051,7 +1051,8 @@ namespace Snet.Windows.Controls.edit.Editing
 		void ShowMouseCursor()
 		{
 			if (this.isMouseCursorHidden) {
-				System.Windows.Forms.Cursor.Show();
+				// 恢复继承的光标（设为 null 回到继承链），避免全局 Mouse.OverrideCursor 的副作用
+				this.Cursor = null;
 				this.isMouseCursorHidden = false;
 			}
 		}
@@ -1060,7 +1061,9 @@ namespace Snet.Windows.Controls.edit.Editing
 		{
 			if (Options.HideCursorWhileTyping && !this.isMouseCursorHidden && this.IsMouseOver) {
 				this.isMouseCursorHidden = true;
-				System.Windows.Forms.Cursor.Hide();
+				// 控件级隐藏：仅影响本控件，控件卸载后自动恢复，不会像 WinForms Cursor.Hide()
+				// 或 Mouse.OverrideCursor 那样全局隐藏光标
+				this.Cursor = Cursors.None;
 			}
 		}
 
