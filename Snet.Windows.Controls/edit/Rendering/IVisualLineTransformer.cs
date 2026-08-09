@@ -16,18 +16,16 @@
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System.Collections.Generic;
-
 namespace Snet.Windows.Controls.edit.Rendering
 {
-	/// <summary>
-	/// Allows transforming visual line elements.
-	/// </summary>
-	public interface IVisualLineTransformer
-	{
-		/// <summary>
-		/// Applies the transformation to the specified list of visual line elements.
-		/// </summary>
-		void Transform(ITextRunConstructionContext context, IList<VisualLineElement> elements);
-	}
+    /// <summary>
+    /// Allows transforming visual line elements.
+    /// </summary>
+    public interface IVisualLineTransformer
+    {
+        /// <summary>
+        /// Applies the transformation to the specified list of visual line elements.
+        /// </summary>
+        void Transform(ITextRunConstructionContext context, IList<VisualLineElement> elements);
+    }
 }

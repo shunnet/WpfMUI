@@ -16,57 +16,55 @@
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System;
-
 namespace Snet.Windows.Controls.edit.Snippets
 {
-	/// <summary>
-	/// Provides information about the event that occurred during use of snippets.
-	/// </summary>
-	public class SnippetEventArgs : EventArgs
-	{
-		/// <summary>
-		/// Gets the reason for deactivation.
-		/// </summary>
-		public DeactivateReason Reason { get; private set; }
+    /// <summary>
+    /// Provides information about the event that occurred during use of snippets.
+    /// </summary>
+    public class SnippetEventArgs : EventArgs
+    {
+        /// <summary>
+        /// Gets the reason for deactivation.
+        /// </summary>
+        public DeactivateReason Reason { get; private set; }
 
-		/// <summary>
-		/// Creates a new SnippetEventArgs object, with a DeactivateReason.
-		/// </summary>
-		public SnippetEventArgs(DeactivateReason reason)
-		{
-			this.Reason = reason;
-		}
-	}
+        /// <summary>
+        /// Creates a new SnippetEventArgs object, with a DeactivateReason.
+        /// </summary>
+        public SnippetEventArgs(DeactivateReason reason)
+        {
+            this.Reason = reason;
+        }
+    }
 
-	/// <summary>
-	/// Describes the reason for deactivation of a <see cref="SnippetElement" />.
-	/// </summary>
-	public enum DeactivateReason
-	{
-		/// <summary>
-		/// Unknown reason.
-		/// </summary>
-		Unknown,
-		/// <summary>
-		/// Snippet was deleted.
-		/// </summary>
-		Deleted,
-		/// <summary>
-		/// There are no active elements in the snippet.
-		/// </summary>
-		NoActiveElements,
-		/// <summary>
-		/// The SnippetInputHandler was detached.
-		/// </summary>
-		InputHandlerDetached,
-		/// <summary>
-		/// Return was pressed by the user.
-		/// </summary>
-		ReturnPressed,
-		/// <summary>
-		/// Escape was pressed by the user.
-		/// </summary>
-		EscapePressed
-	}
+    /// <summary>
+    /// Describes the reason for deactivation of a <see cref="SnippetElement" />.
+    /// </summary>
+    public enum DeactivateReason
+    {
+        /// <summary>
+        /// Unknown reason.
+        /// </summary>
+        Unknown,
+        /// <summary>
+        /// Snippet was deleted.
+        /// </summary>
+        Deleted,
+        /// <summary>
+        /// There are no active elements in the snippet.
+        /// </summary>
+        NoActiveElements,
+        /// <summary>
+        /// The SnippetInputHandler was detached.
+        /// </summary>
+        InputHandlerDetached,
+        /// <summary>
+        /// Return was pressed by the user.
+        /// </summary>
+        ReturnPressed,
+        /// <summary>
+        /// Escape was pressed by the user.
+        /// </summary>
+        EscapePressed
+    }
 }

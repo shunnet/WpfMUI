@@ -16,30 +16,28 @@
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System;
-
 using Snet.Windows.Controls.edit.Document;
 
 namespace Snet.Windows.Controls.edit.Rendering
 {
-	/// <summary>
-	/// EventArgs for the <see cref="TextView.VisualLineConstructionStarting"/> event.
-	/// </summary>
-	public class VisualLineConstructionStartEventArgs : EventArgs
-	{
-		/// <summary>
-		/// Gets/Sets the first line that is visible in the TextView.
-		/// </summary>
-		public DocumentLine FirstLineInView { get; private set; }
+    /// <summary>
+    /// EventArgs for the <see cref="TextView.VisualLineConstructionStarting"/> event.
+    /// </summary>
+    public class VisualLineConstructionStartEventArgs : EventArgs
+    {
+        /// <summary>
+        /// Gets/Sets the first line that is visible in the TextView.
+        /// </summary>
+        public DocumentLine FirstLineInView { get; private set; }
 
-		/// <summary>
-		/// Creates a new VisualLineConstructionStartEventArgs instance.
-		/// </summary>
-		public VisualLineConstructionStartEventArgs(DocumentLine firstLineInView)
-		{
-			if (firstLineInView == null)
-				throw new ArgumentNullException("firstLineInView");
-			this.FirstLineInView = firstLineInView;
-		}
-	}
+        /// <summary>
+        /// Creates a new VisualLineConstructionStartEventArgs instance.
+        /// </summary>
+        public VisualLineConstructionStartEventArgs(DocumentLine firstLineInView)
+        {
+            if (firstLineInView == null)
+                throw new ArgumentNullException("firstLineInView");
+            this.FirstLineInView = firstLineInView;
+        }
+    }
 }

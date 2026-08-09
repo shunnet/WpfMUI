@@ -16,51 +16,47 @@
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 using Snet.Windows.Controls.edit.Document;
 using Snet.Windows.Controls.edit.Utils;
 
 namespace Snet.Windows.Controls.edit.Editing
 {
-	/// <summary>
-	/// <see cref="IReadOnlySectionProvider"/> that has no read-only sections; all text is editable.
-	/// </summary>
-	sealed class NoReadOnlySections : IReadOnlySectionProvider
-	{
-		public static readonly NoReadOnlySections Instance = new NoReadOnlySections();
+    /// <summary>
+    /// <see cref="IReadOnlySectionProvider"/> that has no read-only sections; all text is editable.
+    /// </summary>
+    sealed class NoReadOnlySections : IReadOnlySectionProvider
+    {
+        public static readonly NoReadOnlySections Instance = new NoReadOnlySections();
 
-		public bool CanInsert(int offset)
-		{
-			return true;
-		}
+        public bool CanInsert(int offset)
+        {
+            return true;
+        }
 
-		public IEnumerable<ISegment> GetDeletableSegments(ISegment segment)
-		{
-			if (segment == null)
-				throw new ArgumentNullException("segment");
-			// the segment is always deletable
-			return ExtensionMethods.Sequence(segment);
-		}
-	}
+        public IEnumerable<ISegment> GetDeletableSegments(ISegment segment)
+        {
+            if (segment == null)
+                throw new ArgumentNullException("segment");
+            // the segment is always deletable
+            return ExtensionMethods.Sequence(segment);
+        }
+    }
 
-	/// <summary>
-	/// <see cref="IReadOnlySectionProvider"/> that completely disables editing.
-	/// </summary>
-	sealed class ReadOnlySectionDocument : IReadOnlySectionProvider
-	{
-		public static readonly ReadOnlySectionDocument Instance = new ReadOnlySectionDocument();
+    /// <summary>
+    /// <see cref="IReadOnlySectionProvider"/> that completely disables editing.
+    /// </summary>
+    sealed class ReadOnlySectionDocument : IReadOnlySectionProvider
+    {
+        public static readonly ReadOnlySectionDocument Instance = new ReadOnlySectionDocument();
 
-		public bool CanInsert(int offset)
-		{
-			return false;
-		}
+        public bool CanInsert(int offset)
+        {
+            return false;
+        }
 
-		public IEnumerable<ISegment> GetDeletableSegments(ISegment segment)
-		{
-			return Enumerable.Empty<ISegment>();
-		}
-	}
+        public IEnumerable<ISegment> GetDeletableSegments(ISegment segment)
+        {
+            return Enumerable.Empty<ISegment>();
+        }
+    }
 }

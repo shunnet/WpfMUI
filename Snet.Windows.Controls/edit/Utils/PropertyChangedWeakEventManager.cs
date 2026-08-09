@@ -16,25 +16,23 @@
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System.ComponentModel;
-
 namespace Snet.Windows.Controls.edit.Utils
 {
-	/// <summary>
-	/// WeakEventManager for INotifyPropertyChanged.PropertyChanged.
-	/// </summary>
-	public sealed class PropertyChangedWeakEventManager : WeakEventManagerBase<PropertyChangedWeakEventManager, INotifyPropertyChanged>
-	{
-		/// <inheritdoc/>
-		protected override void StartListening(INotifyPropertyChanged source)
-		{
-			source.PropertyChanged += DeliverEvent;
-		}
+    /// <summary>
+    /// WeakEventManager for INotifyPropertyChanged.PropertyChanged.
+    /// </summary>
+    public sealed class PropertyChangedWeakEventManager : WeakEventManagerBase<PropertyChangedWeakEventManager, INotifyPropertyChanged>
+    {
+        /// <inheritdoc/>
+        protected override void StartListening(INotifyPropertyChanged source)
+        {
+            source.PropertyChanged += DeliverEvent;
+        }
 
-		/// <inheritdoc/>
-		protected override void StopListening(INotifyPropertyChanged source)
-		{
-			source.PropertyChanged -= DeliverEvent;
-		}
-	}
+        /// <inheritdoc/>
+        protected override void StopListening(INotifyPropertyChanged source)
+        {
+            source.PropertyChanged -= DeliverEvent;
+        }
+    }
 }

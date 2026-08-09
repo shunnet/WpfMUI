@@ -16,55 +16,56 @@
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System;
+using Snet.Windows.Controls.edit.Rendering;
 using System.Windows;
 using System.Windows.Media;
 
-using Snet.Windows.Controls.edit.Rendering;
-
 namespace Snet.Windows.Controls.edit.Editing
 {
-	sealed class SelectionLayer : Layer, IWeakEventListener
-	{
-		readonly TextArea textArea;
+    sealed class SelectionLayer : Layer, IWeakEventListener
+    {
+        readonly TextArea textArea;
 
-		public SelectionLayer(TextArea textArea) : base(textArea.TextView, KnownLayer.Selection)
-		{
-			this.IsHitTestVisible = false;
+        public SelectionLayer(TextArea textArea) : base(textArea.TextView, KnownLayer.Selection)
+        {
+            this.IsHitTestVisible = false;
 
-			this.textArea = textArea;
-			TextViewWeakEventManager.VisualLinesChanged.AddListener(textView, this);
-			TextViewWeakEventManager.ScrollOffsetChanged.AddListener(textView, this);
-		}
+            this.textArea = textArea;
+            TextViewWeakEventManager.VisualLinesChanged.AddListener(textView, this);
+            TextViewWeakEventManager.ScrollOffsetChanged.AddListener(textView, this);
+        }
 
-		bool IWeakEventListener.ReceiveWeakEvent(Type managerType, object sender, EventArgs e)
-		{
-			if (managerType == typeof(TextViewWeakEventManager.VisualLinesChanged)
-				|| managerType == typeof(TextViewWeakEventManager.ScrollOffsetChanged)) {
-				InvalidateVisual();
-				return true;
-			}
-			return false;
-		}
+        bool IWeakEventListener.ReceiveWeakEvent(Type managerType, object sender, EventArgs e)
+        {
+            if (managerType == typeof(TextViewWeakEventManager.VisualLinesChanged)
+                || managerType == typeof(TextViewWeakEventManager.ScrollOffsetChanged))
+            {
+                InvalidateVisual();
+                return true;
+            }
+            return false;
+        }
 
-		protected override void OnRender(DrawingContext drawingContext)
-		{
-			base.OnRender(drawingContext);
+        protected override void OnRender(DrawingContext drawingContext)
+        {
+            base.OnRender(drawingContext);
 
-			var selectionBorder = textArea.SelectionBorder;
+            var selectionBorder = textArea.SelectionBorder;
 
-			BackgroundGeometryBuilder geoBuilder = new BackgroundGeometryBuilder();
-			geoBuilder.AlignToWholePixels = true;
-			geoBuilder.BorderThickness = selectionBorder != null ? selectionBorder.Thickness : 0;
-			geoBuilder.ExtendToFullWidthAtLineEnd = textArea.Selection.EnableVirtualSpace;
-			geoBuilder.CornerRadius = textArea.SelectionCornerRadius;
-			foreach (var segment in textArea.Selection.Segments) {
-				geoBuilder.AddSegment(textView, segment);
-			}
-			Geometry geometry = geoBuilder.CreateGeometry();
-			if (geometry != null) {
-				drawingContext.DrawGeometry(textArea.SelectionBrush, selectionBorder, geometry);
-			}
-		}
-	}
+            BackgroundGeometryBuilder geoBuilder = new BackgroundGeometryBuilder();
+            geoBuilder.AlignToWholePixels = true;
+            geoBuilder.BorderThickness = selectionBorder != null ? selectionBorder.Thickness : 0;
+            geoBuilder.ExtendToFullWidthAtLineEnd = textArea.Selection.EnableVirtualSpace;
+            geoBuilder.CornerRadius = textArea.SelectionCornerRadius;
+            foreach (var segment in textArea.Selection.Segments)
+            {
+                geoBuilder.AddSegment(textView, segment);
+            }
+            Geometry geometry = geoBuilder.CreateGeometry();
+            if (geometry != null)
+            {
+                drawingContext.DrawGeometry(textArea.SelectionBrush, selectionBorder, geometry);
+            }
+        }
+    }
 }

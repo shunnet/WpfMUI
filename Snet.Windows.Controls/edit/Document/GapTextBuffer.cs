@@ -16,15 +16,9 @@
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System;
-using System.Diagnostics;
-using System.Text;
-
-using Snet.Windows.Controls.edit.Utils;
-
 namespace Snet.Windows.Controls.edit.Document
 {
-	/*
+    /*
 	/// <summary>
 	/// Implementation of a gap text buffer.
 	/// </summary>

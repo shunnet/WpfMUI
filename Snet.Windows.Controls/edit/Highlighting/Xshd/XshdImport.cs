@@ -16,25 +16,23 @@
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System;
-
 namespace Snet.Windows.Controls.edit.Highlighting.Xshd
 {
-	/// <summary>
-	/// &lt;Import&gt; element.
-	/// </summary>
-	[Serializable]
-	public class XshdImport : XshdElement
-	{
-		/// <summary>
-		/// Gets/sets the referenced rule set.
-		/// </summary>
-		public XshdReference<XshdRuleSet> RuleSetReference { get; set; }
+    /// <summary>
+    /// &lt;Import&gt; element.
+    /// </summary>
+    [Serializable]
+    public class XshdImport : XshdElement
+    {
+        /// <summary>
+        /// Gets/sets the referenced rule set.
+        /// </summary>
+        public XshdReference<XshdRuleSet> RuleSetReference { get; set; }
 
-		/// <inheritdoc/>
-		public override object AcceptVisitor(IXshdVisitor visitor)
-		{
-			return visitor.VisitImport(this);
-		}
-	}
+        /// <inheritdoc/>
+        public override object AcceptVisitor(IXshdVisitor visitor)
+        {
+            return visitor.VisitImport(this);
+        }
+    }
 }

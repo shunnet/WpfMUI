@@ -16,37 +16,34 @@
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System;
-using System.Runtime.Serialization;
-
 namespace Snet.Windows.Controls.edit.Highlighting
 {
-	/// <summary>
-	/// Indicates that the highlighting definition that was tried to load was invalid.
-	/// </summary>
-	[Serializable()]
-	public class HighlightingDefinitionInvalidException : Exception
-	{
-		/// <summary>
-		/// Creates a new HighlightingDefinitionInvalidException instance.
-		/// </summary>
-		public HighlightingDefinitionInvalidException() : base()
-		{
-		}
+    /// <summary>
+    /// Indicates that the highlighting definition that was tried to load was invalid.
+    /// </summary>
+    [Serializable()]
+    public class HighlightingDefinitionInvalidException : Exception
+    {
+        /// <summary>
+        /// Creates a new HighlightingDefinitionInvalidException instance.
+        /// </summary>
+        public HighlightingDefinitionInvalidException() : base()
+        {
+        }
 
-		/// <summary>
-		/// Creates a new HighlightingDefinitionInvalidException instance.
-		/// </summary>
-		public HighlightingDefinitionInvalidException(string message) : base(message)
-		{
-		}
+        /// <summary>
+        /// Creates a new HighlightingDefinitionInvalidException instance.
+        /// </summary>
+        public HighlightingDefinitionInvalidException(string message) : base(message)
+        {
+        }
 
-		/// <summary>
-		/// Creates a new HighlightingDefinitionInvalidException instance.
-		/// </summary>
-		public HighlightingDefinitionInvalidException(string message, Exception innerException) : base(message, innerException)
-		{
-		}
+        /// <summary>
+        /// Creates a new HighlightingDefinitionInvalidException instance.
+        /// </summary>
+        public HighlightingDefinitionInvalidException(string message, Exception innerException) : base(message, innerException)
+        {
+        }
 #if !NET6_0_OR_GREATER
 		/// <summary>
 		/// Creates a new HighlightingDefinitionInvalidException instance.
@@ -55,5 +52,5 @@ namespace Snet.Windows.Controls.edit.Highlighting
 		{
 		}
 #endif
-	}
+    }
 }

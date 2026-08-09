@@ -16,44 +16,43 @@
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System;
-
 using Snet.Windows.Controls.edit.Document;
 using Snet.Windows.Controls.edit.Editing;
 
 namespace Snet.Windows.Controls.edit.Snippets
 {
-	/// <summary>
-	/// A code snippet that can be inserted into the text editor.
-	/// </summary>
-	[Serializable]
-	public class Snippet : SnippetContainerElement
-	{
-		/// <summary>
-		/// Inserts the snippet into the text area.
-		/// </summary>
-		public void Insert(TextArea textArea)
-		{
-			if (textArea == null)
-				throw new ArgumentNullException("textArea");
+    /// <summary>
+    /// A code snippet that can be inserted into the text editor.
+    /// </summary>
+    [Serializable]
+    public class Snippet : SnippetContainerElement
+    {
+        /// <summary>
+        /// Inserts the snippet into the text area.
+        /// </summary>
+        public void Insert(TextArea textArea)
+        {
+            if (textArea == null)
+                throw new ArgumentNullException("textArea");
 
-			ISegment selection = textArea.Selection.SurroundingSegment;
-			int insertionPosition = textArea.Caret.Offset;
+            ISegment selection = textArea.Selection.SurroundingSegment;
+            int insertionPosition = textArea.Caret.Offset;
 
-			if (selection != null) // if something is selected
-				// use selection start instead of caret position,
-				// because caret could be at end of selection or anywhere inside.
-				// Removal of the selected text causes the caret position to be invalid.
-				insertionPosition = selection.Offset + TextUtilities.GetWhitespaceAfter(textArea.Document, selection.Offset).Length;
+            if (selection != null) // if something is selected
+                                   // use selection start instead of caret position,
+                                   // because caret could be at end of selection or anywhere inside.
+                                   // Removal of the selected text causes the caret position to be invalid.
+                insertionPosition = selection.Offset + TextUtilities.GetWhitespaceAfter(textArea.Document, selection.Offset).Length;
 
-			InsertionContext context = new InsertionContext(textArea, insertionPosition);
+            InsertionContext context = new InsertionContext(textArea, insertionPosition);
 
-			using (context.Document.RunUpdate()) {
-				if (selection != null)
-					textArea.Document.Remove(insertionPosition, selection.EndOffset - insertionPosition);
-				Insert(context);
-				context.RaiseInsertionCompleted(EventArgs.Empty);
-			}
-		}
-	}
+            using (context.Document.RunUpdate())
+            {
+                if (selection != null)
+                    textArea.Document.Remove(insertionPosition, selection.EndOffset - insertionPosition);
+                Insert(context);
+                context.RaiseInsertionCompleted(EventArgs.Empty);
+            }
+        }
+    }
 }

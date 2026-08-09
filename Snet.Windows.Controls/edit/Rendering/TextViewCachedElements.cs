@@ -16,43 +16,42 @@
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System;
-using System.Collections.Generic;
-using System.Windows.Media.TextFormatting;
-
 using Snet.Windows.Controls.edit.Utils;
+using System.Windows.Media.TextFormatting;
 
 namespace Snet.Windows.Controls.edit.Rendering
 {
-	sealed class TextViewCachedElements : IDisposable
-	{
-		TextFormatter formatter;
-		Dictionary<string, TextLine> nonPrintableCharacterTexts;
+    sealed class TextViewCachedElements : IDisposable
+    {
+        TextFormatter formatter;
+        Dictionary<string, TextLine> nonPrintableCharacterTexts;
 
-		public TextLine GetTextForNonPrintableCharacter(string text, ITextRunConstructionContext context)
-		{
-			if (nonPrintableCharacterTexts == null)
-				nonPrintableCharacterTexts = new Dictionary<string, TextLine>();
-			TextLine textLine;
-			if (!nonPrintableCharacterTexts.TryGetValue(text, out textLine)) {
-				var p = new VisualLineElementTextRunProperties(context.GlobalTextRunProperties);
-				p.SetForegroundBrush(context.TextView.NonPrintableCharacterBrush);
-				if (formatter == null)
-					formatter = TextFormatterFactory.Create(context.TextView);
-				textLine = FormattedTextElement.PrepareText(formatter, text, p);
-				nonPrintableCharacterTexts[text] = textLine;
-			}
-			return textLine;
-		}
+        public TextLine GetTextForNonPrintableCharacter(string text, ITextRunConstructionContext context)
+        {
+            if (nonPrintableCharacterTexts == null)
+                nonPrintableCharacterTexts = new Dictionary<string, TextLine>();
+            TextLine textLine;
+            if (!nonPrintableCharacterTexts.TryGetValue(text, out textLine))
+            {
+                var p = new VisualLineElementTextRunProperties(context.GlobalTextRunProperties);
+                p.SetForegroundBrush(context.TextView.NonPrintableCharacterBrush);
+                if (formatter == null)
+                    formatter = TextFormatterFactory.Create(context.TextView);
+                textLine = FormattedTextElement.PrepareText(formatter, text, p);
+                nonPrintableCharacterTexts[text] = textLine;
+            }
+            return textLine;
+        }
 
-		public void Dispose()
-		{
-			if (nonPrintableCharacterTexts != null) {
-				foreach (TextLine line in nonPrintableCharacterTexts.Values)
-					line.Dispose();
-			}
-			if (formatter != null)
-				formatter.Dispose();
-		}
-	}
+        public void Dispose()
+        {
+            if (nonPrintableCharacterTexts != null)
+            {
+                foreach (TextLine line in nonPrintableCharacterTexts.Values)
+                    line.Dispose();
+            }
+            if (formatter != null)
+                formatter.Dispose();
+        }
+    }
 }

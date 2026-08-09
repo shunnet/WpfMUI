@@ -16,37 +16,35 @@
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System;
-using System.Collections.Generic;
-
 using Snet.Windows.Controls.edit.Utils;
 
 namespace Snet.Windows.Controls.edit.Highlighting.Xshd
 {
-	/// <summary>
-	/// A list of keywords.
-	/// </summary>
-	[Serializable]
-	public class XshdKeywords : XshdElement
-	{
-		/// <summary>
-		/// The color.
-		/// </summary>
-		public XshdReference<XshdColor> ColorReference { get; set; }
+    /// <summary>
+    /// A list of keywords.
+    /// </summary>
+    [Serializable]
+    public class XshdKeywords : XshdElement
+    {
+        /// <summary>
+        /// The color.
+        /// </summary>
+        public XshdReference<XshdColor> ColorReference { get; set; }
 
-		readonly NullSafeCollection<string> words = new NullSafeCollection<string>();
+        readonly NullSafeCollection<string> words = new NullSafeCollection<string>();
 
-		/// <summary>
-		/// Gets the list of key words.
-		/// </summary>
-		public IList<string> Words {
-			get { return words; }
-		}
+        /// <summary>
+        /// Gets the list of key words.
+        /// </summary>
+        public IList<string> Words
+        {
+            get { return words; }
+        }
 
-		/// <inheritdoc/>
-		public override object AcceptVisitor(IXshdVisitor visitor)
-		{
-			return visitor.VisitKeywords(this);
-		}
-	}
+        /// <inheritdoc/>
+        public override object AcceptVisitor(IXshdVisitor visitor)
+        {
+            return visitor.VisitKeywords(this);
+        }
+    }
 }

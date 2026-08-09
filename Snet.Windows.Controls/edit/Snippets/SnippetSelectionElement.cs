@@ -16,43 +16,43 @@
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System;
 using System.Text;
 
 namespace Snet.Windows.Controls.edit.Snippets
 {
-	/// <summary>
-	/// Inserts the previously selected text at the selection marker.
-	/// </summary>
-	[Serializable]
-	public class SnippetSelectionElement : SnippetElement
-	{
-		/// <summary>
-		/// Gets/Sets the new indentation of the selected text.
-		/// </summary>
-		public int Indentation { get; set; }
+    /// <summary>
+    /// Inserts the previously selected text at the selection marker.
+    /// </summary>
+    [Serializable]
+    public class SnippetSelectionElement : SnippetElement
+    {
+        /// <summary>
+        /// Gets/Sets the new indentation of the selected text.
+        /// </summary>
+        public int Indentation { get; set; }
 
-		/// <inheritdoc/>
-		public override void Insert(InsertionContext context)
-		{
-			StringBuilder tabString = new StringBuilder();
+        /// <inheritdoc/>
+        public override void Insert(InsertionContext context)
+        {
+            StringBuilder tabString = new StringBuilder();
 
-			for (int i = 0; i < Indentation; i++) {
-				tabString.Append(context.Tab);
-			}
+            for (int i = 0; i < Indentation; i++)
+            {
+                tabString.Append(context.Tab);
+            }
 
-			string indent = tabString.ToString();
+            string indent = tabString.ToString();
 
-			string text = context.SelectedText.TrimStart(' ', '\t');
+            string text = context.SelectedText.TrimStart(' ', '\t');
 
-			text = text.Replace(context.LineTerminator,
-										 context.LineTerminator + indent);
+            text = text.Replace(context.LineTerminator,
+                                         context.LineTerminator + indent);
 
-			context.Document.Insert(context.InsertionPosition, text);
-			context.InsertionPosition += text.Length;
+            context.Document.Insert(context.InsertionPosition, text);
+            context.InsertionPosition += text.Length;
 
-			if (string.IsNullOrEmpty(context.SelectedText))
-				SnippetCaretElement.SetCaret(context);
-		}
-	}
+            if (string.IsNullOrEmpty(context.SelectedText))
+                SnippetCaretElement.SetCaret(context);
+        }
+    }
 }

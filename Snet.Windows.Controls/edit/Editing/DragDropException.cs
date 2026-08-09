@@ -16,40 +16,37 @@
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System;
-using System.Runtime.Serialization;
-
 namespace Snet.Windows.Controls.edit.Editing
 {
-	/// <summary>
-	/// Wraps exceptions that occur during drag'n'drop.
-	/// Exceptions during drag'n'drop might
-	/// get swallowed by WPF/COM, so AvalonEdit catches them and re-throws them later
-	/// wrapped in a DragDropException.
-	/// </summary>
-	[Serializable()]
-	public class DragDropException : Exception
-	{
-		/// <summary>
-		/// Creates a new DragDropException.
-		/// </summary>
-		public DragDropException() : base()
-		{
-		}
+    /// <summary>
+    /// Wraps exceptions that occur during drag'n'drop.
+    /// Exceptions during drag'n'drop might
+    /// get swallowed by WPF/COM, so AvalonEdit catches them and re-throws them later
+    /// wrapped in a DragDropException.
+    /// </summary>
+    [Serializable()]
+    public class DragDropException : Exception
+    {
+        /// <summary>
+        /// Creates a new DragDropException.
+        /// </summary>
+        public DragDropException() : base()
+        {
+        }
 
-		/// <summary>
-		/// Creates a new DragDropException.
-		/// </summary>
-		public DragDropException(string message) : base(message)
-		{
-		}
+        /// <summary>
+        /// Creates a new DragDropException.
+        /// </summary>
+        public DragDropException(string message) : base(message)
+        {
+        }
 
-		/// <summary>
-		/// Creates a new DragDropException.
-		/// </summary>
-		public DragDropException(string message, Exception innerException) : base(message, innerException)
-		{
-		}
+        /// <summary>
+        /// Creates a new DragDropException.
+        /// </summary>
+        public DragDropException(string message, Exception innerException) : base(message, innerException)
+        {
+        }
 #if !NET6_0_OR_GREATER
 		/// <summary>
 		/// Deserializes a DragDropException.
@@ -58,5 +55,5 @@ namespace Snet.Windows.Controls.edit.Editing
 		{
 		}
 #endif
-	}
+    }
 }

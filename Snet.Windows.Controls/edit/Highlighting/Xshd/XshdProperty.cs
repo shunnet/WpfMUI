@@ -16,38 +16,36 @@
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System;
-
 namespace Snet.Windows.Controls.edit.Highlighting.Xshd
 {
-	/// <summary>
-	/// A property in an Xshd file.
-	/// </summary>
-	[Serializable]
-	public class XshdProperty : XshdElement
-	{
-		/// <summary>
-		/// Gets/sets the name.
-		/// </summary>
-		public string Name { get; set; }
+    /// <summary>
+    /// A property in an Xshd file.
+    /// </summary>
+    [Serializable]
+    public class XshdProperty : XshdElement
+    {
+        /// <summary>
+        /// Gets/sets the name.
+        /// </summary>
+        public string Name { get; set; }
 
-		/// <summary>
-		/// Gets/sets the value.
-		/// </summary>
-		public string Value { get; set; }
+        /// <summary>
+        /// Gets/sets the value.
+        /// </summary>
+        public string Value { get; set; }
 
-		/// <summary>
-		/// Creates a new XshdColor instance.
-		/// </summary>
-		public XshdProperty()
-		{
-		}
+        /// <summary>
+        /// Creates a new XshdColor instance.
+        /// </summary>
+        public XshdProperty()
+        {
+        }
 
-		/// <inheritdoc/>
-		public override object AcceptVisitor(IXshdVisitor visitor)
-		{
-			return null;
-			//			return visitor.VisitProperty(this);
-		}
-	}
+        /// <inheritdoc/>
+        public override object AcceptVisitor(IXshdVisitor visitor)
+        {
+            return null;
+            //			return visitor.VisitProperty(this);
+        }
+    }
 }

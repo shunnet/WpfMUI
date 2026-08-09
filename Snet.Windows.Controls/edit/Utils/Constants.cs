@@ -18,11 +18,11 @@
 
 namespace Snet.Windows.Controls.edit.Utils
 {
-	static class Constants
-	{
-		/// <summary>
-		/// Multiply with this constant to convert from points to device-independent pixels.
-		/// </summary>
-		public const double PixelPerPoint = 4 / 3.0;
-	}
+    static class Constants
+    {
+        /// <summary>
+        /// Multiply with this constant to convert from points to device-independent pixels.
+        /// </summary>
+        public const double PixelPerPoint = 4 / 3.0;
+    }
 }
