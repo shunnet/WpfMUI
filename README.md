@@ -1,4 +1,4 @@
-<h1 align="center">🎨 Snet.WpfMUI</h1>
+﻿<h1 align="center">🎨 Snet.WpfMUI</h1>
 
 <p align="center">
   <img width="120" height="120" src="https://api.snet.cn/pic/nuget.png" alt="Snet Logo"/>
@@ -97,8 +97,8 @@ dotnet add package Snet.Windows.Controls
 
 <a href="https://www.star-history.com/?repos=shunnet%2FWpfMUI&type=date&legend=bottom-right">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=shunnet/WpfMUI&type=date&theme=dark&legend=bottom-right"/>
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=shunnet/WpfMUI&type=date&legend=bottom-right"/>
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=shunnet/WpfMUI&type=date&legend=bottom-right"/>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=shunnet/WpfMUI&type=date&theme=dark&legend=bottom-right&sealed_token=urcaATW4Hc7ZJfh-ABg8JSIplISwOoHIUv23AhRfmQQfX5LG8uJX404fQ1F4yXVGifaSzp55kmKLKmJO7tBsFlZGu5Lu4Zr3TSm8VU2kEVETu1uAKtDS3Q" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=shunnet/WpfMUI&type=date&legend=bottom-right&sealed_token=urcaATW4Hc7ZJfh-ABg8JSIplISwOoHIUv23AhRfmQQfX5LG8uJX404fQ1F4yXVGifaSzp55kmKLKmJO7tBsFlZGu5Lu4Zr3TSm8VU2kEVETu1uAKtDS3Q" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=shunnet/WpfMUI&type=date&legend=bottom-right&sealed_token=urcaATW4Hc7ZJfh-ABg8JSIplISwOoHIUv23AhRfmQQfX5LG8uJX404fQ1F4yXVGifaSzp55kmKLKmJO7tBsFlZGu5Lu4Zr3TSm8VU2kEVETu1uAKtDS3Q" />
  </picture>
 </a>
