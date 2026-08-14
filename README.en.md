@@ -1,4 +1,4 @@
-<h1 align="center">🎨 Snet.WpfMUI</h1>
+﻿<h1 align="center">🎨 Snet.WpfMUI</h1>
 
 <p align="center">
   <img width="120" height="120" src="https://api.snet.cn/pic/nuget.png" alt="Snet Logo"/>
