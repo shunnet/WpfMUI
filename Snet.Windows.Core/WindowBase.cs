@@ -1,4 +1,4 @@
-﻿using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Input;
 using Microsoft.Win32;
 using Snet.Log;
 using Snet.Model.@enum;
@@ -208,6 +208,13 @@ namespace Snet.Windows.Core
 
             //自动缩放功能
             AutoAdjustAsync();
+
+            // 预热 MaterialDesign DialogHost 弹窗渲染管线：
+            // DialogHost 首次打开时 Popup 需要冷启动（HWND 创建、阴影/字体渲染缓存、DWM 合成），
+            // MD 内部在打开后 300ms 会 FocusPopup()+InvalidateVisual()，首次会造成 ~135-287ms
+            // 的整帧卡顿，视觉表现为"第一次弹窗闪两下；之后再弹就正常"。
+            // 这里在窗口就绪后预先做一次不可见的打开/关闭，把冷启动成本移到启动阶段。
+            Dispatcher.BeginInvoke(new Action(PreWarmDialogHost), DispatcherPriority.ContextIdle);
 
             //查看是什么加速
 #if DEBUG
@@ -427,35 +434,32 @@ namespace Snet.Windows.Core
             animationArea.Opacity = 1;
             animationArea.Visibility = Visibility.Visible;
 
+            // 内容区用 Opacity=0 隐藏（不能用 Visibility=Collapsed）：
+            // Visibility=Collapsed 会让元素脱离可视树，其内部隐式样式/WPF 属性继承上下文
+            // （如 Card 上的 Foreground 继承）在恢复 Visible 后不会重新建立，
+            // 导致当前主题前景丢失、文字回退为默认黑色。
+            // Opacity=0 的元素保留在可视树和继承链中，仅不可见。
             clientArea.Opacity = 0;
-            clientArea.Visibility = Visibility.Visible; // opacity = 0 时仍可参与布局
             clientArea.IsEnabled = false;
 
             var duration = TimeSpan.FromMilliseconds(AnimationTime);
 
             await Task.Delay(duration, cancellationToken);
 
-            // 3. 并行动画
-            var fadeOutTask = AnimateAsync(
+            // 3. 转圈淡出（转圈为小面积元素，淡出开销可忽略）。
+            // 注意：不再对内容区做全窗口 Opacity 淡入动画——
+            // 实测整窗/内容区透明度动画在大窗口下每帧合成巨大面积，帧率掉到 10~40fps（全屏时最严重）。
+            await AnimateAsync(
                 animationArea,
                 UIElement.OpacityProperty,
                 new DoubleAnimation(1, 0, duration) { FillBehavior = FillBehavior.Stop },
-                setFinalValue: false, // 动画结束后不强制保持 0，后续会设置 Visibility
+                setFinalValue: false,
                 cancellationToken: cancellationToken);
 
-            var fadeInTask = AnimateAsync(
-                clientArea,
-                UIElement.OpacityProperty,
-                new DoubleAnimation(0, 1, duration) { FillBehavior = FillBehavior.HoldEnd },
-                setFinalValue: true, // 动画结束后强制保持 1
-                cancellationToken: cancellationToken);
-
-            // 4. 等待动画完成
-            await Task.WhenAll(fadeOutTask, fadeInTask);
-
-            // 5. 动画完成后处理
+            // 4. 动画完成后处理
             animationArea.Visibility = Visibility.Collapsed;
             animationArea.Opacity = 1; // 重置为默认，避免下一次动画不生效
+            clientArea.Opacity = 1;
             clientArea.IsEnabled = true;
         }
 
@@ -504,6 +508,9 @@ namespace Snet.Windows.Core
                     // 强制设置最终值，避免动画停止后值被复位
                     target.SetValue(property, animation.To.Value);
                 }
+                // 移除动画时钟：HoldEnd 动画结束后时钟仍挂在元素上，
+                // 会导致元素持续参与渲染评估，动画结束后帧率无法恢复
+                animatable.BeginAnimation(property, null);
                 ctr.Dispose();
                 tcs.TrySetResult(null);
             };
@@ -565,6 +572,60 @@ namespace Snet.Windows.Core
             });
 
             return Task.CompletedTask;
+        }
+
+        /// <summary>
+        /// 预热窗口内的 MaterialDesign DialogHost 弹窗渲染管线。<br/>
+        /// 原理：WPF Popup 第一次打开时需要冷启动渲染资源（HWND 创建、字体/阴影缓存、
+        /// DWM 合成首帧），MD 在打开后 300ms 会触发 FocusPopup()+InvalidateVisual()，
+        /// 首次会卡一帧（实测 135~287ms），视觉表现为"第一次弹窗闪两下"。
+        /// 这里只在模板就绪后直接开合 Popup 本身（Popup.IsOpen，不触碰 DialogHost 的
+        /// IsOpen 依赖属性与状态机，因此不会触发 DialogOpened/Closed 等事件），
+        /// 提前完成冷启动，使后续真实弹窗全程流畅。
+        /// </summary>
+        private void PreWarmDialogHost()
+        {
+            try
+            {
+                var hosts = FindVisualChildren<MaterialDesignThemes.Wpf.DialogHost>(this);
+                foreach (var host in hosts)
+                {
+                    // 确保模板已应用（PART_Popup 等模板部件已创建）
+                    host.ApplyTemplate();
+
+                    var popupField = typeof(MaterialDesignThemes.Wpf.DialogHost)
+                        .GetField("_popup", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                    var popup = popupField?.GetValue(host) as System.Windows.Controls.Primitives.Popup;
+                    if (popup == null) continue;
+
+                    // 只开合 Popup（渲染层冷启动），DialogHost.IsOpen 保持 false，
+                    // 不触发任何对话框事件，不影响聚焦/遮罩/会话状态。
+                    // 打开后让出一轮调度，确保 Popup 的 HwndSource/渲染资源完成创建再关闭。
+                    popup.IsOpen = true;
+                    host.Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        if (popup.IsOpen) popup.IsOpen = false;
+                    }), System.Windows.Threading.DispatcherPriority.Background);
+                }
+            }
+            catch
+            {
+                // 预热属优化项：任何异常都不得影响窗口正常启动
+            }
+        }
+
+        /// <summary>
+        /// 深度遍历可视树查找指定类型的所有子元素
+        /// </summary>
+        private static IEnumerable<T> FindVisualChildren<T>(DependencyObject root) where T : DependencyObject
+        {
+            if (root == null) yield break;
+            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(root); i++)
+            {
+                var child = VisualTreeHelper.GetChild(root, i);
+                if (child is T target) yield return target;
+                foreach (var nested in FindVisualChildren<T>(child)) yield return nested;
+            }
         }
 
         /// <summary>

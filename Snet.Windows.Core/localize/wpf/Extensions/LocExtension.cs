@@ -1,4 +1,4 @@
-﻿
+
 
 namespace Snet.Windows.Core.localize.wpf.Extensions
 {
@@ -46,7 +46,12 @@ namespace Snet.Windows.Core.localize.wpf.Extensions
 
         #region Variables
         private static readonly object ResourceBufferLock = new object();
-        private static readonly object ResolveLock = new object();
+
+        /// <summary>
+        /// Upper bound for the resource buffer. When exceeded, the whole buffer is cleared
+        /// to prevent unbounded growth (entries are culture-specific and cheap to re-resolve).
+        /// </summary>
+        private const int ResourceBufferCapacity = 10000;
 
         private static Dictionary<string, object> _resourceBuffer = new Dictionary<string, object>();
 
@@ -94,13 +99,13 @@ namespace Snet.Windows.Core.localize.wpf.Extensions
         #region Resource buffer handling.
         /// <summary>
         /// Clears the common resource buffer.
+        /// The dictionary itself is kept (and simply emptied) so subsequent buffer operations stay safe.
         /// </summary>
         public static void ClearResourceBuffer()
         {
             lock (ResourceBufferLock)
             {
-                _resourceBuffer?.Clear();
-                _resourceBuffer = null;
+                _resourceBuffer.Clear();
             }
         }
 
@@ -113,7 +118,13 @@ namespace Snet.Windows.Core.localize.wpf.Extensions
         {
             lock (ResourceBufferLock)
             {
-                if (!LocalizeDictionary.Instance.DisableCache && !_resourceBuffer.ContainsKey(key))
+                if (LocalizeDictionary.Instance.DisableCache)
+                    return;
+
+                if (_resourceBuffer.Count >= ResourceBufferCapacity)
+                    _resourceBuffer.Clear();
+
+                if (!_resourceBuffer.ContainsKey(key))
                     _resourceBuffer.Add(key, item);
             }
         }
@@ -177,11 +188,12 @@ namespace Snet.Windows.Core.localize.wpf.Extensions
             }
 
             // What are these names during design time good for? Any suggestions?
-            if (epProp.Contains("FrameworkElementWidth5"))
+            // Exact match only - substring matching here is a (correctness) foot-gun and costs 3 scans per call.
+            if (epProp.Equals("FrameworkElementWidth5", StringComparison.Ordinal))
                 epProp = "Height";
-            else if (epProp.Contains("FrameworkElementWidth6"))
+            else if (epProp.Equals("FrameworkElementWidth6", StringComparison.Ordinal))
                 epProp = "Width";
-            else if (epProp.Contains("FrameworkElementMargin12"))
+            else if (epProp.Equals("FrameworkElementMargin12", StringComparison.Ordinal))
                 epProp = "Margin";
 
             return epProp;
@@ -387,8 +399,13 @@ namespace Snet.Windows.Core.localize.wpf.Extensions
             {
                 string ciName = (vceArgs.Tag as CultureInfo)?.Name;
 
-                lock (ResolveLock)
+                // Buffer reads must use ResourceBufferLock (the write path uses it too).
+                lock (ResourceBufferLock)
                 {
+                    // Short-circuit: nothing to scan if the buffer is empty.
+                    if (_resourceBuffer.Count == 0)
+                        return;
+
                     foreach (var key in _resourceBuffer.Keys.ToList())
                     {
                         if (key.EndsWith(vceArgs.Key))
@@ -690,7 +707,9 @@ namespace Snet.Windows.Core.localize.wpf.Extensions
         /// <returns>The resolved localized object.</returns>
         public static TValue GetLocalizedValue<TValue>(string key, CultureInfo targetCulture, DependencyObject target, IValueConverter converter = null, object converterParameter = null)
         {
-            lock (ResolveLock)
+            // The whole method body only touches the shared _resourceBuffer,
+            // so ResourceBufferLock (the write-path lock) is the correct lock here.
+            lock (ResourceBufferLock)
             {
                 var result = default(TValue);
 
@@ -739,7 +758,7 @@ namespace Snet.Windows.Core.localize.wpf.Extensions
         /// <returns>The resolved localized object.</returns>
         public static object GetLocalizedValue(Type t, string key, CultureInfo targetCulture, DependencyObject target, IValueConverter converter = null, object converterParameter = null)
         {
-            lock (ResolveLock)
+            lock (ResourceBufferLock)
             {
                 object result = null;
 

@@ -1,4 +1,4 @@
-﻿
+
 
 namespace Snet.Windows.Core.localize.wpf.Extensions
 {
@@ -37,6 +37,13 @@ namespace Snet.Windows.Core.localize.wpf.Extensions
 
         #region Variables & Properties
         private static readonly object ResourceBufferLock = new object();
+
+        /// <summary>
+        /// Upper bound for the resource buffer. When exceeded, the whole buffer is cleared
+        /// to prevent unbounded growth (entries are culture-specific and cheap to re-resolve).
+        /// </summary>
+        private const int ResourceBufferCapacity = 10000;
+
         private static Dictionary<string, object> _resourceBuffer = new Dictionary<string, object>();
 
         private object _value;
@@ -83,13 +90,13 @@ namespace Snet.Windows.Core.localize.wpf.Extensions
         #region Resource buffer handling.
         /// <summary>
         /// Clears the common resource buffer.
+        /// The dictionary itself is kept (and simply emptied) so subsequent buffer operations stay safe.
         /// </summary>
         public static void ClearResourceBuffer()
         {
             lock (ResourceBufferLock)
             {
-                _resourceBuffer?.Clear();
-                _resourceBuffer = null;
+                _resourceBuffer.Clear();
             }
         }
 
@@ -102,7 +109,13 @@ namespace Snet.Windows.Core.localize.wpf.Extensions
         {
             lock (ResourceBufferLock)
             {
-                if (!LocalizeDictionary.Instance.DisableCache && !_resourceBuffer.ContainsKey(key))
+                if (LocalizeDictionary.Instance.DisableCache)
+                    return;
+
+                if (_resourceBuffer.Count >= ResourceBufferCapacity)
+                    _resourceBuffer.Clear();
+
+                if (!_resourceBuffer.ContainsKey(key))
                     _resourceBuffer.Add(key, item);
             }
         }

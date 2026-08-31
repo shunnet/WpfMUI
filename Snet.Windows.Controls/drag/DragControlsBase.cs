@@ -1,9 +1,10 @@
-﻿using System.Windows;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Shapes;
 using Point = System.Windows.Point;
 using Size = System.Windows.Size;
@@ -20,19 +21,36 @@ namespace Snet.Windows.Controls.drag
         /// </summary>
         /// <param name="Controls">要拖动的控件</param>
         /// <param name="LlayoutContainer">窗体的布局容器</param>
-        /// <param name="DragSize">拖拽大小</param>
-        /// <param name="Move">移动</param>
-        public DragControlsBase(UIElement Controls, FrameworkElement LlayoutContainer, bool Move, bool DragSize) : base(Controls)
+        /// <param name="Move">移动（含中心移动圈）</param>
+        /// <param name="DragSize">拖拽大小（四周 8 个缩放点）</param>
+        /// <param name="Rotate">旋转（顶部旋转圈）</param>
+        public DragControlsBase(UIElement Controls, FrameworkElement LlayoutContainer, bool Move, bool DragSize, bool Rotate = false) : base(Controls)
         {
             this.Controls = Controls;
             this.LlayoutContainer = LlayoutContainer;
+            // 三类装饰点互相独立：移动圈 / 缩放点 / 旋转圈
+            if (Move || DragSize || Rotate)
+            {
+                InitLayout();
+            }
             if (DragSize)
             {
-                InitDragDelta();  //初始化拖动大小
+                InitDragDelta();      //四周 8 个缩放点（蓝色）
             }
             if (Move)
             {
-                InitMove();  //初始化移动
+                InitMove();           //控件本体拖动
+                InitCentreThumb();    //中心移动圈（红色）
+            }
+            if (Rotate)
+            {
+                InitRotateThumb();    //顶部旋转圈（红色）
+            }
+            StyleThumbs();
+            // 控件已带旋转（如 JSON 加载）时同步装饰器
+            if (Controls is FrameworkElement fe && fe.RenderTransform is RotateTransform rotate)
+            {
+                SetRotation(rotate.Angle);
             }
         }
         /// <summary>
@@ -48,13 +66,21 @@ namespace Snet.Windows.Controls.drag
         /// </summary>
         public double BorderOpacity = 0;
         /// <summary>
-        /// 拖拽装饰器的内圈颜色
+        /// 拖拽装饰器的内圈颜色（中心点 / 旋转圈 / 连接线）
         /// </summary>
-        public SolidColorBrush ThumbInnerColor = new SolidColorBrush(Colors.Red);
+        public SolidColorBrush ThumbInnerColor = new SolidColorBrush(new Color { A = 0xFF, R = 0xF4, G = 0x43, B = 0x36 });
         /// <summary>
-        /// 拖拽装饰器的外圈颜色
+        /// 拖拽装饰器的外圈颜色（中心点 / 旋转圈 / 连接线）
         /// </summary>
-        public SolidColorBrush ThumbOuterColor = new SolidColorBrush(Colors.Red);
+        public SolidColorBrush ThumbOuterColor = new SolidColorBrush(new Color { A = 0xFF, R = 0xFF, G = 0x8A, B = 0x80 });
+        /// <summary>
+        /// 四周调整圈内圈颜色（8 个缩放点，默认蓝色）
+        /// </summary>
+        public SolidColorBrush SurroundInnerColor = new SolidColorBrush(new Color { A = 0xFF, R = 0x21, G = 0x96, B = 0xF3 });
+        /// <summary>
+        /// 四周调整圈外圈颜色（8 个缩放点，默认浅蓝）
+        /// </summary>
+        public SolidColorBrush SurroundOuterColor = new SolidColorBrush(new Color { A = 0xFF, R = 0x90, G = 0xCA, B = 0xF9 });
         /// <summary>
         /// 装饰器线径
         /// </summary>
@@ -90,9 +116,23 @@ namespace Snet.Windows.Controls.drag
         /// </summary>
         Thumb LefTopThumb, RightTopThumb, RightBottomThumb, LeftbottomThumb;
         /// <summary>
-        /// 中间  目前暂不使用
+        /// 中间（拖动整个控件）
         /// </summary>
-        //Thumb CentreThumb;
+        Thumb CentreThumb;
+        /// <summary>
+        /// 旋转手柄（位于控件上方，拖动绕中心旋转）
+        /// </summary>
+        Thumb RotateThumb;
+
+        /// <summary>
+        /// 旋转手柄中心到控件上边缘的距离
+        /// </summary>
+        double RotateThumbDistance = 26;
+
+        /// <summary>
+        /// 当前旋转角度（度，绕中心顺时针；0 表示不旋转）
+        /// </summary>
+        public double Angle { get; private set; }
         /// <summary>
         /// 布局容器，如果不使用布局容器，则需要给上述8个控件布局，实现和Grid布局定位是一样的，会比较繁琐且意义不大。
         /// </summary>
@@ -126,16 +166,16 @@ namespace Snet.Windows.Controls.drag
         /// </summary>
         protected override Visual GetVisualChild(int index)
         {
-            return Llayout;
+            return Llayout!;
         }
         /// <summary>
-        /// 获取可视子元素数量（固定返回 1）。
+        /// 获取可视子元素数量（有布局容器时返回 1，否则 0）
         /// </summary>
         protected override int VisualChildrenCount
         {
             get
             {
-                return 1;
+                return Llayout == null ? 0 : 1;
             }
         }
         /// <summary>
@@ -145,14 +185,58 @@ namespace Snet.Windows.Controls.drag
         protected override Size ArrangeOverride(Size finalSize)
         {
             //直接给容器布局，容器内部的装饰器会自动布局。
-            Llayout?.Arrange(new Rect(new Point(-LeftThumb.Width / 2, -LeftThumb.Height / 2), new Size(finalSize.Width + LeftThumb.Width, finalSize.Height + LeftThumb.Height)));
+            if (Llayout != null)
+            {
+                double half = LeftThumb is { } left ? left.Width / 2 : 0;
+                Llayout.Arrange(new Rect(new Point(-half, -half), new Size(finalSize.Width + half * 2, finalSize.Height + half * 2)));
+            }
             return finalSize;
         }
         #endregion
 
         #region 方法
         /// <summary>
-        /// 初始化拖拽大小
+        /// 共享的拖拽点模板（静态只读，构造一次即可复用，避免每个拖拽点独立创建 ControlTemplate）<br/>
+        /// 颜色/线径通过 Thumb 的 Background/BorderBrush/BorderThickness 模板绑定传入，保持每个实例可定制
+        /// </summary>
+        private static readonly ControlTemplate SharedThumbTemplate;
+
+        /// <summary>
+        /// 静态构造函数：只创建一次共享的拖拽点模板
+        /// </summary>
+        static DragControlsBase()
+        {
+            FrameworkElementFactory element = new FrameworkElementFactory(typeof(Ellipse));  //绘制椭圆形元素
+            element.SetValue(Ellipse.FillProperty, new TemplateBindingExtension(Control.BackgroundProperty));  //内圈色
+            element.SetValue(Ellipse.StrokeProperty, new TemplateBindingExtension(Control.BorderBrushProperty));  //外圈色
+            element.SetValue(Ellipse.StrokeThicknessProperty, new TemplateBindingExtension(Control.BorderThicknessProperty));  //线径
+            SharedThumbTemplate = new ControlTemplate(typeof(Thumb))
+            {
+                VisualTree = element
+            };
+            SharedThumbTemplate.Seal();
+        }
+
+        /// <summary>
+        /// 初始化装饰器布局容器（网格 + 边框容器），三类装饰点共用同一容器
+        /// </summary>
+        private void InitLayout()
+        {
+            Llayout = new Grid();
+            //给布局容器加个边框
+            Border border = new Border
+            {
+                Margin = new Thickness(2),
+                Opacity = BorderOpacity,
+                BorderThickness = BorderWireDiameter,
+                BorderBrush = BorderColor
+            };
+            Llayout.Children.Add(border);
+            AddVisualChild(Llayout);
+        }
+
+        /// <summary>
+        /// 初始化拖拽大小（四周 8 个缩放点，蓝色）
         /// </summary>
         public void InitDragDelta()
         {
@@ -205,22 +289,6 @@ namespace Snet.Windows.Controls.drag
                 VerticalAlignment = VerticalAlignment.Bottom,
                 Cursor = System.Windows.Input.Cursors.SizeNESW
             };
-            //CentreThumb = new Thumb
-            //{
-            //    HorizontalAlignment = HorizontalAlignment.Center,
-            //    VerticalAlignment = VerticalAlignment.Center,
-            //    Cursor = Cursors.SizeAll
-            //};
-            Llayout = new Grid();
-            //给布局容器加个边框
-            Border border = new Border
-            {
-                Margin = new Thickness(2),
-                Opacity = BorderOpacity,
-                BorderThickness = BorderWireDiameter,
-                BorderBrush = BorderColor
-            };
-            Llayout.Children.Add(border);
             //给布局容器添加拖动大小装饰器
             Llayout.Children.Add(LeftThumb);
             Llayout.Children.Add(TopThumb);
@@ -230,39 +298,113 @@ namespace Snet.Windows.Controls.drag
             Llayout.Children.Add(RightTopThumb);
             Llayout.Children.Add(RightBottomThumb);
             Llayout.Children.Add(LeftbottomThumb);
-            //Llayout.Children.Add(CentreThumb);   //中间的装饰器 暂不使用
-            AddVisualChild(Llayout);
+        }
+
+        /// <summary>
+        /// 初始化中心移动圈（红色，拖动整个控件）
+        /// </summary>
+        public void InitCentreThumb()
+        {
+            CentreThumb = new Thumb
+            {
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                Cursor = System.Windows.Input.Cursors.SizeAll
+            };
+            Llayout.Children.Add(CentreThumb);
+        }
+
+        /// <summary>
+        /// 初始化顶部旋转圈（红色，拖动绕中心旋转）
+        /// </summary>
+        public void InitRotateThumb()
+        {
+            RotateThumb = new Thumb
+            {
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Top,
+                Margin = new Thickness(0, -RotateThumbDistance, 0, 0),
+                Cursor = System.Windows.Input.Cursors.SizeAll
+            };
+            Llayout.Children.Add(RotateThumb);
+        }
+
+        /// <summary>
+        /// 应用拖拽点样式（尺寸/颜色/动画/拖拽事件），按角色区分
+        /// </summary>
+        private void StyleThumbs()
+        {
+            if (Llayout == null) return;
             foreach (var item in Llayout.Children)
             {
                 if (item.GetType().Equals(typeof(Thumb)))
                 {
                     Thumb thumb = item as Thumb;
-                    thumb.Width = 5;   //设置圆圈的宽
-                    thumb.Height = 5;  //设置圆圈的高
                     thumb.Opacity = ThumbOpacity;//透明度
-                    thumb.Template = new ControlTemplate(typeof(Thumb))   //模板
+                    thumb.Template = SharedThumbTemplate;  //使用共享模板，避免每个拖拽点独立创建
+                    thumb.BorderThickness = new Thickness(ThumbWireDiameter);  //线径（模板绑定）
+                    if (ReferenceEquals(thumb, CentreThumb))
                     {
-                        VisualTree = GetFactory(ThumbInnerColor, ThumbOuterColor, ThumbWireDiameter)
-                    };
-                    thumb.DragDelta += Control_DragDelta;
+                        thumb.Width = 10;   //中心的点比四周的大一点（红色）
+                        thumb.Height = 10;
+                        thumb.Background = ThumbInnerColor;
+                        thumb.BorderBrush = ThumbOuterColor;
+                        thumb.DragDelta += Control_DragDeltaCentre;
+                        AnimateInteractiveThumb(thumb, 0.1);   //呼吸动画
+                    }
+                    else if (ReferenceEquals(thumb, RotateThumb))
+                    {
+                        thumb.Width = 10;   //旋转手柄（红色）
+                        thumb.Height = 10;
+                        thumb.Background = ThumbInnerColor;
+                        thumb.BorderBrush = ThumbOuterColor;
+                        thumb.DragDelta += Control_DragDeltaRotate;
+                        AnimateInteractiveThumb(thumb, 0.0);   //呼吸动画
+                    }
+                    else
+                    {
+                        thumb.Width = 5;   //设置圆圈的宽（四周调整圈，蓝色）
+                        thumb.Height = 5;  //设置圆圈的高
+                        thumb.Background = SurroundInnerColor;
+                        thumb.BorderBrush = SurroundOuterColor;
+                        thumb.DragDelta += Control_DragDelta;
+                        AnimatePopIn(thumb);
+                    }
                 }
             }
         }
+
         /// <summary>
-        /// 装饰器样式
+        /// 调整圈出现动画：透明度 0 → ThumbOpacity 淡入（220ms）
         /// </summary>
-        /// <param name="InnerColor">内圈颜色</param>
-        /// <param name="OuterColor">外圈颜色</param>
-        /// <param name="WireDiameter">线径</param>
-        /// <param name="Opacity">透明度</param>
-        /// <returns></returns>
-        FrameworkElementFactory GetFactory(System.Windows.Media.Brush InnerColor, System.Windows.Media.Brush OuterColor, double WireDiameter)
+        private static void AnimatePopIn(UIElement thumb)
         {
-            FrameworkElementFactory Element = new FrameworkElementFactory(typeof(Ellipse));  //绘制椭圆形元素
-            Element.SetValue(Ellipse.FillProperty, InnerColor);  //内圈色
-            Element.SetValue(Ellipse.StrokeProperty, OuterColor);  //外圈色
-            Element.SetValue(Ellipse.StrokeThicknessProperty, WireDiameter);   //线径
-            return Element;
+            double targetOpacity = thumb.Opacity;
+            var animation = new DoubleAnimation(0, targetOpacity, TimeSpan.FromMilliseconds(220))
+            {
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+            };
+            thumb.BeginAnimation(UIElement.OpacityProperty, animation);
+        }
+
+        /// <summary>
+        /// 交互点（中心/旋转圈）呼吸动画：透明度 0.55 ↔ 1.0 缓慢往复（1.6s）
+        /// </summary>
+        private static void AnimateInteractiveThumb(UIElement thumb, double beginTimeSeconds)
+        {
+            thumb.RenderTransformOrigin = new Point(0.5, 0.5);
+            thumb.RenderTransform = new ScaleTransform(1, 1);
+            // NOTE: 无限(Forever)呼吸动画会持续触发渲染/布局失效，
+            // 在部分渲染环境下导致同窗口其他元素（如左侧面板）绘制撕裂/不绘制；
+            // 改为有限时长动画（3 次往复后稳定），视觉相近且消除持续重绘
+            var breathe = new DoubleAnimation(0.55, 1.0, TimeSpan.FromSeconds(1.6))
+            {
+                AutoReverse = true,
+                RepeatBehavior = new RepeatBehavior(3),
+                BeginTime = TimeSpan.FromSeconds(beginTimeSeconds),
+                EasingFunction = new SineEase { EasingMode = EasingMode.EaseInOut }
+            };
+            thumb.BeginAnimation(UIElement.OpacityProperty, breathe);
         }
 
         /// <summary>
@@ -274,6 +416,15 @@ namespace Snet.Windows.Controls.drag
             Controls.MouseLeftButtonDown += Control_MouseLeftButtonDown;   //鼠标左键按下
             Controls.MouseLeftButtonUp += Control_MouseLeftButtonUp;   //鼠标左键松开
             Controls.MouseMove += Control_MouseMove;   //鼠标移动
+        }
+        /// <summary>
+        /// 移除移动事件订阅（退订三个鼠标事件，防止事件泄漏）
+        /// </summary>
+        public void Detach()
+        {
+            Controls.MouseLeftButtonDown -= Control_MouseLeftButtonDown;
+            Controls.MouseLeftButtonUp -= Control_MouseLeftButtonUp;
+            Controls.MouseMove -= Control_MouseMove;
         }
         #endregion
 
@@ -334,6 +485,58 @@ namespace Snet.Windows.Controls.drag
                         Control.Height = Height;
                     }
                 }
+            }
+        }
+
+        /// <summary>
+        /// 中心点拖拽事件处理。<br/>
+        /// 拖动整个控件（修改 Margin 平移位置，不改尺寸）。<br/>
+        /// 采用容器空间绝对定位：让控件中心跟随鼠标 —— 直接使用鼠标在容器空间的位置，
+        /// 不依赖 Thumb 的局部增量（局部坐标系随装饰器旋转，旋转后增量会反向/混淆导致飞走或卡顿）。
+        /// </summary>
+        private void Control_DragDeltaCentre(object sender, DragDeltaEventArgs e)
+        {
+            if (Controls is not FrameworkElement control || LlayoutContainer is not FrameworkElement container) return;
+            var center = control.TranslatePoint(new Point(control.ActualWidth / 2, control.ActualHeight / 2), container);
+            var pos = Mouse.GetPosition(container);
+            var delta = pos - center;
+            var margin = control.Margin;
+            control.Margin = new Thickness(
+                margin.Left + delta.X,
+                margin.Top + delta.Y,
+                margin.Right - delta.X,
+                margin.Bottom - delta.Y);
+        }
+
+        /// <summary>
+        /// 旋转手柄拖拽事件处理。<br/>
+        /// 以控件中心为圆心，按鼠标相对中心的角度旋转（0° = 手柄在正上方）。
+        /// </summary>
+        private void Control_DragDeltaRotate(object sender, DragDeltaEventArgs e)
+        {
+            if (Controls is not FrameworkElement control || LlayoutContainer is not FrameworkElement container) return;
+            var center = control.TranslatePoint(new Point(control.ActualWidth / 2, control.ActualHeight / 2), container);
+            var pos = Mouse.GetPosition(container);
+            double angle = Math.Atan2(pos.Y - center.Y, pos.X - center.X) * 180 / Math.PI + 90;
+            SetRotation(angle);
+        }
+
+        /// <summary>
+        /// 设置旋转角度（度，绕控件中心、顺时针）。<br/>
+        /// 控件与装饰器内容（周围点/手柄/连接线）绕同一中心同步旋转。<br/>
+        /// 注意：变换只加到控件与内部布置网格上，不能加到 Adorner 本体 ——
+        /// AdornerLayer 会跟随控件的 RenderTransform 重新排列 adorner，叠加会错位。
+        /// </summary>
+        /// <param name="angle">角度（度）</param>
+        public void SetRotation(double angle)
+        {
+            Angle = angle % 360;
+            if (Controls is FrameworkElement control)
+            {
+                // 只旋转控件本身：AdornerLayer 渲染装饰器时会自动跟随 adorned element 的 RenderTransform，
+                // 装饰器内容（周围点/手柄/连接线）无需（也不能）再手动旋转，否则会叠加成 2 倍角度
+                control.RenderTransformOrigin = new Point(0.5, 0.5);
+                control.RenderTransform = new RotateTransform(Angle);
             }
         }
 

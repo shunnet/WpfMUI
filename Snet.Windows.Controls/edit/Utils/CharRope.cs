@@ -16,6 +16,7 @@
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
+using System.Globalization;
 using System.IO;
 
 namespace Snet.Windows.Controls.edit.Utils
@@ -96,16 +97,19 @@ namespace Snet.Windows.Controls.edit.Utils
         {
             if (rope == null)
                 throw new ArgumentNullException("rope");
-            rope.InsertRange(index, text.ToCharArray(), 0, text.Length);
-            /*if (index < 0 || index > rope.Length) {
-				throw new ArgumentOutOfRangeException("index", index, "0 <= index <= " + rope.Length.ToString(CultureInfo.InvariantCulture));
-			}
-			if (text == null)
-				throw new ArgumentNullException("text");
-			if (text.Length == 0)
-				return;
-			rope.root = rope.root.Insert(index, text);
-			rope.OnChanged();*/
+            if (text == null)
+                throw new ArgumentNullException("text");
+            if (index < 0 || index > rope.Length)
+                throw new ArgumentOutOfRangeException("index", index, "0 <= index <= " + rope.Length.ToString(CultureInfo.InvariantCulture));
+            if (text.Length == 0)
+                return;
+            // Build the rope node directly from the string (FillNode copies straight into the
+            // node buffers) and splice it in, avoiding the extra char[] allocation that
+            // InsertRange(index, text.ToCharArray(), ...) would create.
+            RopeNode<char> node = InitFromString(text);
+            node.Publish();
+            rope.root = rope.root.Insert(index, node);
+            rope.OnChanged();
         }
 
         internal static RopeNode<char> InitFromString(string text)

@@ -19,7 +19,7 @@ namespace Snet.Windows.Test {
     // 类通过类似于 ResGen 或 Visual Studio 的工具自动生成的。
     // 若要添加或移除成员，请编辑 .ResX 文件，然后重新运行 ResGen
     // (以 /str 作为命令选项)，或重新生成 VS 项目。
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "17.0.0.0")]
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "18.0.0.0")]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     internal class Language {
@@ -70,6 +70,15 @@ namespace Snet.Windows.Test {
         }
         
         /// <summary>
+        ///   查找类似 LED指示灯 的本地化字符串。
+        /// </summary>
+        internal static string LED指示灯 {
+            get {
+                return ResourceManager.GetString("LED指示灯", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Snet 界面小样 的本地化字符串。
         /// </summary>
         internal static string SystemTitle {
@@ -84,6 +93,501 @@ namespace Snet.Windows.Test {
         internal static string Welcome {
             get {
                 return ResourceManager.GetString("Welcome", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 下拉框 的本地化字符串。
+        /// </summary>
+        internal static string 下拉框 {
+            get {
+                return ResourceManager.GetString("下拉框", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 代码编辑器 的本地化字符串。
+        /// </summary>
+        internal static string 代码编辑器 {
+            get {
+                return ResourceManager.GetString("代码编辑器", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 保存布局 的本地化字符串。
+        /// </summary>
+        internal static string 保存布局 {
+            get {
+                return ResourceManager.GetString("保存布局", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 加载布局 的本地化字符串。
+        /// </summary>
+        internal static string 加载布局 {
+            get {
+                return ResourceManager.GetString("加载布局", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 勾选标记 的本地化字符串。
+        /// </summary>
+        internal static string 勾选标记 {
+            get {
+                return ResourceManager.GetString("勾选标记", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 单按钮 的本地化字符串。
+        /// </summary>
+        internal static string 单按钮 {
+            get {
+                return ResourceManager.GetString("单按钮", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 单选列表 的本地化字符串。
+        /// </summary>
+        internal static string 单选列表 {
+            get {
+                return ResourceManager.GetString("单选列表", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 取消 的本地化字符串。
+        /// </summary>
+        internal static string 取消 {
+            get {
+                return ResourceManager.GetString("取消", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 可拖拽大小 的本地化字符串。
+        /// </summary>
+        internal static string 可拖拽大小 {
+            get {
+                return ResourceManager.GetString("可拖拽大小", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 可旋转 的本地化字符串。
+        /// </summary>
+        internal static string 可旋转 {
+            get {
+                return ResourceManager.GetString("可旋转", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 可移动 的本地化字符串。
+        /// </summary>
+        internal static string 可移动 {
+            get {
+                return ResourceManager.GetString("可移动", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 向导对话框 的本地化字符串。
+        /// </summary>
+        internal static string 向导对话框 {
+            get {
+                return ResourceManager.GetString("向导对话框", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 否 的本地化字符串。
+        /// </summary>
+        internal static string 否 {
+            get {
+                return ResourceManager.GetString("否", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 固定 的本地化字符串。
+        /// </summary>
+        internal static string 固定 {
+            get {
+                return ResourceManager.GetString("固定", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 基础控件 的本地化字符串。
+        /// </summary>
+        internal static string 基础控件 {
+            get {
+                return ResourceManager.GetString("基础控件", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 对话框 的本地化字符串。
+        /// </summary>
+        internal static string 对话框 {
+            get {
+                return ResourceManager.GetString("对话框", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 属性与网格 的本地化字符串。
+        /// </summary>
+        internal static string 属性与网格 {
+            get {
+                return ResourceManager.GetString("属性与网格", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 属性框 的本地化字符串。
+        /// </summary>
+        internal static string 属性框 {
+            get {
+                return ResourceManager.GetString("属性框", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 属性编辑对话框 的本地化字符串。
+        /// </summary>
+        internal static string 属性编辑对话框 {
+            get {
+                return ResourceManager.GetString("属性编辑对话框", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 已固定（右键可解除） 的本地化字符串。
+        /// </summary>
+        internal static string 已固定 {
+            get {
+                return ResourceManager.GetString("已固定", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 已提取到剪贴板 的本地化字符串。
+        /// </summary>
+        internal static string 已提取到剪贴板 {
+            get {
+                return ResourceManager.GetString("已提取到剪贴板", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 布局加载失败 的本地化字符串。
+        /// </summary>
+        internal static string 布局加载失败 {
+            get {
+                return ResourceManager.GetString("布局加载失败", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 布局已保存 的本地化字符串。
+        /// </summary>
+        internal static string 布局已保存 {
+            get {
+                return ResourceManager.GetString("布局已保存", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 布局已加载 的本地化字符串。
+        /// </summary>
+        internal static string 布局已加载 {
+            get {
+                return ResourceManager.GetString("布局已加载", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 带输入框滑块 的本地化字符串。
+        /// </summary>
+        internal static string 带输入框滑块 {
+            get {
+                return ResourceManager.GetString("带输入框滑块", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 弹出选择 的本地化字符串。
+        /// </summary>
+        internal static string 弹出选择 {
+            get {
+                return ResourceManager.GetString("弹出选择", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 当前选择 的本地化字符串。
+        /// </summary>
+        internal static string 当前选择 {
+            get {
+                return ResourceManager.GetString("当前选择", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 当前页 的本地化字符串。
+        /// </summary>
+        internal static string 当前页 {
+            get {
+                return ResourceManager.GetString("当前页", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 总条数 的本地化字符串。
+        /// </summary>
+        internal static string 总条数 {
+            get {
+                return ResourceManager.GetString("总条数", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 打开向导对话框 的本地化字符串。
+        /// </summary>
+        internal static string 打开向导对话框 {
+            get {
+                return ResourceManager.GetString("打开向导对话框", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 打开属性对话框 的本地化字符串。
+        /// </summary>
+        internal static string 打开属性对话框 {
+            get {
+                return ResourceManager.GetString("打开属性对话框", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 拖拽控件 的本地化字符串。
+        /// </summary>
+        internal static string 拖拽控件 {
+            get {
+                return ResourceManager.GetString("拖拽控件", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 从左侧控件按下鼠标左键拖出副本；右键副本菜单：固定 / 调整 / 提取 / 设置 / 移除；顶部按钮可保存/加载画布布局(JSON) 的本地化字符串。
+        /// </summary>
+        internal static string 拖拽提示 {
+            get {
+                return ResourceManager.GetString("拖拽提示", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 按钮控件 的本地化字符串。
+        /// </summary>
+        internal static string 按钮控件 {
+            get {
+                return ResourceManager.GetString("按钮控件", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 提取 的本地化字符串。
+        /// </summary>
+        internal static string 提取 {
+            get {
+                return ResourceManager.GetString("提取", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 数字调节 的本地化字符串。
+        /// </summary>
+        internal static string 数字调节 {
+            get {
+                return ResourceManager.GetString("数字调节", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 文件选择 的本地化字符串。
+        /// </summary>
+        internal static string 文件选择 {
+            get {
+                return ResourceManager.GetString("文件选择", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 文本框 的本地化字符串。
+        /// </summary>
+        internal static string 文本框 {
+            get {
+                return ResourceManager.GetString("文本框", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 是 的本地化字符串。
+        /// </summary>
+        internal static string 是 {
+            get {
+                return ResourceManager.GetString("是", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 树形列表 的本地化字符串。
+        /// </summary>
+        internal static string 树形列表 {
+            get {
+                return ResourceManager.GetString("树形列表", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 每页 的本地化字符串。
+        /// </summary>
+        internal static string 每页 {
+            get {
+                return ResourceManager.GetString("每页", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 消息框 的本地化字符串。
+        /// </summary>
+        internal static string 消息框 {
+            get {
+                return ResourceManager.GetString("消息框", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 消息记录 的本地化字符串。
+        /// </summary>
+        internal static string 消息记录 {
+            get {
+                return ResourceManager.GetString("消息记录", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 清空画布 的本地化字符串。
+        /// </summary>
+        internal static string 清空画布 {
+            get {
+                return ResourceManager.GetString("清空画布", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 点亮 的本地化字符串。
+        /// </summary>
+        internal static string 点亮 {
+            get {
+                return ResourceManager.GetString("点亮", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 确认 的本地化字符串。
+        /// </summary>
+        internal static string 确认 {
+            get {
+                return ResourceManager.GetString("确认", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 移除 的本地化字符串。
+        /// </summary>
+        internal static string 移除 {
+            get {
+                return ResourceManager.GetString("移除", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 自定义表格 的本地化字符串。
+        /// </summary>
+        internal static string 自定义表格 {
+            get {
+                return ResourceManager.GetString("自定义表格", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 解除固定 的本地化字符串。
+        /// </summary>
+        internal static string 解除固定 {
+            get {
+                return ResourceManager.GetString("解除固定", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 输入内容 的本地化字符串。
+        /// </summary>
+        internal static string 输入内容 {
+            get {
+                return ResourceManager.GetString("输入内容", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 选择颜色 的本地化字符串。
+        /// </summary>
+        internal static string 选择颜色 {
+            get {
+                return ResourceManager.GetString("选择颜色", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 闪烁 的本地化字符串。
+        /// </summary>
+        internal static string 闪烁 {
+            get {
+                return ResourceManager.GetString("闪烁", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 页码条 的本地化字符串。
+        /// </summary>
+        internal static string 页码条 {
+            get {
+                return ResourceManager.GetString("页码条", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 颜色选择 的本地化字符串。
+        /// </summary>
+        internal static string 颜色选择 {
+            get {
+                return ResourceManager.GetString("颜色选择", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 高级编辑控件 的本地化字符串。
+        /// </summary>
+        internal static string 高级编辑控件 {
+            get {
+                return ResourceManager.GetString("高级编辑控件", resourceCulture);
             }
         }
     }

@@ -1,4 +1,4 @@
-﻿// --------------------------------------------------------------------------------------------------------------------
+// --------------------------------------------------------------------------------------------------------------------
 // <copyright file="ReflectionExtensions.cs" company="Snet.Windows.Controls.property.core">
 //   Copyright (c) 2014 Snet.Windows.Controls.property.core contributors
 // </copyright>
@@ -11,6 +11,7 @@ namespace Snet.Windows.Controls.property.wpf
 {
     using System;
     using System.Collections;
+    using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Linq;
     using System.Reflection;
@@ -21,6 +22,11 @@ namespace Snet.Windows.Controls.property.wpf
     public static class ReflectionExtensions
     {
         /// <summary>
+        /// 枚举浏览过滤缓存（按枚举元素类型缓存完整值列表的过滤结果）。
+        /// </summary>
+        private static readonly ConcurrentDictionary<Type, EnumBrowsableInfo> EnumBrowsableCache = new ConcurrentDictionary<Type, EnumBrowsableInfo>();
+
+        /// <summary>
         /// Filters on the <see cref="System.ComponentModel.BrowsableAttribute" /> and <see cref="Snet.Windows.Controls.property.core.DataAnnotations.BrowsableAttribute" />.
         /// </summary>
         /// <typeparam name="T">The enumeration type.</typeparam>
@@ -29,6 +35,43 @@ namespace Snet.Windows.Controls.property.wpf
         /// The filtered values.
         /// </returns>
         public static List<object> FilterOnBrowsableAttribute<T>(this T arr) where T : IEnumerable
+        {
+            // 仅当传入的是完整枚举值集合（长度与定义值数量一致）时按类型缓存；
+            // 其他情况（子集、非枚举）走原始逻辑，避免缓存污染。
+            if (arr is Array array)
+            {
+                var elementType = array.GetType().GetElementType();
+                if (elementType != null && elementType.IsEnum)
+                {
+                    var info = EnumBrowsableCache.GetOrAdd(elementType, BuildEnumBrowsableInfo);
+                    if (array.Length == info.ValueCount)
+                    {
+                        // 返回副本，避免调用方修改缓存
+                        return new List<object>(info.BrowsableValues);
+                    }
+                }
+            }
+
+            return FilterOnBrowsableAttributeCore(arr);
+        }
+
+        /// <summary>
+        /// 构建枚举的浏览过滤缓存信息（基于完整值集合）。
+        /// </summary>
+        /// <param name="enumType">枚举类型。</param>
+        /// <returns>缓存信息。</returns>
+        private static EnumBrowsableInfo BuildEnumBrowsableInfo(Type enumType)
+        {
+            var values = Enum.GetValues(enumType);
+            return new EnumBrowsableInfo(values.Length, FilterOnBrowsableAttributeCore(values));
+        }
+
+        /// <summary>
+        /// 浏览过滤的核心逻辑（与原有行为完全一致）。
+        /// </summary>
+        /// <param name="arr">枚举值集合。</param>
+        /// <returns>过滤后的值列表。</returns>
+        private static List<object> FilterOnBrowsableAttributeCore(IEnumerable arr)
         {
             // Default empty list
             var res = new List<object>();
@@ -79,6 +122,28 @@ namespace Snet.Windows.Controls.property.wpf
             }
 
             return res;
+        }
+
+        /// <summary>
+        /// 缓存的枚举浏览过滤信息。
+        /// </summary>
+        private sealed class EnumBrowsableInfo
+        {
+            public EnumBrowsableInfo(int valueCount, List<object> browsableValues)
+            {
+                this.ValueCount = valueCount;
+                this.BrowsableValues = browsableValues;
+            }
+
+            /// <summary>
+            /// Gets the number of defined enum values.
+            /// </summary>
+            public int ValueCount { get; }
+
+            /// <summary>
+            /// Gets the filtered browsable values.
+            /// </summary>
+            public List<object> BrowsableValues { get; }
         }
 
         /// <summary>

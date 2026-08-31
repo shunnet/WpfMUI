@@ -1,4 +1,4 @@
-﻿// --------------------------------------------------------------------------------------------------------------------
+// --------------------------------------------------------------------------------------------------------------------
 // <copyright file="PropertyGridOperator.cs" company="Snet.Windows.Controls.property.core">
 //   Copyright (c) 2014 Snet.Windows.Controls.property.core contributors
 // </copyright>
@@ -16,11 +16,13 @@ namespace Snet.Windows.Controls.property.wpf
     using Snet.Windows.Core.handler;
     using System;
     using System.Collections;
+    using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.ComponentModel;
     using System.ComponentModel.DataAnnotations;
     using System.Globalization;
     using System.Linq;
+    using System.Reflection;
     using System.Windows;
     using System.Windows.Data;
     using DataType = System.ComponentModel.DataAnnotations.DataType;
@@ -40,6 +42,45 @@ namespace Snet.Windows.Controls.property.wpf
             this.OptionalPattern = "Use{0}";
             this.ModifyCamelCaseDisplayNames = true;
             this.InheritCategories = true;
+        }
+
+        /// <summary>
+        /// 当前活动的、需要随语言变化刷新的属性项注册表（弱引用，避免语言订阅持有整个属性网格导致泄漏）。
+        /// </summary>
+        private static readonly List<LanguageItemRegistration> ActiveLanguageItems = new List<LanguageItemRegistration>();
+
+        /// <summary>
+        /// 保护 <see cref="ActiveLanguageItems"/> 的锁。
+        /// </summary>
+        private static readonly object LanguageItemsLock = new object();
+
+        /// <summary>
+        /// 反射缓存：每个类型的 MetadataTypeAttribute（伙伴类）。
+        /// </summary>
+        private static readonly ConcurrentDictionary<Type, MetadataTypeAttribute> MetadataTypeAttributeCache = new ConcurrentDictionary<Type, MetadataTypeAttribute>();
+
+        /// <summary>
+        /// 反射缓存：每个类型的可浏览属性描述符列表（保持原有顺序）。
+        /// </summary>
+        private static readonly ConcurrentDictionary<Type, PropertyDescriptor[]> BrowsablePropertiesCache = new ConcurrentDictionary<Type, PropertyDescriptor[]>();
+
+        /// <summary>
+        /// 反射缓存：每个类型的 AreBrowsableAttributesJustTrue 结果。
+        /// </summary>
+        private static readonly ConcurrentDictionary<Type, bool> BrowsableJustTrueCache = new ConcurrentDictionary<Type, bool>();
+
+        /// <summary>
+        /// 反射缓存：PropertyInfo（按 (类型, 属性名, 属性类型) 键，属性类型可为 null）。
+        /// </summary>
+        private static readonly ConcurrentDictionary<PropertyLookupKey, PropertyInfo> PropertyInfoCache = new ConcurrentDictionary<PropertyLookupKey, PropertyInfo>();
+
+        /// <summary>
+        /// Initializes static members of the <see cref="PropertyGridOperator" /> class.
+        /// </summary>
+        static PropertyGridOperator()
+        {
+            // 语言事件只静态注册一次：语言变化时统一刷新当前活动的属性项（避免每个属性每次重建都重复订阅导致泄漏）
+            Snet.Core.handler.LanguageHandler.OnLanguageEventAsync += (s, e) => OnLanguageEvent(s, e);
         }
 
 
@@ -233,9 +274,10 @@ namespace Snet.Windows.Controls.property.wpf
         {
             var instanceType = instance.GetType();
 
-            // check if the MetadataTypeAttribute is set
-            var metadataTypeAttribute = instanceType.GetCustomAttributes(typeof(MetadataTypeAttribute), true)
-                                     .OfType<MetadataTypeAttribute>().FirstOrDefault();
+            // 缓存 MetadataTypeAttribute（伙伴类）的反射查找结果
+            var metadataTypeAttribute = MetadataTypeAttributeCache.GetOrAdd(instanceType, t =>
+                t.GetCustomAttributes(typeof(MetadataTypeAttribute), true)
+                 .OfType<MetadataTypeAttribute>().FirstOrDefault());
             PropertyDescriptorCollection properties;
             if (metadataTypeAttribute != null)
             {
@@ -262,7 +304,7 @@ namespace Snet.Windows.Controls.property.wpf
         {
             var instanceType = instance.GetType();
 
-            foreach (PropertyDescriptor pd in this.GetBrowsableProperties(properties))
+            foreach (PropertyDescriptor pd in this.GetBrowsablePropertiesCached(instance, properties))
             {
                 if (options.ShowDeclaredOnly && pd.ComponentType != instanceType)
                 {
@@ -293,7 +335,38 @@ namespace Snet.Windows.Controls.property.wpf
         protected IEnumerable<PropertyDescriptor> GetBrowsableProperties(PropertyDescriptorCollection properties)
         {
             bool justTrue = AreBrowsableAttributesJustTrue(properties);
+            return GetBrowsablePropertiesCore(properties, justTrue);
+        }
 
+        /// <summary>
+        /// 按类型缓存可浏览属性列表（保持原有顺序与过滤逻辑）。
+        /// ItemsBag 的属性集合是按实例生成的（取决于 BiggestType），不能按类型缓存；
+        /// 仅当类未被派生类重写时才启用缓存，避免改变派生类的行为。
+        /// </summary>
+        /// <param name="instance">对象实例。</param>
+        /// <param name="properties">属性描述符集合。</param>
+        /// <returns>可浏览的属性描述符序列。</returns>
+        private IEnumerable<PropertyDescriptor> GetBrowsablePropertiesCached(object instance, PropertyDescriptorCollection properties)
+        {
+            var instanceType = instance.GetType();
+            if (this.GetType() != typeof(PropertyGridOperator) || typeof(ItemsBag).IsAssignableFrom(instanceType))
+            {
+                return this.GetBrowsableProperties(properties);
+            }
+
+            bool justTrue = BrowsableJustTrueCache.GetOrAdd(instanceType, t => this.AreBrowsableAttributesJustTrue(properties));
+            PropertyDescriptor[] list = BrowsablePropertiesCache.GetOrAdd(instanceType, t => GetBrowsablePropertiesCore(properties, justTrue).ToArray());
+            return list;
+        }
+
+        /// <summary>
+        /// 可浏览属性过滤的核心逻辑（与原有行为完全一致）。
+        /// </summary>
+        /// <param name="properties">属性描述符集合。</param>
+        /// <param name="justTrue">是否所有 Browsable 特性均为 true（需要 opt-in）。</param>
+        /// <returns>可浏览的属性描述符序列。</returns>
+        private static IEnumerable<PropertyDescriptor> GetBrowsablePropertiesCore(PropertyDescriptorCollection properties, bool justTrue)
+        {
             foreach (PropertyDescriptor pd in properties)
             {
                 var portableBrowsableAttribute = pd.GetFirstAttributeOrDefault<core.DataAnnotations.BrowsableAttribute>();
@@ -431,7 +504,7 @@ namespace Snet.Windows.Controls.property.wpf
 
             // find the declaring type
             var declaringType = pi.Descriptor.ComponentType;
-            var propertyInfo = instance.GetType().GetProperty(pi.Descriptor.Name, pi.Descriptor.PropertyType);
+            var propertyInfo = GetPropertyCached(instance.GetType(), pi.Descriptor.Name, pi.Descriptor.PropertyType);
             if (propertyInfo != null)
             {
                 declaringType = propertyInfo.DeclaringType;
@@ -489,12 +562,9 @@ namespace Snet.Windows.Controls.property.wpf
             pi.TabSortIndex = ca2?.TabSortIndex;
             pi.GroupSortIndex = ca2?.GroupSortIndex;
 
-            // 语言变化事件
+            // 语言变化事件：注册到静态弱引用列表（事件只静态注册一次，避免每个属性每次重建都重复订阅导致泄漏）
             SetLang(pi, declaringType, displayName, description, LanguageHandler.GetLanguage());
-            Snet.Core.handler.LanguageHandler.OnLanguageEventAsync += async (s, e) =>
-            {
-                SetLang(pi, declaringType, displayName, description, LanguageHandler.GetLanguage());
-            };
+            this.RegisterLanguageItem(pi, declaringType, displayName, description);
 
             pi.Category = this.GetLocalizedString(categoryName, this.CurrentCategoryDeclaringType);
             pi.Tab = this.GetLocalizedString(tabName, this.CurrentCategoryDeclaringType);
@@ -560,6 +630,173 @@ namespace Snet.Windows.Controls.property.wpf
                     }
                     break;
             }
+        }
+
+        /// <summary>
+        /// 注册一个需要随语言变化刷新的属性项。
+        /// </summary>
+        /// <param name="pi">属性项。</param>
+        /// <param name="declaringType">声明类型。</param>
+        /// <param name="displayName">显示名。</param>
+        /// <param name="description">描述。</param>
+        private void RegisterLanguageItem(PropertyItem pi, Type declaringType, string displayName, string description)
+        {
+            lock (LanguageItemsLock)
+            {
+                // 列表过大时先清理失效项，避免无界增长
+                if (ActiveLanguageItems.Count > 1024)
+                {
+                    ActiveLanguageItems.RemoveAll(r => !r.ItemReference.IsAlive || !r.OperatorReference.IsAlive);
+                }
+
+                ActiveLanguageItems.Add(new LanguageItemRegistration(this, pi, declaringType, displayName, description));
+            }
+        }
+
+        /// <summary>
+        /// 语言变化事件处理器（静态只注册一次）：遍历当前活动的属性项并重新应用语言。
+        /// </summary>
+        /// <param name="sender">事件源。</param>
+        /// <param name="e">事件参数。</param>
+        /// <returns>已完成的任务。</returns>
+        /// <summary>
+        /// 语言事件触发（语言切换完成时由 Snet.Core 发出）。<br/>
+        /// 注意：此处必须读取 Snet.Core 的**内存态**语言（事件触发时已是最新），
+        /// 不能用 Snet.Windows.Core.LanguageHandler.GetLanguage()——它读 language.json 文件，
+        /// 而 SetLanguageAsync 中文件写入发生在语言切换事件之后，会导致读取到旧语言（属性框显示滞后）。
+        /// </summary>
+        private static Task OnLanguageEvent(object sender, object e)
+        {
+            var language = Snet.Core.handler.LanguageHandler.GetLanguage();
+            List<LanguageItemRegistration> alive;
+            lock (LanguageItemsLock)
+            {
+                alive = new List<LanguageItemRegistration>(ActiveLanguageItems.Count);
+                for (int i = ActiveLanguageItems.Count - 1; i >= 0; i--)
+                {
+                    var registration = ActiveLanguageItems[i];
+                    if (registration.ItemReference.IsAlive && registration.OperatorReference.IsAlive)
+                    {
+                        alive.Add(registration);
+                    }
+                    else
+                    {
+                        ActiveLanguageItems.RemoveAt(i);
+                    }
+                }
+            }
+
+            foreach (var registration in alive)
+            {
+                var item = registration.ItemReference.Target as PropertyItem;
+                var operatorInstance = registration.OperatorReference.Target as PropertyGridOperator;
+                if (item != null && operatorInstance != null)
+                {
+                    operatorInstance.SetLang(item, registration.DeclaringType, registration.DisplayName, registration.Description, language);
+                }
+            }
+
+            return Task.CompletedTask;
+        }
+
+        /// <summary>
+        /// 反射缓存：获取属性的 PropertyInfo（按 (类型, 属性名, 属性类型) 缓存）。
+        /// </summary>
+        /// <param name="type">对象类型。</param>
+        /// <param name="name">属性名。</param>
+        /// <param name="propertyType">属性类型，可为 null（表示不限定类型）。</param>
+        /// <returns>属性的 <see cref="PropertyInfo"/>，未找到时返回 <c>null</c>。</returns>
+        private static PropertyInfo GetPropertyCached(Type type, string name, Type propertyType)
+        {
+            if (type == null || name == null)
+            {
+                return null;
+            }
+
+            var key = new PropertyLookupKey(type, name, propertyType);
+            return PropertyInfoCache.GetOrAdd(key, k => k.PropertyType != null ? k.Type.GetProperty(k.Name, k.PropertyType) : k.Type.GetProperty(k.Name));
+        }
+
+        /// <summary>
+        /// PropertyInfo 缓存的键。
+        /// </summary>
+        private struct PropertyLookupKey : IEquatable<PropertyLookupKey>
+        {
+            public PropertyLookupKey(Type type, string name, Type propertyType)
+            {
+                this.Type = type;
+                this.Name = name;
+                this.PropertyType = propertyType;
+            }
+
+            public Type Type { get; }
+
+            public string Name { get; }
+
+            public Type PropertyType { get; }
+
+            public bool Equals(PropertyLookupKey other)
+            {
+                return this.Type == other.Type
+                       && string.Equals(this.Name, other.Name, StringComparison.Ordinal)
+                       && this.PropertyType == other.PropertyType;
+            }
+
+            public override bool Equals(object obj)
+            {
+                return obj is PropertyLookupKey other && this.Equals(other);
+            }
+
+            public override int GetHashCode()
+            {
+                unchecked
+                {
+                    int hash = this.Type != null ? this.Type.GetHashCode() : 0;
+                    hash = (hash * 397) ^ (this.Name != null ? StringComparer.Ordinal.GetHashCode(this.Name) : 0);
+                    hash = (hash * 397) ^ (this.PropertyType != null ? this.PropertyType.GetHashCode() : 0);
+                    return hash;
+                }
+            }
+        }
+
+        /// <summary>
+        /// 记录一个需要随语言变化刷新的属性项（弱引用，避免语言订阅持有整个属性网格导致泄漏）。
+        /// </summary>
+        private sealed class LanguageItemRegistration
+        {
+            public LanguageItemRegistration(PropertyGridOperator operatorInstance, PropertyItem item, Type declaringType, string displayName, string description)
+            {
+                this.ItemReference = new WeakReference(item);
+                this.OperatorReference = new WeakReference(operatorInstance);
+                this.DeclaringType = declaringType;
+                this.DisplayName = displayName;
+                this.Description = description;
+            }
+
+            /// <summary>
+            /// Gets the weak reference to the property item.
+            /// </summary>
+            public WeakReference ItemReference { get; }
+
+            /// <summary>
+            /// Gets the weak reference to the operator instance.
+            /// </summary>
+            public WeakReference OperatorReference { get; }
+
+            /// <summary>
+            /// Gets the declaring type.
+            /// </summary>
+            public Type DeclaringType { get; }
+
+            /// <summary>
+            /// Gets the display name.
+            /// </summary>
+            public string DisplayName { get; }
+
+            /// <summary>
+            /// Gets the description.
+            /// </summary>
+            public string Description { get; }
         }
 
         /// <summary>
@@ -679,7 +916,8 @@ namespace Snet.Windows.Controls.property.wpf
 
                         if (elementType != null)
                         {
-                            object[] converterAttributes = elementType.GetProperty(column.PropertyName)?.GetCustomAttributes(typeof(ConverterAttribute), true);
+                            var columnProperty = GetPropertyCached(elementType, column.PropertyName, null);
+                            object[] converterAttributes = columnProperty?.GetCustomAttributes(typeof(ConverterAttribute), true);
                             if (converterAttributes != null && converterAttributes.Length > 0)
                             {
                                 Type converterType = ((ConverterAttribute)converterAttributes[0]).ConverterType;
@@ -689,7 +927,7 @@ namespace Snet.Windows.Controls.property.wpf
                                 }
                             }
 
-                            object[] descriptionAttributes = elementType.GetProperty(column.PropertyName)?.GetCustomAttributes(typeof(core.DataAnnotations.DescriptionAttribute), true);
+                            object[] descriptionAttributes = columnProperty?.GetCustomAttributes(typeof(core.DataAnnotations.DescriptionAttribute), true);
                             if (descriptionAttributes != null && descriptionAttributes.Length > 0)
                             {
                                 toolTip = ((core.DataAnnotations.DescriptionAttribute)descriptionAttributes[0]).Description;

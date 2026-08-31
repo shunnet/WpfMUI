@@ -132,6 +132,14 @@ namespace Snet.Windows.Controls.edit.Snippets
 
         public void Deactivate(SnippetEventArgs e)
         {
+            // Unsubscribe to avoid keeping the replaceable element (and with it the whole
+            // insertion context) alive after the snippet is deactivated. Repeated calls are
+            // harmless because event unsubscription is idempotent.
+            if (targetElement != null)
+            {
+                targetElement.TextChanged -= targetElement_TextChanged;
+                targetElement = null;
+            }
         }
 
         public bool IsEditable

@@ -1,4 +1,4 @@
-﻿
+
 namespace Snet.Windows.Core.localize.wpf.ValueConverters
 {
     #region Usings
@@ -15,28 +15,41 @@ namespace Snet.Windows.Core.localize.wpf.ValueConverters
     /// </summary>
     public class StringFormatConverter : TypeValueConverterBase, IMultiValueConverter
     {
-        private static MethodInfo miFormat = null;
+        /// <summary>
+        /// True, if the SmartFormat assembly is available. Determined exactly once per app domain.
+        /// </summary>
+        private static readonly bool IsSmartFormatAvailable;
+
+        /// <summary>
+        /// The cached SmartFormat.Format(string, object[]) MethodInfo. Reflection happens exactly once.
+        /// </summary>
+        private static readonly MethodInfo SmartFormatMethod;
+
+        /// <summary>
+        /// Static constructor - performs the SmartFormat reflection exactly once per app domain.
+        /// </summary>
+        static StringFormatConverter()
+        {
+            try
+            {
+                // try to load SmartFormat Assembly
+                var asSmartFormat = Assembly.Load("SmartFormat");
+                var tt = asSmartFormat.GetType("SmartFormat.Smart");
+                SmartFormatMethod = tt.GetMethod("Format", BindingFlags.Static | BindingFlags.Public, null, new Type[] { typeof(string), typeof(object[]) }, null);
+                IsSmartFormatAvailable = SmartFormatMethod != null;
+            }
+            catch
+            {
+                // fallback just take String.Format
+                SmartFormatMethod = null;
+                IsSmartFormatAvailable = false;
+            }
+        }
 
         #region IMultiValueConverter
         /// <inheritdoc/>
         public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
         {
-            if (miFormat == null)
-            {
-                try
-                {
-                    // try to load SmartFormat Assembly
-                    var asSmartFormat = Assembly.Load("SmartFormat");
-                    var tt = asSmartFormat.GetType("SmartFormat.Smart");
-                    miFormat = tt.GetMethod("Format", BindingFlags.Static | BindingFlags.Public, null, new Type[] { typeof(string), typeof(object[]) }, null);
-                }
-                catch
-                {
-                    // fallback just take String.Format
-                    miFormat = typeof(string).GetMethod("Format", BindingFlags.Static | BindingFlags.Public, null, new Type[] { typeof(string), typeof(object[]) }, null);
-                }
-            }
-
             if (!targetType.IsAssignableFrom(typeof(string)))
                 throw new Exception("TargetType is not supported strings");
 
@@ -54,7 +67,12 @@ namespace Snet.Windows.Core.localize.wpf.ValueConverters
                 return format;
 
             var args = values.Skip(1).ToArray();
-            return (string)miFormat.Invoke(null, new object[] { format, args });
+
+            // Direct call in the common case (no SmartFormat); reflection only when SmartFormat is actually present.
+            if (IsSmartFormatAvailable)
+                return (string)SmartFormatMethod.Invoke(null, new object[] { format, args });
+
+            return string.Format(format, args);
         }
 
         /// <inheritdoc/>

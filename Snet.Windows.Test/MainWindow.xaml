@@ -1,8 +1,9 @@
-﻿<snet:WindowBase
+<snet:WindowBase
     x:Class="Snet.Windows.Test.MainWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:eh="clr-namespace:Snet.Windows.Controls.handler;assembly=Snet.Windows.Controls"
     xmlns:local="clr-namespace:Snet.Windows.Test"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:snet="https://snet.cn"
@@ -11,86 +12,545 @@
     Title="{snet:Loc SystemTitle}"
     snet:ResxLocalizationProvider.DefaultAssembly="Snet.Windows.Test"
     snet:ResxLocalizationProvider.DefaultDictionary="Language"
-    AnimationTime="2000"
+    AnimationTime="1000"
     Icon="/Icon.ico"
     LanguageEnabled="True"
     LoadAnimationEnabled="True"
     SkinEnabled="True"
+    TextOptions.TextFormattingMode="Display"
     WindowStartupLocation="CenterScreen">
-    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-        <ScrollViewer.Resources>
+    <TabControl Margin="10" ui:TabAssist.HasFilledTab="True">
+        <TabControl.Resources>
+
+
             <Style BasedOn="{StaticResource UiScrollBar}" TargetType="ScrollBar" />
-        </ScrollViewer.Resources>
+            <!--  Tab 样式（参考 Daq ProjectSettings：MaterialDesign 填充式 Tab）  -->
+            <Style BasedOn="{StaticResource MaterialDesignFilledTabControl}" TargetType="TabControl" />
+            <!--  Tab 项样式：Header 颜色随主题（选中/未选中主题色）  -->
+            <Style BasedOn="{StaticResource MaterialDesignTabItem}" TargetType="TabItem">
+                <Setter Property="MinWidth" Value="100" />
+                <Setter Property="Height" Value="39.5" />
+                <Setter Property="Margin" Value="0" />
+                <Setter Property="Padding" Value="0" />
+            </Style>
+        </TabControl.Resources>
 
-        <StackPanel>
+        <!--  ============ 第 1 页：基础控件 ============  -->
+        <TabItem Header="{snet:Loc 基础控件}">
+            <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                <StackPanel Margin="10">
+                    <GroupBox
+                        Margin="0"
+                        Padding="10"
+                        ui:ElevationAssist.Elevation="Dp2"
+                        ui:GroupBoxAssist.HeaderPadding="7"
+                        Header="{snet:Loc 按钮控件}"
+                        Style="{StaticResource MaterialDesignCardGroupBox}">
+                        <WrapPanel>
+                            <snet:ButtonControl
+                                Margin="5"
+                                Command="{Binding Hello}"
+                                Content="{snet:Loc Hello}"
+                                Icon="{DynamicResource Hello}" />
+                            <snet:ButtonControl
+                                Margin="5"
+                                Command="{Binding Hello1}"
+                                Content="{snet:Loc 单按钮}"
+                                Icon="{DynamicResource Hello}" />
+                            <snet:ButtonControl
+                                Margin="5"
+                                Command="{Binding Hello2}"
+                                Content="{snet:Loc 取消}"
+                                Icon="{DynamicResource Hello}" />
+                        </WrapPanel>
+                    </GroupBox>
 
-            <Border
+                    <GroupBox
+                        Margin="0,10,0,0"
+                        ui:ElevationAssist.Elevation="Dp2"
+                        ui:GroupBoxAssist.HeaderPadding="7"
+                        Header="{snet:Loc 下拉框}"
+                        Style="{StaticResource MaterialDesignCardGroupBox}">
+                        <StackPanel Orientation="Horizontal">
+                            <snet:ComboBoxControl
+                                Width="200"
+                                DisplayMemberPath="Key"
+                                Hint="{snet:Loc 下拉框}"
+                                Icon="{DynamicResource AutoHandler}"
+                                ItemsSource="{Binding ComboBoxItemsSource}"
+                                SelectedItem="{Binding ComboBoxSelectedItem}" />
+                            <TextBlock Margin="15,0,0,0" VerticalAlignment="Center">
+                                <Run Text="{snet:Loc 当前选择}" /><Run Text=":" /><Run Text="{Binding ComboBoxSelectedItem.Key, Mode=OneWay}" />
+                            </TextBlock>
+                        </StackPanel>
+                    </GroupBox>
+
+                    <GroupBox
+                        Margin="0,10,0,0"
+                        Padding="10"
+                        ui:ElevationAssist.Elevation="Dp2"
+                        ui:GroupBoxAssist.HeaderPadding="7"
+                        Header="{snet:Loc 文本框}"
+                        Style="{StaticResource MaterialDesignCardGroupBox}">
+                        <StackPanel Orientation="Horizontal">
+                            <snet:TextBoxControl
+                                Width="200"
+                                ClearButtonEnabled="True"
+                                Hint="{snet:Loc 文本框}"
+                                Icon="{DynamicResource AutoHandler}"
+                                Text="{Binding TextBoxText}" />
+                            <TextBlock Margin="15,0,0,0" VerticalAlignment="Center">
+                                <Run Text="{snet:Loc 输入内容}" /><Run Text=":" /><Run Text="{Binding TextBoxText, Mode=OneWay}" />
+                            </TextBlock>
+                        </StackPanel>
+                    </GroupBox>
+
+                    <GroupBox
+                        Margin="0,10,0,0"
+                        Padding="10"
+                        ui:ElevationAssist.Elevation="Dp2"
+                        ui:GroupBoxAssist.HeaderPadding="7"
+                        Header="{snet:Loc LED指示灯}"
+                        Style="{StaticResource MaterialDesignCardGroupBox}">
+                        <StackPanel Orientation="Horizontal">
+                            <snet:LedGaugeControl
+                                Width="80"
+                                Height="80"
+                                Margin="5"
+                                IsFlashing="{Binding LedFlashing}"
+                                IsOn="{Binding LedOn}"
+                                OffLightness="0.1"
+                                Color="{Binding LedColor}" />
+                            <StackPanel Margin="20,0,0,0" VerticalAlignment="Center">
+                                <CheckBox
+                                    Margin="5"
+                                    Content="{snet:Loc 点亮}"
+                                    IsChecked="{Binding LedOn}"
+                                    Style="{StaticResource MaterialDesignSecondaryCheckBox}" />
+                                <CheckBox
+                                    Margin="5"
+                                    Content="{snet:Loc 闪烁}"
+                                    IsChecked="{Binding LedFlashing}"
+                                    Style="{StaticResource MaterialDesignSecondaryCheckBox}" />
+                                <StackPanel Margin="5" Orientation="Horizontal">
+                                    <TextBlock VerticalAlignment="Center">
+                                        <Run Text="{snet:Loc 选择颜色}" /><Run Text=":" />
+                                    </TextBlock>
+                                    <Button Margin="5" Command="{x:Static ui:DialogHost.OpenDialogCommand}">
+                                        <Button.CommandParameter>
+                                            <StackPanel>
+                                                <TextBlock Margin="5" Text="{snet:Loc 选择颜色}" />
+                                                <ui:ColorPicker Color="{Binding LedColor}" />
+                                                <Button
+                                                    Margin="5"
+                                                    HorizontalAlignment="Right"
+                                                    Command="{x:Static ui:DialogHost.CloseDialogCommand}"
+                                                    Content="{snet:Loc Hello}"
+                                                    Style="{StaticResource MaterialDesignRaisedButton}" />
+                                            </StackPanel>
+                                        </Button.CommandParameter>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Rectangle
+                                                Width="20"
+                                                Height="20"
+                                                Fill="{Binding LedBrush, Mode=OneWay}" />
+                                            <TextBlock
+                                                Margin="5,0,0,0"
+                                                VerticalAlignment="Center"
+                                                Text="{snet:Loc 选择颜色}" />
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
+                            </StackPanel>
+                        </StackPanel>
+                    </GroupBox>
+
+                    <GroupBox
+                        Margin="0,10,0,0"
+                        Padding="10"
+                        ui:ElevationAssist.Elevation="Dp2"
+                        ui:GroupBoxAssist.HeaderPadding="7"
+                        Header="{snet:Loc 页码条}"
+                        Style="{StaticResource MaterialDesignCardGroupBox}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <!--  主题色检查块（验证 MaterialDesign.Brush.Primary 等是否随皮肤切换）  -->
+                            <StackPanel
+                                Grid.Row="0"
+                                Margin="0,0,0,8"
+                                Orientation="Horizontal">
+                                <TextBlock VerticalAlignment="Center" Text="Primary:" />
+                                <Rectangle
+                                    Width="40"
+                                    Height="20"
+                                    Margin="5,0"
+                                    Fill="{DynamicResource MaterialDesign.Brush.Primary}" />
+                                <TextBlock VerticalAlignment="Center" Text="Secondary:" />
+                                <Rectangle
+                                    Width="40"
+                                    Height="20"
+                                    Margin="5,0"
+                                    Fill="{DynamicResource MaterialDesign.Brush.Secondary}" />
+                                <TextBlock VerticalAlignment="Center" Text="Background:" />
+                                <Rectangle
+                                    Width="40"
+                                    Height="20"
+                                    Margin="5,0"
+                                    Fill="{DynamicResource MaterialDesign.Brush.Background}" />
+                            </StackPanel>
+                            <snet:PageBarControl
+                                Grid.Row="1"
+                                PageIndexChangedCommand="{Binding PageIndexChangedCommand}"
+                                PageSize="{Binding PageSize, Mode=TwoWay}"
+                                Total="{Binding PageTotal, Mode=TwoWay}"
+                                PageIndex="{Binding PageIndex, Mode=TwoWay}" />
+                            <Border
+                                Grid.Row="1"
+                                Margin="0,0,0,4"
+                                BorderBrush="{DynamicResource MaterialDesign.Brush.Primary}"
+                                BorderThickness="0,1,0,0" />
+                            <StackPanel
+                                Grid.Row="2"
+                                Margin="0,8,0,0"
+                                Orientation="Horizontal">
+                                <TextBlock VerticalAlignment="Center"><Run Text="{snet:Loc 总条数}" /><Run Text=":" /></TextBlock>
+                                <TextBox
+                                    Width="80"
+                                    Margin="5"
+                                    Text="{Binding PageTotal, Mode=TwoWay}" />
+                                <TextBlock Margin="10,0,0,0" VerticalAlignment="Center"><Run Text="{snet:Loc 每页}" /><Run Text=":" /></TextBlock>
+                                <TextBox
+                                    Width="60"
+                                    Margin="5"
+                                    Text="{Binding PageSize, Mode=TwoWay}" />
+                                <TextBlock Margin="10,0,0,0" VerticalAlignment="Center">
+                                    <Run Text="{snet:Loc 当前页}" /><Run Text="{Binding PageIndex, Mode=OneWay}" />
+                                </TextBlock>
+                            </StackPanel>
+                        </Grid>
+                    </GroupBox>
+                </StackPanel>
+            </ScrollViewer>
+        </TabItem>
+
+        <!--  ============ 第 2 页：属性与数据网格 ============  -->
+        <TabItem Header="{snet:Loc 属性与网格}">
+            <Grid Margin="10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition />
+                    <ColumnDefinition />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <!--  属性框  -->
+                <GroupBox
+                    Grid.Row="0"
+                    Grid.Column="0"
+                    Margin="0,0,5,5"
+                    Padding="0"
+                    ui:ElevationAssist.Elevation="Dp2"
+                    ui:GroupBoxAssist.HeaderPadding="7"
+                    Header="{snet:Loc 属性框}"
+                    Style="{StaticResource MaterialDesignCardGroupBox}">
+                    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                        <snet:PropertyControl BasicsData="{Binding bd}" />
+                    </ScrollViewer>
+                </GroupBox>
+
+                <!--  树形列表（系统 TreeView，参考 Daq）  -->
+                <GroupBox
+                    Grid.Row="1"
+                    Grid.Column="0"
+                    Margin="0,5,5,0"
+                    Padding="0"
+                    ui:ElevationAssist.Elevation="Dp2"
+                    ui:GroupBoxAssist.HeaderPadding="7"
+                    Header="{snet:Loc 树形列表}"
+                    Style="{StaticResource MaterialDesignCardGroupBox}">
+                    <TreeView
+                        Margin="5"
+                        ItemContainerStyle="{StaticResource DefaultTreeViewItemStyle}"
+                        ItemsSource="{Binding TreeRoots}"
+                        Style="{StaticResource DefaultTreeViewStyle}">
+                        <TreeView.ItemTemplate>
+                            <HierarchicalDataTemplate ItemsSource="{Binding Children}">
+                                <StackPanel Orientation="Horizontal">
+                                    <ui:PackIcon Kind="FolderOutline" />
+                                    <TextBlock Margin="5,0,0,0" Text="{Binding Name}" />
+                                </StackPanel>
+                            </HierarchicalDataTemplate>
+                        </TreeView.ItemTemplate>
+                    </TreeView>
+                </GroupBox>
+
+                <!--  自定义表格（系统 DataGrid，参考 Daq）  -->
+                <GroupBox
+                    Grid.Row="0"
+                    Grid.RowSpan="2"
+                    Grid.Column="1"
+                    Margin="5,0,0,0"
+                    Padding="0"
+                    ui:ElevationAssist.Elevation="Dp2"
+                    ui:GroupBoxAssist.HeaderPadding="7"
+                    Header="{snet:Loc 自定义表格}">
+                    <DataGrid
+                        Margin="5"
+                        ui:DataGridAssist.AutoGeneratedCheckBoxStyle="{StaticResource MaterialDesignSecondaryCheckBox}"
+                        AutoGenerateColumns="True"
+                        EnableColumnVirtualization="True"
+                        GridLinesVisibility="Horizontal"
+                        IsReadOnly="True"
+                        ItemsSource="{Binding DataRows}"
+                        RowHeight="45"
+                        SelectionMode="Single"
+                        SnapsToDevicePixels="True"
+                        UseLayoutRounding="True">
+                        <DataGrid.Resources>
+
+                            <!--  滚动条样式  -->
+                            <Style BasedOn="{StaticResource UiScrollBar}" TargetType="ScrollBar" />
+
+                            <!--  Header样式  -->
+                            <Style
+                                x:Key="DataGridColumnHeaderStyle"
+                                BasedOn="{StaticResource DefaultDataGridColumnHeaderStyle}"
+                                TargetType="{x:Type DataGridColumnHeader}">
+                                <Setter Property="HorizontalContentAlignment" Value="Center" />
+                            </Style>
+
+                            <!--  单元格内容居中样式  -->
+                            <Style
+                                x:Key="DataGridCellStyle"
+                                BasedOn="{StaticResource DefaultDataGridCellStyle}"
+                                TargetType="{x:Type DataGridCell}">
+                                <Setter Property="HorizontalContentAlignment" Value="Center" />
+                                <Setter Property="VerticalContentAlignment" Value="Center" />
+                            </Style>
+
+                        </DataGrid.Resources>
+                    </DataGrid>
+                </GroupBox>
+            </Grid>
+        </TabItem>
+
+        <!--  ============ 第 3 页：代码编辑器 ============  -->
+        <TabItem Header="{snet:Loc 代码编辑器}">
+            <Grid Margin="10">
+                <Grid.RowDefinitions>
+                    <RowDefinition />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <snet:TextEditorControl
+                    x:Name="edit"
+                    Grid.Row="0"
+                    eh:EditBindingHandler.EditText="{Binding EditorText}"
+                    Background="{DynamicResource MaterialDesign.Brush.Paper}"
+                    FontFamily="Consolas"
+                    FontSize="14"
+                    Foreground="{DynamicResource Font.Content.Foreground}"
+                    IsReadOnly="True"
+                    ShowLineNumbers="True"
+                    WordWrap="False" />
+                <StackPanel
+                    Grid.Row="1"
+                    Margin="0,10,0,0"
+                    Orientation="Horizontal">
+                    <TextBlock VerticalAlignment="Center">
+                        <Run Text="{snet:Loc 代码编辑器}" /><Run Text=": " />
+                    </TextBlock>
+                    <TextBlock VerticalAlignment="Center" Text="{Binding EditorText.Length, Mode=OneWay}" />
+                </StackPanel>
+            </Grid>
+        </TabItem>
+
+        <!--  ============ 第 4 页：对话框 ============  -->
+        <TabItem Header="{snet:Loc 对话框}">
+            <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                <StackPanel Margin="10">
+                    <GroupBox
+                        Padding="0"
+                        ui:ElevationAssist.Elevation="Dp2"
+                        ui:GroupBoxAssist.HeaderPadding="7"
+                        Header="{snet:Loc 消息框}"
+                        Style="{StaticResource MaterialDesignCardGroupBox}">
+                        <WrapPanel Margin="10">
+                            <snet:ButtonControl
+                                Margin="5"
+                                Command="{Binding Hello}"
+                                Content="{snet:Loc Hello}"
+                                Icon="{DynamicResource Hello}" />
+                            <snet:ButtonControl
+                                Margin="5"
+                                Command="{Binding Hello1}"
+                                Content="{snet:Loc 取消}"
+                                Icon="{DynamicResource Hello}" />
+                            <snet:ButtonControl
+                                Margin="5"
+                                Command="{Binding Hello2}"
+                                Content="{snet:Loc 单按钮}"
+                                Icon="{DynamicResource Hello}" />
+                            <snet:ButtonControl
+                                Margin="5"
+                                Command="{Binding Hello3}"
+                                Content="3 / 4"
+                                Icon="{DynamicResource Hello}" />
+                        </WrapPanel>
+                    </GroupBox>
+
+                    <GroupBox
+                        Margin="0,10,0,0"
+                        Padding="10"
+                        ui:ElevationAssist.Elevation="Dp2"
+                        ui:GroupBoxAssist.HeaderPadding="7"
+                        Header="{snet:Loc 属性编辑对话框}"
+                        Style="{StaticResource MaterialDesignCardGroupBox}">
+                        <StackPanel Orientation="Horizontal">
+                            <snet:ButtonControl
+                                Margin="5"
+                                Command="{Binding OpenPropertyDialog}"
+                                Content="{snet:Loc 打开属性对话框}"
+                                Icon="{DynamicResource Hello}" />
+                        </StackPanel>
+                    </GroupBox>
+
+                    <GroupBox
+                        Margin="0,10,0,0"
+                        Padding="10"
+                        ui:ElevationAssist.Elevation="Dp2"
+                        ui:GroupBoxAssist.HeaderPadding="7"
+                        Header="{snet:Loc 向导对话框}"
+                        Style="{StaticResource MaterialDesignCardGroupBox}">
+                        <StackPanel Orientation="Horizontal">
+                            <snet:ButtonControl
+                                Margin="5"
+                                Command="{Binding OpenWizardDialog}"
+                                Content="{snet:Loc 打开向导对话框}"
+                                Icon="{DynamicResource Hello}" />
+                        </StackPanel>
+                    </GroupBox>
+                </StackPanel>
+            </ScrollViewer>
+        </TabItem>
+
+        <!--  ============ 第 5 页：拖拽控件 ============  -->
+        <TabItem Header="{snet:Loc 拖拽控件}">
+            <Grid
+                x:Name="DragPage"
                 Margin="10"
-                BorderBrush="Blue"
-                BorderThickness="1"
-                CornerRadius="4">
-                <snet:PropertyControl BasicsData="{Binding bd}" />
-            </Border>
+                Loaded="DragPage_Loaded">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
 
-            <snet:ButtonControl
-                Margin="10"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Center"
-                Command="{Binding Hello}"
-                Content="{snet:Loc Hello}"
-                Icon="{DynamicResource Hello}" />
+                <!--  选项行  -->
+                <WrapPanel
+                    Grid.Row="0"
+                    Margin="0,0,0,8">
+                    <CheckBox
+                        x:Name="CkDragMove"
+                        Margin="0,0,15,0"
+                        VerticalAlignment="Center"
+                        Content="{snet:Loc 可移动}"
+                        IsChecked="True"
+                        Style="{StaticResource MaterialDesignSecondaryCheckBox}" />
+                    <CheckBox
+                        x:Name="CkDragResize"
+                        Margin="0,0,15,0"
+                        VerticalAlignment="Center"
+                        Content="{snet:Loc 可拖拽大小}"
+                        IsChecked="True"
+                        Style="{StaticResource MaterialDesignSecondaryCheckBox}" />
+                    <CheckBox
+                        x:Name="CkDragRotate"
+                        Margin="0,0,15,0"
+                        VerticalAlignment="Center"
+                        Content="{snet:Loc 可旋转}"
+                        IsChecked="True"
+                        Style="{StaticResource MaterialDesignSecondaryCheckBox}" />
+                    <Button
+                        Margin="0,0,15,0"
+                        VerticalAlignment="Center"
+                        Click="DragClear_Click"
+                        Content="{snet:Loc 清空画布}"
+                        Style="{StaticResource MaterialDesignRaisedButton}" />
+                    <Button
+                        Margin="0,0,15,0"
+                        VerticalAlignment="Center"
+                        Click="DragSaveLayout_Click"
+                        Content="{snet:Loc 保存布局}"
+                        Style="{StaticResource MaterialDesignRaisedButton}" />
+                    <Button
+                        Margin="0,0,15,0"
+                        VerticalAlignment="Center"
+                        Click="DragLoadLayout_Click"
+                        Content="{snet:Loc 加载布局}"
+                        Style="{StaticResource MaterialDesignRaisedButton}" />
+                </WrapPanel>
 
-            <snet:ButtonControl
-                Margin="10"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Center"
-                Command="{Binding Hello1}"
-                Content="{snet:Loc Hello}"
-                Icon="{DynamicResource Hello}" />
+                <!--  左：初始化控件面板   右：拖拽画布（AdornerDecorator 让装饰器随页面一起载入/卸载）  -->
+                <Grid Grid.Row="1">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="230" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
 
-            <snet:ButtonControl
-                Margin="10"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Center"
-                Command="{Binding Hello2}"
-                Content="{snet:Loc Hello}"
-                Icon="{DynamicResource Hello}" />
+                    <Border
+                        Grid.Column="0"
+                        Margin="0,0,8,0"
+                        BorderBrush="{DynamicResource MaterialDesign.Brush.Primary}"
+                        BorderThickness="1">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <StackPanel
+                                x:Name="DragPalette"
+                                Margin="8" />
+                        </ScrollViewer>
+                    </Border>
 
-            <snet:ButtonControl
-                Margin="10"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Center"
-                Command="{Binding Hello3}"
-                Content="{snet:Loc Hello}"
-                Icon="{DynamicResource Hello}" />
+                    <Border
+                        Grid.Column="1"
+                        BorderBrush="{DynamicResource MaterialDesign.Brush.Primary}"
+                        BorderThickness="1"
+                        ClipToBounds="True">
+                        <AdornerDecorator>
+                            <Canvas
+                                x:Name="DragCanvas"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Top"
+                                Background="{DynamicResource MaterialDesign.Brush.Background}">
+                                <TextBlock
+                                    x:Name="DragHint"
+                                    Canvas.Left="16"
+                                    Canvas.Top="10"
+                                    Foreground="{DynamicResource MaterialDesign.Brush.Foreground}"
+                                    Text="{snet:Loc 拖拽提示}" />
+                            </Canvas>
+                        </AdornerDecorator>
+                    </Border>
+                </Grid>
 
-            <snet:ButtonControl
-                Margin="10"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Center"
-                Command="{Binding Hello4}"
-                Content="{snet:Loc Hello}"
-                Icon="{DynamicResource Hello}" />
+                <!--  消息日志  -->
+                <StackPanel
+                    Grid.Row="2"
+                    Margin="0,8,0,0">
+                    <TextBlock Margin="2,0,0,4" Text="{snet:Loc 消息记录}" />
+                    <TextBox
+                        x:Name="DragMessageBox"
+                        Height="60"
+                        FontFamily="Consolas"
+                        FontSize="12"
+                        IsReadOnly="True" />
+                </StackPanel>
+            </Grid>
+        </TabItem>
 
-            <snet:ComboBoxControl
-                Width="200"
-                Margin="0,10,0,10"
-                DisplayMemberPath="Key"
-                Hint="测试控件"
-                Icon="{DynamicResource AutoHandler}"
-                ItemsSource="{Binding ComboBoxItemsSource}"
-                SelectedItem="{Binding ComboBoxSelectedItem}" />
-
-            <snet:TextBoxControl
-                Width="200"
-                ClearButtonEnabled="True"
-                Hint="测试控件"
-                Icon="{DynamicResource AutoHandler}"
-                Text="{Binding TextBoxText}" />
-
-
-
-
-        </StackPanel>
-    </ScrollViewer>
+    </TabControl>
 </snet:WindowBase>

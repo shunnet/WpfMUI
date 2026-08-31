@@ -1,4 +1,4 @@
-﻿
+
 
 namespace Snet.Windows.Core.localize.wpf.Providers
 {
@@ -118,27 +118,36 @@ namespace Snet.Windows.Core.localize.wpf.Providers
 
             if (!string.IsNullOrEmpty(inKey))
             {
-                var split = inKey.Trim().Split(":".ToCharArray());
+                // Manual colon parsing ([[Assembly:]Dict:]Key) - avoids Split allocations
+                // and handles colons inside the key part correctly.
+                var key = inKey.Trim();
+                var firstColon = key.IndexOf(':');
 
-                // assembly:dict:key
-                if (split.Length == 3)
+                if (firstColon >= 0)
                 {
-                    outAssembly = !string.IsNullOrEmpty(split[0]) ? split[0] : null;
-                    outDict = !string.IsNullOrEmpty(split[1]) ? split[1] : null;
-                    outKey = split[2];
+                    var secondColon = key.IndexOf(':', firstColon + 1);
+
+                    if (secondColon >= 0)
+                    {
+                        // assembly:dict:key (the remainder may itself contain colons)
+                        var assembly = key.Substring(0, firstColon);
+                        var dictionary = key.Substring(firstColon + 1, secondColon - firstColon - 1);
+                        outAssembly = string.IsNullOrEmpty(assembly) ? null : assembly;
+                        outDict = string.IsNullOrEmpty(dictionary) ? null : dictionary;
+                        outKey = key.Substring(secondColon + 1);
+                    }
+                    else
+                    {
+                        // dict:key
+                        var dictionary = key.Substring(0, firstColon);
+                        outDict = string.IsNullOrEmpty(dictionary) ? null : dictionary;
+                        outKey = key.Substring(firstColon + 1);
+                    }
                 }
-
-                // dict:key
-                if (split.Length == 2)
+                else
                 {
-                    outDict = !string.IsNullOrEmpty(split[0]) ? split[0] : null;
-                    outKey = split[1];
-                }
-
-                // key
-                if (split.Length == 1)
-                {
-                    outKey = split[0];
+                    // key
+                    outKey = key;
                 }
             }
         }
@@ -226,6 +235,12 @@ namespace Snet.Windows.Core.localize.wpf.Providers
         private static readonly Dictionary<int, string> ExecutablePaths = new Dictionary<int, string>();
         private DateTime _lastUpdateCheck = DateTime.MinValue;
 
+        /// <summary>
+        /// True, if this process is the Visual Studio designer process (XDesProc).
+        /// Determined exactly once instead of on every resource lookup.
+        /// </summary>
+        private static readonly bool IsDesignTimeProcess = AppDomain.CurrentDomain.FriendlyName.Contains("XDesProc");
+
         private static string _projectDirectory;
         private static string[] _projectFilesCache;
 
@@ -301,12 +316,11 @@ namespace Snet.Windows.Core.localize.wpf.Providers
 
             // Here comes our great hack for full VS2012+ design time support with multiple languages.
             // We check only every second to reduce overhead in the designer.
-            var now = DateTime.Now;
-
-            if (AppDomain.CurrentDomain.FriendlyName.Contains("XDesProc") && ((now - _lastUpdateCheck).TotalSeconds >= 1.0))
+            // DateTime.Now is only evaluated in the designer process - at runtime this short-circuits immediately.
+            if (IsDesignTimeProcess && ((DateTime.Now - _lastUpdateCheck).TotalSeconds >= 1.0))
             {
                 // This block is only handled during design time.
-                _lastUpdateCheck = now;
+                _lastUpdateCheck = DateTime.Now;
 
                 // Get the directory of the executing assembly (some strange path in the middle of nowhere on the disk and attach "\tmp", e.g.:
                 // %userprofile%\AppData\Local\Microsoft\VisualStudio\12.0\Designer\ShadowCache\erys4uqz.oq1\l24nfewi.r0y\tmp\

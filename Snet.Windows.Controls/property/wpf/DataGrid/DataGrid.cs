@@ -709,6 +709,31 @@ namespace Snet.Windows.Controls.property.wpf
         private bool suspendCollectionChangedNotifications;
 
         /// <summary>
+        /// 批量更新抑制计数（<see cref="BeginUpdate"/> 后集合变更不会立即重建内容，直到 <see cref="EndUpdate"/> 且计数归零）。
+        /// </summary>
+        private int updateSuppressionCount;
+
+        /// <summary>
+        /// 抑制期间是否发生了集合变更（EndUpdate 时执行一次重建）。
+        /// </summary>
+        private bool pendingGridUpdate;
+
+        /// <summary>
+        /// 是否已有合并的网格内容更新被调度（用于连续 Add 等场景合并多次变更为一次重建）。
+        /// </summary>
+        private bool collectionUpdateScheduled;
+
+        /// <summary>
+        /// 缩放节流计时器（合并连续的 Ctrl+滚轮缩放事件，100ms）。
+        /// </summary>
+        private DispatcherTimer zoomThrottleTimer;
+
+        /// <summary>
+        /// 节流期间累积的缩放因子。
+        /// </summary>
+        private double pendingZoomScale = 1.0;
+
+        /// <summary>
         /// The synchronized collection
         /// </summary>
         private IList synchronizedCollection;
@@ -2020,17 +2045,43 @@ namespace Snet.Windows.Controls.property.wpf
             var control = Keyboard.IsKeyDown(Key.LeftCtrl);
             if (control)
             {
-                var s = 1 + (e.Delta * 0.0004);
-                var tg = new TransformGroup();
-                if (this.LayoutTransform != null)
+                // 节流：合并连续的缩放事件，最后一次统一应用（100ms），避免每次滚轮都触发布局
+                this.pendingZoomScale *= 1 + (e.Delta * 0.0004);
+                if (this.zoomThrottleTimer == null)
                 {
-                    tg.Children.Add(this.LayoutTransform);
+                    this.zoomThrottleTimer = new DispatcherTimer(DispatcherPriority.Background)
+                    {
+                        Interval = TimeSpan.FromMilliseconds(100)
+                    };
+                    this.zoomThrottleTimer.Tick += (s, args) =>
+                    {
+                        this.zoomThrottleTimer.Stop();
+                        this.ApplyPendingZoom();
+                    };
                 }
 
-                tg.Children.Add(new ScaleTransform(s, s));
-                this.LayoutTransform = tg;
+                this.zoomThrottleTimer.Stop();
+                this.zoomThrottleTimer.Start();
                 e.Handled = true;
             }
+        }
+
+        /// <summary>
+        /// 应用节流期间累积的缩放因子（保持与原有 LayoutTransform 组合语义一致）。
+        /// </summary>
+        private void ApplyPendingZoom()
+        {
+            var scale = this.pendingZoomScale;
+            this.pendingZoomScale = 1.0;
+
+            var tg = new TransformGroup();
+            if (this.LayoutTransform != null)
+            {
+                tg.Children.Add(this.LayoutTransform);
+            }
+
+            tg.Children.Add(new ScaleTransform(scale, scale));
+            this.LayoutTransform = tg;
         }
 
         /// <summary>
@@ -3661,6 +3712,39 @@ namespace Snet.Windows.Controls.property.wpf
         }
 
         /// <summary>
+        /// 批量更新抑制开始：集合变更不会立即重建网格内容，直到调用 <see cref="EndUpdate"/> 且计数归零。
+        /// 可用于连续插入大量行/列的场景，避免每次变更都全量重建。
+        /// </summary>
+        public void BeginUpdate()
+        {
+            this.updateSuppressionCount++;
+        }
+
+        /// <summary>
+        /// 批量更新抑制结束：计数归零且期间有变更时，只执行一次网格内容重建。
+        /// </summary>
+        public void EndUpdate()
+        {
+            if (this.updateSuppressionCount > 0)
+            {
+                this.updateSuppressionCount--;
+            }
+
+            if (this.updateSuppressionCount == 0 && this.pendingGridUpdate)
+            {
+                this.pendingGridUpdate = false;
+                if (this.Dispatcher.CheckAccess())
+                {
+                    this.UpdateGridContent();
+                }
+                else
+                {
+                    this.Dispatcher.Invoke(this.UpdateGridContent);
+                }
+            }
+        }
+
+        /// <summary>
         /// Handles changes to the items collection.
         /// </summary>
         /// <param name="e">The event arguments.</param>
@@ -3673,6 +3757,13 @@ namespace Snet.Windows.Controls.property.wpf
 
             if (this.suspendCollectionChangedNotifications)
             {
+                return;
+            }
+
+            // 批量更新抑制：延后到 EndUpdate 时统一重建
+            if (this.updateSuppressionCount > 0)
+            {
+                this.pendingGridUpdate = true;
                 return;
             }
 
@@ -3702,7 +3793,18 @@ namespace Snet.Windows.Controls.property.wpf
                 return;
             }
 
-            this.Dispatcher.Invoke(this.UpdateGridContent);
+            // 合并连续的集合变更（如连续 Add）：同一调度周期内只重建一次
+            if (this.collectionUpdateScheduled)
+            {
+                return;
+            }
+
+            this.collectionUpdateScheduled = true;
+            this.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
+            {
+                this.collectionUpdateScheduled = false;
+                this.UpdateGridContent();
+            }));
         }
 
         /// <summary>

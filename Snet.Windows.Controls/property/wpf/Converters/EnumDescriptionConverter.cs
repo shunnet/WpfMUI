@@ -1,4 +1,4 @@
-﻿// --------------------------------------------------------------------------------------------------------------------
+// --------------------------------------------------------------------------------------------------------------------
 // <copyright file="EnumDescriptionConverter.cs" company="Snet.Windows.Controls.property.core">
 //   Copyright (c) 2014 Snet.Windows.Controls.property.core contributors
 // </copyright>
@@ -10,6 +10,8 @@
 namespace Snet.Windows.Controls.property.wpf
 {
     using System;
+    using System.Collections.Concurrent;
+    using System.Collections.Generic;
     using System.Globalization;
     using System.Linq;
     using System.Reflection;
@@ -21,6 +23,12 @@ namespace Snet.Windows.Controls.property.wpf
     [ValueConversion(typeof(object), typeof(string))]
     public class EnumDescriptionConverter : IValueConverter
     {
+        /// <summary>
+        /// 枚举值到描述文本的缓存（按枚举类型，避免每次转换都做字段反射）。
+        /// </summary>
+        private static readonly ConcurrentDictionary<Type, Dictionary<object, string>> EnumDescriptionCache =
+            new ConcurrentDictionary<Type, Dictionary<object, string>>();
+
         /// <summary>
         /// Converts a value.
         /// </summary>
@@ -41,26 +49,56 @@ namespace Snet.Windows.Controls.property.wpf
             // Default, non-converted result.
             string result = value.ToString();
 
-            var field = value.GetType().GetFields(BindingFlags.Static | BindingFlags.GetField | BindingFlags.Public).FirstOrDefault(f => f.GetValue(null).Equals(value));
-
-            if (field != null)
+            var valueType = value.GetType();
+            if (!valueType.IsEnum)
             {
+                return result;
+            }
+
+            var descriptions = EnumDescriptionCache.GetOrAdd(valueType, BuildDescriptionMap);
+            if (descriptions.TryGetValue(value, out var description))
+            {
+                result = description;
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// 构建枚举值到描述文本的映射（保留原有"第一个匹配字段"的语义）。
+        /// </summary>
+        /// <param name="enumType">枚举类型。</param>
+        /// <returns>值到描述的映射。</returns>
+        private static Dictionary<object, string> BuildDescriptionMap(Type enumType)
+        {
+            var map = new Dictionary<object, string>();
+            var fields = enumType.GetFields(BindingFlags.Static | BindingFlags.GetField | BindingFlags.Public);
+            foreach (var field in fields)
+            {
+                var fieldValue = field.GetValue(null);
+                if (map.ContainsKey(fieldValue))
+                {
+                    // 重复枚举值：保留第一个匹配（与原有 FirstOrDefault 语义一致）
+                    continue;
+                }
+
+                string description = null;
                 var descriptionAttribute = field.GetCustomAttributes<System.ComponentModel.DescriptionAttribute>(true).FirstOrDefault();
                 if (descriptionAttribute != null)
                 {
-                    // Found the attribute, assign description
-                    result = descriptionAttribute.Description;
+                    description = descriptionAttribute.Description;
                 }
 
                 var descriptionAttribute2 = field.GetCustomAttributes<Snet.Windows.Controls.property.core.DataAnnotations.DescriptionAttribute>(true).FirstOrDefault();
                 if (descriptionAttribute2 != null)
                 {
-                    // Found the attribute, assign description
-                    result = descriptionAttribute2.Description;
+                    description = descriptionAttribute2.Description;
                 }
+
+                map.Add(fieldValue, description ?? fieldValue.ToString());
             }
 
-            return result;
+            return map;
         }
 
         /// <summary>

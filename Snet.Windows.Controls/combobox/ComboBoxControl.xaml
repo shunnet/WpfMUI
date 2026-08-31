@@ -13,28 +13,26 @@
                 x:Key="CustomComboBoxItemStyle"
                 BasedOn="{StaticResource DefaultComboBoxItemStyle}"
                 TargetType="ComboBoxItem">
-                <Setter Property="Padding" Value="10,6,10,6" />
+                <Setter Property="Padding" Value="10,5,10,5" />
             </Style>
         </Grid.Resources>
-        <Label
-            VerticalContentAlignment="Center"
-            Content="{Binding Hint, RelativeSource={RelativeSource AncestorType=local:ComboBoxControl}}"
-            Foreground="{DynamicResource TextPlaceholderColorBrush}">
-            <Label.Style>
-                <Style TargetType="Label">
+        <TextBlock
+            Margin="0,-1,0,0"
+            VerticalAlignment="Center"
+            Foreground="{DynamicResource TextControlPlaceholderForeground}"
+            Text="{Binding Hint, RelativeSource={RelativeSource AncestorType=local:ComboBoxControl}}">
+            <TextBlock.Style>
+                <Style TargetType="TextBlock">
                     <Setter Property="Visibility" Value="Collapsed" />
-                    <Setter Property="Padding" Value="30,6,10,6" />
+                    <Setter Property="Padding" Value="30,0,10,0" />
                     <Style.Triggers>
                         <DataTrigger Binding="{Binding SelectedItem, RelativeSource={RelativeSource AncestorType=local:ComboBoxControl}}" Value="{x:Null}">
                             <Setter Property="Visibility" Value="Visible" />
                         </DataTrigger>
-                        <DataTrigger Binding="{Binding Icon, RelativeSource={RelativeSource AncestorType=local:ComboBoxControl}}" Value="{x:Null}">
-                            <Setter Property="Padding" Value="10,6,10,6" />
-                        </DataTrigger>
                     </Style.Triggers>
                 </Style>
-            </Label.Style>
-        </Label>
+            </TextBlock.Style>
+        </TextBlock>
         <ComboBox
             Height="{Binding Height, RelativeSource={RelativeSource AncestorType=UserControl}}"
             DisplayMemberPath="{Binding DisplayMemberPath, RelativeSource={RelativeSource AncestorType=local:ComboBoxControl}}"
@@ -45,12 +43,7 @@
             <ComboBox.Style>
                 <Style BasedOn="{StaticResource DefaultComboBoxStyle}" TargetType="ComboBox">
                     <Setter Property="VerticalContentAlignment" Value="Center" />
-                    <Setter Property="Padding" Value="29,6,10,6" />
-                    <Style.Triggers>
-                        <DataTrigger Binding="{Binding Icon, RelativeSource={RelativeSource AncestorType=local:ComboBoxControl}}" Value="{x:Null}">
-                            <Setter Property="Padding" Value="9,6,10,6" />
-                        </DataTrigger>
-                    </Style.Triggers>
+                    <Setter Property="Padding" Value="30,-1,10,0" />
                 </Style>
             </ComboBox.Style>
         </ComboBox>

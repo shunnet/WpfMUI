@@ -221,21 +221,50 @@ namespace Snet.Windows.Controls.edit.Folding
             {
                 newTextView.VisualLinesChanged += TextViewVisualLinesChanged;
             }
+            // The old markers reference visual lines of the previous view; drop them all here
+            // (the new view will rebuild them through VisualLinesChanged).
+            ClearMarkers();
             TextViewVisualLinesChanged(null, null);
         }
 
         List<FoldingMarginMarker> markers = new List<FoldingMarginMarker>();
+        // Fast lookup of the marker currently attached to a visual line, so scroll updates only
+        // add/remove markers for lines that actually entered/left the view instead of rebuilding
+        // the whole marker set on every visual line change.
+        readonly Dictionary<VisualLine, FoldingMarginMarker> markerByVisualLine = new Dictionary<VisualLine, FoldingMarginMarker>();
 
-        void TextViewVisualLinesChanged(object sender, EventArgs e)
+        void ClearMarkers()
         {
             foreach (FoldingMarginMarker m in markers)
             {
                 RemoveVisualChild(m);
             }
             markers.Clear();
-            InvalidateVisual();
+            markerByVisualLine.Clear();
+        }
+
+        void TextViewVisualLinesChanged(object sender, EventArgs e)
+        {
+            bool markersChanged = false;
             if (TextView != null && FoldingManager != null && TextView.VisualLinesValid)
             {
+                // 1) remove markers whose visual line left the view, or whose folding section
+                //    no longer matches the one currently reported for that line.
+                for (int i = markers.Count - 1; i >= 0; i--)
+                {
+                    FoldingMarginMarker m = markers[i];
+                    FoldingSection currentSection = FoldingManager.GetNextFolding(m.VisualLine.FirstDocumentLine.Offset);
+                    // Removed or replaced folding sections are no longer returned by GetNextFolding,
+                    // so the reference comparison detects both deletion and re-creation.
+                    if (currentSection == null || currentSection != m.FoldingSection)
+                    {
+                        RemoveVisualChild(m);
+                        markerByVisualLine.Remove(m.VisualLine);
+                        markers.RemoveAt(i);
+                        markersChanged = true;
+                    }
+                }
+                // 2) add markers for new visual lines.
                 foreach (VisualLine line in TextView.VisualLines)
                 {
                     FoldingSection fs = FoldingManager.GetNextFolding(line.FirstDocumentLine.Offset);
@@ -243,6 +272,8 @@ namespace Snet.Windows.Controls.edit.Folding
                         continue;
                     if (fs.StartOffset <= line.LastDocumentLine.Offset + line.LastDocumentLine.Length)
                     {
+                        if (markerByVisualLine.ContainsKey(line))
+                            continue;
                         FoldingMarginMarker m = new FoldingMarginMarker
                         {
                             IsExpanded = !fs.IsFolded,
@@ -251,15 +282,28 @@ namespace Snet.Windows.Controls.edit.Folding
                         };
 
                         markers.Add(m);
+                        markerByVisualLine.Add(line, m);
                         AddVisualChild(m);
 
                         m.IsMouseDirectlyOverChanged += delegate { InvalidateVisual(); };
 
-                        InvalidateMeasure();
-                        continue;
+                        markersChanged = true;
                     }
                 }
             }
+            else
+            {
+                // no (valid) view: nothing to show
+                if (markers.Count > 0)
+                {
+                    ClearMarkers();
+                    markersChanged = true;
+                }
+            }
+            // InvalidateMeasure once after the whole update instead of once per marker.
+            if (markersChanged)
+                InvalidateMeasure();
+            InvalidateVisual();
         }
 
         /// <inheritdoc/>

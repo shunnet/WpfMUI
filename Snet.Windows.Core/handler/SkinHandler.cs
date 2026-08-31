@@ -1,4 +1,5 @@
 ﻿using MaterialDesignThemes.Wpf;
+using Snet.Log;
 using Snet.Model.@event;
 using Snet.Utility;
 using Snet.Windows.Core.data;
@@ -102,17 +103,28 @@ namespace Snet.Windows.Core.handler
         /// <summary>
         /// 修改当前 MaterialDesign 主题样式。<br/>
         /// 获取当前主题对象，执行调用者指定的修改操作后重新应用。<br/>
-        /// 注意：Theme 对象绑定 UI 线程，modificationFunc 中不可跨线程操作。
+        /// 注意：Theme 对象绑定 UI 线程，modificationFunc 中不可跨线程操作。<br/>
+        /// 若出现异常记录日志而不是静默失败（否则皮肤切换后 MaterialDesign 颜色看似"不生效"）。
         /// </summary>
         /// <param name="modificationFunc">对 Theme 对象执行的修改操作（异步委托）</param>
         private static void ModifyTheme(Action<Theme> modificationFunc)
         {
-            Theme theme = paletteHelper.GetTheme();
-            if (modificationFunc != null)
+            try
             {
-                modificationFunc(theme);
+                Theme theme = paletteHelper.GetTheme();
+                if (modificationFunc != null)
+                {
+                    modificationFunc(theme);
+                }
+                paletteHelper.SetTheme(theme);
             }
-            paletteHelper.SetTheme(theme);
+            catch (Exception ex)
+            {
+                // MaterialDesign Theme 可能因资源结构问题（如缺少 IMaterialDesignThemeDictionary 且应用根资源不可写）
+                // 导致 SetTheme 失败；记录日志便于定位，避免切换静默失效
+                LogHelper.Error($"MaterialDesign 主题切换异常：{ex.Message}", "Snet.Windows.Core", ex);
+                throw;
+            }
         }
 
         #endregion

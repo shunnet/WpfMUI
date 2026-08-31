@@ -1,5 +1,4 @@
-﻿using System.Timers;
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Threading;
@@ -15,8 +14,13 @@ namespace Snet.Windows.Controls.ledgauge
         /// <summary>闪烁状态标志（true 为亮，false 为灰）</summary>
         private bool isFlashingStateOn;
 
-        /// <summary>闪烁定时器，用于控制 LED 灯闪烁频率</summary>
-        private System.Timers.Timer? flashTimer;
+        /// <summary>
+        /// 闪烁定时器（UI 线程 DispatcherTimer），用于控制 LED 灯闪烁频率。<br/>
+        /// 说明：闪烁是纯 UI 行为，统一放在 UI 线程上执行，
+        /// 避免线程池定时器与页面切换（IsVisibleChanged/Unloaded/Loaded 事件）交叉时
+        /// 出现“定时器泄漏 / 重复定时器（闪烁变快）/ 停止后仍被旧定时器驱动（无法取消）”的问题。
+        /// </summary>
+        private readonly DispatcherTimer flashTimer;
 
         /// <summary>灯光径向渐变画笔（缓存引用以避免重复查找）</summary>
         private RadialGradientBrush lampBrush;
@@ -34,9 +38,6 @@ namespace Snet.Windows.Controls.ledgauge
             new(0.51, 0.95),
             new(0.382, 1.0)
         ];
-
-        /// <summary>标记闪烁间隔是否待更新，避免在定时器回调外直接修改间隔</summary>
-        private bool isFlashingIntervalChangePending;
 
         public static readonly DependencyProperty IsFlatProperty = DependencyProperty.Register("IsFlat", typeof(bool), typeof(LedGaugeControl), new FrameworkPropertyMetadata(false, OnIsFlatPropertyChnaged));
 
@@ -163,16 +164,39 @@ namespace Snet.Windows.Controls.ledgauge
 
         /// <summary>
         /// 初始化 LED 指示灯控件。<br/>
-        /// 缓存灯光径向渐变画笔引用，注册加载、卸载、启用状态和可见性变更事件。
+        /// 缓存灯光径向渐变画笔引用，创建闪烁定时器，注册启用状态和可见性变更事件。
         /// </summary>
         public LedGaugeControl()
         {
             InitializeComponent();
             lampBrush = (RadialGradientBrush)Lamp.Fill;
-            base.Loaded += LedGauge_Loaded;
-            base.Unloaded += LedGauge_Unloaded;
+            flashTimer = new DispatcherTimer(DispatcherPriority.Render, Dispatcher)
+            {
+                Interval = TimeSpan.FromMilliseconds(FlashingInterval)
+            };
+            flashTimer.Tick += OnTimerTick;
             base.IsEnabledChanged += OnIsEnabledChanged;
             base.IsVisibleChanged += OnIsVisibleChanged;
+        }
+
+        /// <summary>
+        /// 根据 闪烁开关 + 控件可见性 + 启用状态 统一决定定时器启停。<br/>
+        /// 所有入口（IsFlashing / IsVisibleChanged / IsEnabledChanged）都走这里，
+        /// 保证同一时刻至多一个定时器处于运行状态，且与用户设置严格一致。
+        /// </summary>
+        private void RefreshBlink()
+        {
+            if (IsFlashing && base.IsVisible && base.IsEnabled)
+            {
+                if (!flashTimer.IsEnabled)
+                {
+                    flashTimer.Start();
+                }
+            }
+            else if (flashTimer.IsEnabled)
+            {
+                flashTimer.Stop();
+            }
         }
 
         /// <summary>
@@ -232,28 +256,25 @@ namespace Snet.Windows.Controls.ledgauge
 
             if ((bool)e.NewValue)
             {
-                if (ledGauge.IsEnabled)
-                {
-                    ledGauge.isFlashingStateOn = true;
-                    ledGauge.ApplyColor(ledGauge.Color, true, true);
-                    ledGauge.flashTimer?.Start();
-                }
+                ledGauge.isFlashingStateOn = true;
+                ledGauge.ApplyColor(ledGauge.Color, true, ledGauge.IsEnabled);
+                ledGauge.RefreshBlink();
             }
             else
             {
-                ledGauge.flashTimer?.Stop();
+                ledGauge.flashTimer.Stop();
                 ledGauge.ApplyColor(ledGauge.Color, ledGauge.IsOn, ledGauge.IsEnabled);
             }
         }
 
         /// <summary>
-        /// FlashingInterval 属性变更回调，标记间隔待更新，实际更新在下次定时器回调中执行
+        /// FlashingInterval 属性变更回调，直接更新定时器间隔
         /// </summary>
         private static void OnFlashingIntervalPropertyChanged(DependencyObject dependencyObject, DependencyPropertyChangedEventArgs e)
         {
             if (dependencyObject is LedGaugeControl ledGauge)
             {
-                ledGauge.isFlashingIntervalChangePending = true;
+                ledGauge.flashTimer.Interval = TimeSpan.FromMilliseconds(ledGauge.FlashingInterval);
             }
         }
 
@@ -277,35 +298,6 @@ namespace Snet.Windows.Controls.ledgauge
             {
                 ledGauge.ApplyColor(ledGauge.Color, ledGauge.IsOn, ledGauge.IsEnabled);
             }
-        }
-
-        /// <summary>
-        /// 控件加载完成事件<br/>
-        /// 初始化闪烁定时器，如果控件可见且启用闪烁则自动开始
-        /// </summary>
-        private void LedGauge_Loaded(object sender, RoutedEventArgs e)
-        {
-            flashTimer = new System.Timers.Timer(FlashingInterval);
-            flashTimer.Elapsed += OnTimerTick;
-            if (base.IsVisible && base.IsEnabled && IsFlashing)
-            {
-                flashTimer.Start();
-            }
-        }
-
-        /// <summary>
-        /// 控件卸载事件<br/>
-        /// 安全释放闪烁定时器资源，取消事件订阅并释放定时器
-        /// </summary>
-        private void LedGauge_Unloaded(object sender, RoutedEventArgs e)
-        {
-            if (flashTimer == null)
-                return;
-
-            flashTimer.Stop();
-            flashTimer.Elapsed -= OnTimerTick;
-            flashTimer.Dispose();
-            flashTimer = null;
         }
 
         /// <summary>
@@ -350,17 +342,14 @@ namespace Snet.Windows.Controls.ledgauge
             if ((bool)e.NewValue)
             {
                 ApplyColor(Color, IsOn || IsFlashing, base.IsEnabled);
-                base.Opacity *= 2.0;
-                if (IsFlashing)
-                {
-                    flashTimer?.Start();
-                }
+                base.Opacity = 1.0;   //直接赋值，避免 *= 累积漂移
+                RefreshBlink();
             }
             else
             {
-                flashTimer?.Stop();
+                flashTimer.Stop();
                 ApplyColor(Color, IsOn, base.IsEnabled);
-                base.Opacity *= 0.5;
+                base.Opacity = 0.5;   //直接赋值，避免 *= 累积漂移
             }
         }
 
@@ -370,35 +359,17 @@ namespace Snet.Windows.Controls.ledgauge
         /// </summary>
         private void OnIsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
         {
-            if (!(bool)e.NewValue)
-            {
-                flashTimer?.Stop();
-            }
-            else if (IsFlashing)
-            {
-                flashTimer?.Start();
-            }
+            RefreshBlink();
         }
 
         /// <summary>
         /// 闪烁定时器回调事件<br/>
-        /// 处理闪烁间隔变更和灯光状态切换
+        /// 切换灯光状态（UI 线程执行，无跨线程竞争）
         /// </summary>
-        private void OnTimerTick(object sender, ElapsedEventArgs e)
+        private void OnTimerTick(object? sender, EventArgs e)
         {
-            if (isFlashingIntervalChangePending && flashTimer != null)
-            {
-                flashTimer.Stop();
-                flashTimer.Interval = FlashingInterval;
-                flashTimer.Start();
-                isFlashingIntervalChangePending = false;
-            }
             isFlashingStateOn = !isFlashingStateOn;
-            // 使用 BeginInvoke 替代 Invoke，避免阻塞定时器线程等待 UI 线程完成
-            base.Dispatcher.BeginInvoke(delegate
-            {
-                ApplyColor(Color, isFlashingStateOn, base.IsEnabled);
-            }, DispatcherPriority.Render);
+            ApplyColor(Color, isFlashingStateOn, base.IsEnabled);
         }
     }
 }

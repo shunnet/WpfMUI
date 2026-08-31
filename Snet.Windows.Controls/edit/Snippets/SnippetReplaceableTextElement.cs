@@ -113,6 +113,14 @@ namespace Snet.Windows.Controls.edit.Snippets
             context.TextArea.TextView.BackgroundRenderers.Remove(background);
             context.TextArea.TextView.BackgroundRenderers.Remove(foreground);
             context.TextArea.Caret.PositionChanged -= Caret_PositionChanged;
+            // Unsubscribe the anchor deletions so the element no longer receives (and reacts to)
+            // document events after deactivation. -= is idempotent, so repeated Deactivate calls
+            // are safe. The anchors themselves live in the document's anchor tree; unsubscribing
+            // breaks the reference chain from the document to this element.
+            if (start != null)
+                start.Deleted -= AnchorDeleted;
+            if (end != null)
+                end.Deleted -= AnchorDeleted;
         }
 
         bool isCaretInside;
@@ -137,7 +145,7 @@ namespace Snet.Windows.Controls.edit.Snippets
 
         string GetText()
         {
-            if (start.IsDeleted || end.IsDeleted)
+            if (start == null || end == null || start.IsDeleted || end.IsDeleted)
                 return string.Empty;
             else
                 return context.Document.GetText(start.Offset, Math.Max(0, end.Offset - start.Offset));
@@ -170,7 +178,7 @@ namespace Snet.Windows.Controls.edit.Snippets
         {
             get
             {
-                if (start.IsDeleted || end.IsDeleted)
+                if (start == null || end == null || start.IsDeleted || end.IsDeleted)
                     return null;
                 else
                     return new SimpleSegment(start.Offset, Math.Max(0, end.Offset - start.Offset));

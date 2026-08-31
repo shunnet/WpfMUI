@@ -1,4 +1,4 @@
-﻿// --------------------------------------------------------------------------------------------------------------------
+// --------------------------------------------------------------------------------------------------------------------
 // <copyright file="Bitmap.cs" company="Snet.Windows.Controls.property.core">
 //   Copyright (c) 2014 Snet.Windows.Controls.property.core contributors
 // </copyright>
@@ -47,6 +47,12 @@ namespace Snet.Windows.Controls.property.wpf
         /// The pixel offset.
         /// </summary>
         private Point pixelOffset;
+
+        /// <summary>
+        /// 上次计算像素偏移时元素相对根视觉的位置（用于跳过无变化的 LayoutUpdated）。
+        /// 初始为 NaN，保证首次 LayoutUpdated 一定计算。
+        /// </summary>
+        private Point lastRootPosition = new Point(double.NaN, double.NaN);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Bitmap" /> class.
@@ -274,8 +280,22 @@ namespace Snet.Windows.Controls.property.wpf
         /// <param name="e">The <see cref="System.EventArgs" /> instance containing the event data.</param>
         private void OnLayoutUpdated(object sender, EventArgs e)
         {
-            // This event just means that layout happened somewhere.  However, this is
-            // what we need since layout anywhere could affect our pixel positioning.
+            // 该事件在全局任意布局后都会触发。仅当自身相对根视觉的位置发生变化时才重新计算像素偏移，
+            // 位置未变时直接跳过昂贵的 TransformToAncestor 全链路计算。
+            PresentationSource ps = PresentationSource.FromVisual(this);
+            if (ps == null || ps.RootVisual == null)
+            {
+                return;
+            }
+
+            Point rootPosition = this.TransformToAncestor(ps.RootVisual).Transform(new Point(0, 0));
+            if (this.AreClose(rootPosition, this.lastRootPosition))
+            {
+                return;
+            }
+
+            this.lastRootPosition = rootPosition;
+
             Point pixelOffset = this.GetPixelOffset();
             if (!this.AreClose(pixelOffset, this.pixelOffset))
             {

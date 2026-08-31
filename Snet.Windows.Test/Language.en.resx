@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <!-- 
 		Microsoft ResX Schema
@@ -105,5 +105,173 @@
   </data>
   <data name="Welcome" xml:space="preserve">
     <value>Welcome Use Snet UI Demo</value>
+  </data>
+  <data name="基础控件" xml:space="preserve">
+    <value>Basic Controls</value>
+  </data>
+  <data name="按钮控件" xml:space="preserve">
+    <value>Button Control</value>
+  </data>
+  <data name="下拉框" xml:space="preserve">
+    <value>Combo Box</value>
+  </data>
+  <data name="文本框" xml:space="preserve">
+    <value>Text Box</value>
+  </data>
+  <data name="LED指示灯" xml:space="preserve">
+    <value>LED Indicator</value>
+  </data>
+  <data name="页码条" xml:space="preserve">
+    <value>Page Bar</value>
+  </data>
+  <data name="属性与网格" xml:space="preserve">
+    <value>Properties &amp; Grids</value>
+  </data>
+  <data name="属性框" xml:space="preserve">
+    <value>Property Panel</value>
+  </data>
+  <data name="树形列表" xml:space="preserve">
+    <value>Tree View</value>
+  </data>
+  <data name="自定义表格" xml:space="preserve">
+    <value>Data Grid</value>
+  </data>
+  <data name="代码编辑器" xml:space="preserve">
+    <value>Code Editor</value>
+  </data>
+  <data name="对话框" xml:space="preserve">
+    <value>Dialogs</value>
+  </data>
+  <data name="消息框" xml:space="preserve">
+    <value>Message Box</value>
+  </data>
+  <data name="高级编辑控件" xml:space="preserve">
+    <value>Advanced Controls</value>
+  </data>
+  <data name="数字调节" xml:space="preserve">
+    <value>Spin Control</value>
+  </data>
+  <data name="勾选标记" xml:space="preserve">
+    <value>Check Mark</value>
+  </data>
+  <data name="带输入框滑块" xml:space="preserve">
+    <value>Slider with Input</value>
+  </data>
+  <data name="单选列表" xml:space="preserve">
+    <value>Radio Button List</value>
+  </data>
+  <data name="文件选择" xml:space="preserve">
+    <value>File Picker</value>
+  </data>
+  <data name="颜色选择" xml:space="preserve">
+    <value>Color Picker</value>
+  </data>
+  <data name="弹出选择" xml:space="preserve">
+    <value>Popup Box</value>
+  </data>
+  <data name="打开属性对话框" xml:space="preserve">
+    <value>Open Property Dialog</value>
+  </data>
+  <data name="打开向导对话框" xml:space="preserve">
+    <value>Open Wizard Dialog</value>
+  </data>
+  <data name="当前选择" xml:space="preserve">
+    <value>Selected</value>
+  </data>
+  <data name="输入内容" xml:space="preserve">
+    <value>Input</value>
+  </data>
+  <data name="点亮" xml:space="preserve">
+    <value>Light On</value>
+  </data>
+  <data name="闪烁" xml:space="preserve">
+    <value>Flashing</value>
+  </data>
+  <data name="选择颜色" xml:space="preserve">
+    <value>Choose Color</value>
+  </data>
+  <data name="总条数" xml:space="preserve">
+    <value>Total</value>
+  </data>
+  <data name="每页" xml:space="preserve">
+    <value>Page Size</value>
+  </data>
+  <data name="当前页" xml:space="preserve">
+    <value>Page</value>
+  </data>
+  <data name="单按钮" xml:space="preserve">
+    <value>Single Button</value>
+  </data>
+  <data name="取消" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="是" xml:space="preserve">
+    <value>Yes</value>
+  </data>
+  <data name="否" xml:space="preserve">
+    <value>No</value>
+  </data>
+  <data name="确认" xml:space="preserve">
+    <value>OK</value>
+  </data>
+  <data name="属性编辑对话框" xml:space="preserve">
+    <value>Property Edit Dialog</value>
+  </data>
+  <data name="向导对话框" xml:space="preserve">
+    <value>Wizard Dialog</value>
+  </data>
+  <data name="拖拽控件" xml:space="preserve">
+    <value>Drag Controls</value>
+  </data>
+  <data name="可移动" xml:space="preserve">
+    <value>Movable</value>
+  </data>
+  <data name="可拖拽大小" xml:space="preserve">
+    <value>Resizable</value>
+  </data>
+  <data name="可旋转" xml:space="preserve">
+    <value>Rotatable</value>
+  </data>
+  <data name="清空画布" xml:space="preserve">
+    <value>Clear Canvas</value>
+  </data>
+  <data name="消息记录" xml:space="preserve">
+    <value>Message Log</value>
+  </data>
+  <data name="拖拽提示" xml:space="preserve">
+    <value>Press left mouse button on a control at the left to drag out a copy; right-click a copy for menu: Pin / Adjust / Extract / Settings / Remove; top buttons save/load canvas layout (JSON)</value>
+  </data>
+  <data name="固定" xml:space="preserve">
+    <value>Pin</value>
+  </data>
+  <data name="解除固定" xml:space="preserve">
+    <value>Unpin</value>
+  </data>
+  <data name="已固定" xml:space="preserve">
+    <value>Pinned (right-click to unpin)</value>
+  </data>
+  <data name="提取" xml:space="preserve">
+    <value>Extract</value>
+  </data>
+  <data name="移除" xml:space="preserve">
+    <value>Remove</value>
+  </data>
+  <data name="保存布局" xml:space="preserve">
+    <value>Save Layout</value>
+  </data>
+  <data name="加载布局" xml:space="preserve">
+    <value>Load Layout</value>
+  </data>
+  <data name="已提取到剪贴板" xml:space="preserve">
+    <value>Copied to clipboard</value>
+  </data>
+  <data name="布局已保存" xml:space="preserve">
+    <value>Layout saved</value>
+  </data>
+  <data name="布局已加载" xml:space="preserve">
+    <value>Layout loaded</value>
+  </data>
+  <data name="布局加载失败" xml:space="preserve">
+    <value>Failed to load layout</value>
   </data>
 </root>

@@ -1,4 +1,4 @@
-﻿// --------------------------------------------------------------------------------------------------------------------
+// --------------------------------------------------------------------------------------------------------------------
 // <copyright file="EnumValuesConverter.cs" company="Snet.Windows.Controls.property.core">
 //   Copyright (c) 2014 Snet.Windows.Controls.property.core contributors
 // </copyright>
@@ -10,6 +10,8 @@
 namespace Snet.Windows.Controls.property.wpf
 {
     using System;
+    using System.Collections.Concurrent;
+    using System.Collections.Generic;
     using System.Globalization;
     using System.Windows.Data;
 
@@ -19,6 +21,11 @@ namespace Snet.Windows.Controls.property.wpf
     [ValueConversion(typeof(Enum), typeof(string[]))]
     public class EnumValuesConverter : IValueConverter
     {
+        /// <summary>
+        /// 过滤后的枚举值列表缓存（按枚举类型，避免每次转换都做字段反射）。
+        /// </summary>
+        private static readonly ConcurrentDictionary<Type, List<object>> EnumValuesCache = new ConcurrentDictionary<Type, List<object>>();
+
         /// <summary>
         /// Converts a value.
         /// </summary>
@@ -33,15 +40,26 @@ namespace Snet.Windows.Controls.property.wpf
         {
             if (value != null)
             {
-                return Enum.GetValues(value.GetType()).FilterOnBrowsableAttribute();
+                return GetCachedValues(value.GetType());
             }
 
             if (targetType == typeof(Enum))
             {
-                return Enum.GetValues(targetType).FilterOnBrowsableAttribute();
+                return GetCachedValues(targetType);
             }
 
             return value;
+        }
+
+        /// <summary>
+        /// 获取缓存的值列表（返回副本，避免调用方修改缓存）。
+        /// </summary>
+        /// <param name="enumType">枚举类型。</param>
+        /// <returns>过滤后的值列表。</returns>
+        private static List<object> GetCachedValues(Type enumType)
+        {
+            var cached = EnumValuesCache.GetOrAdd(enumType, t => Enum.GetValues(t).FilterOnBrowsableAttribute());
+            return new List<object>(cached);
         }
 
         /// <summary>

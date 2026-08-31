@@ -1,4 +1,4 @@
-﻿using Snet.Core.handler;
+using Snet.Core.handler;
 using Snet.Model.data;
 using Snet.Utility;
 using Snet.Windows.Core.@enum;
@@ -79,10 +79,10 @@ namespace Snet.Windows.Controls.handler
         /// <param name="oldDict">旧资源字典（待移除）</param>
         private static void ReplaceResources(this FrameworkElement app, ResourceDictionary newDict, ResourceDictionary oldDict)
         {
-            // 确保在 UI 线程执行
+            // 确保在 UI 线程执行（使用异步方式，不阻塞调用线程）
             if (!app.Dispatcher.CheckAccess())
             {
-                app.Dispatcher.Invoke(() => ReplaceResources(app, newDict, oldDict));
+                _ = app.Dispatcher.BeginInvoke(() => ReplaceResources(app, newDict, oldDict));
                 return;
             }
             app.Resources.BeginInit();
@@ -188,13 +188,16 @@ namespace Snet.Windows.Controls.handler
                         Source = new Uri("pack://application:,,,/Wpf.Ui;component/Resources/Wpf.Ui.xaml", UriKind.Absolute)
                     });
             }
-            //设置汉堡菜单皮肤
-            SkinHandler.OnSkinEvent += (object? sender, Windows.Core.data.EventSkinResult e)
-                => app?.WpfUI_SkinUpdate(e.Skin);
+            //设置汉堡菜单皮肤（具名处理器 + 先退订再订阅，避免重复订阅导致多次触发）
+            SkinHandler.OnSkinEvent -= SkinHandler_OnSkinEvent;
+            s_skinTargetApp = app;
+            SkinHandler.OnSkinEvent += SkinHandler_OnSkinEvent;
 
-            //语言切换
-            Snet.Core.handler.LanguageHandler.OnLanguageEventAsync += async (object? sender, Snet.Model.data.EventLanguageResult e)
-                => await LanguageHandler_OnLanguageEventAsync(sender, e, navigation, model);
+            //语言切换（具名处理器 + 先退订再订阅，避免重复订阅导致多次触发）
+            Snet.Core.handler.LanguageHandler.OnLanguageEventAsync -= LanguageHandler_OnLanguageEvent;
+            s_languageNavigation = navigation;
+            s_languageModel = model;
+            Snet.Core.handler.LanguageHandler.OnLanguageEventAsync += LanguageHandler_OnLanguageEvent;
 
             //当数据源发送变化则触发
             navigation.SelectionChanged += Navigation_SelectionChanged;
@@ -203,6 +206,31 @@ namespace Snet.Windows.Controls.handler
         /// 语言模型
         /// </summary>
         private static LanguageModel languageModel;
+
+        /// <summary>皮肤更新目标容器（静态，供皮肤事件处理器使用）</summary>
+        private static FrameworkElement? s_skinTargetApp;
+        /// <summary>语言切换目标导航（静态，供语言事件处理器使用）</summary>
+        private static NavigationView? s_languageNavigation;
+        /// <summary>语言切换使用的语言模型（静态，供语言事件处理器使用）</summary>
+        private static LanguageModel? s_languageModel;
+
+        /// <summary>
+        /// 皮肤事件处理（具名方法，便于退订）
+        /// </summary>
+        private static void SkinHandler_OnSkinEvent(object? sender, Windows.Core.data.EventSkinResult e)
+        {
+            s_skinTargetApp?.WpfUI_SkinUpdate(e.Skin);
+        }
+
+        /// <summary>
+        /// 语言切换事件处理（具名方法，便于退订）
+        /// </summary>
+        private static async Task LanguageHandler_OnLanguageEvent(object? sender, Snet.Model.data.EventLanguageResult e)
+        {
+            if (s_languageNavigation == null || s_languageModel == null) return;
+            await LanguageHandler_OnLanguageEventAsync(sender, e, s_languageNavigation!, s_languageModel!);
+        }
+
         private static void Navigation_SelectionChanged(NavigationView sender, RoutedEventArgs args)
         {
             //让其只触发一次

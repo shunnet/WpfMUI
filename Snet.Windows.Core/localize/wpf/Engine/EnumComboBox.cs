@@ -1,4 +1,4 @@
-﻿
+
 
 namespace Snet.Windows.Core.localize.wpf.Engine
 {
@@ -153,9 +153,12 @@ namespace Snet.Windows.Core.localize.wpf.Engine
         }
 
         /// <summary>
-        /// Creates a new instance.
+        /// The shared item template. Parsed exactly once per app domain instead of once per instance.
+        /// The template only contains bindings (no instance member references), so it is safe to share.
         /// </summary>
-        public EnumComboBox()
+        private static readonly DataTemplate SharedItemTemplate = CreateItemTemplate();
+
+        private static DataTemplate CreateItemTemplate()
         {
             var context = new ParserContext();
 
@@ -168,7 +171,15 @@ namespace Snet.Windows.Core.localize.wpf.Engine
             xaml += " Prefix=\"{Binding Prefix, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=lex:EnumComboBox}}\"";
             xaml += " /></TextBlock></DataTemplate>";
 
-            ItemTemplate = (DataTemplate)XamlReader.Parse(xaml, context);
+            return (DataTemplate)XamlReader.Parse(xaml, context);
+        }
+
+        /// <summary>
+        /// Creates a new instance.
+        /// </summary>
+        public EnumComboBox()
+        {
+            ItemTemplate = SharedItemTemplate;
         }
     }
 }

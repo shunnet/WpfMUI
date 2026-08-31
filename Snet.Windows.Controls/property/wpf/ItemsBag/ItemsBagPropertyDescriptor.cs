@@ -1,4 +1,4 @@
-﻿// --------------------------------------------------------------------------------------------------------------------
+// --------------------------------------------------------------------------------------------------------------------
 // <copyright file="ItemsBagPropertyDescriptor.cs" company="Snet.Windows.Controls.property.core">
 //   Copyright (c) 2014 Snet.Windows.Controls.property.core contributors
 // </copyright>
@@ -10,6 +10,7 @@
 namespace Snet.Windows.Controls.property.wpf
 {
     using System;
+    using System.Collections.Concurrent;
     using System.ComponentModel;
 
     /// <summary>
@@ -52,6 +53,12 @@ namespace Snet.Windows.Controls.property.wpf
         /// The default descriptor.
         /// </summary>
         private readonly PropertyDescriptor defaultDescriptor;
+
+        /// <summary>
+        /// PropertyInfo 缓存（按 (类型, 属性名, 属性类型) 键，避免每次 GetValue/SetValue 都反射查找）。
+        /// </summary>
+        private static readonly ConcurrentDictionary<PropertyCacheKey, System.Reflection.PropertyInfo> PropertyCache =
+            new ConcurrentDictionary<PropertyCacheKey, System.Reflection.PropertyInfo>();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ItemsBagPropertyDescriptor" /> class.
@@ -145,7 +152,7 @@ namespace Snet.Windows.Controls.property.wpf
             foreach (var obj in bag.Objects)
             {
                 var type = obj.GetType();
-                var pi = type.GetProperty(this.Name, this.defaultDescriptor.PropertyType);
+                var pi = GetPropertyCached(type, this.Name, this.defaultDescriptor.PropertyType);
                 if (pi == null)
                 {
                     continue;
@@ -187,7 +194,7 @@ namespace Snet.Windows.Controls.property.wpf
             foreach (var obj in bag.Objects)
             {
                 var type = obj.GetType();
-                var pi = type.GetProperty(this.Name, this.defaultDescriptor.PropertyType);
+                var pi = GetPropertyCached(type, this.Name, this.defaultDescriptor.PropertyType);
                 if (pi != null)
                 {
                     pi.SetValue(obj, value, null);
@@ -195,6 +202,61 @@ namespace Snet.Windows.Controls.property.wpf
             }
 
             bag.RaisePropertyChanged(this.Name);
+        }
+
+        /// <summary>
+        /// 反射缓存：获取属性的 PropertyInfo（按 (类型, 属性名, 属性类型) 缓存）。
+        /// </summary>
+        /// <param name="type">对象类型。</param>
+        /// <param name="name">属性名。</param>
+        /// <param name="propertyType">属性类型。</param>
+        /// <returns>属性的 <see cref="System.Reflection.PropertyInfo"/>，未找到时返回 <c>null</c>。</returns>
+        private static System.Reflection.PropertyInfo GetPropertyCached(Type type, string name, Type propertyType)
+        {
+            var key = new PropertyCacheKey(type, name, propertyType);
+            return PropertyCache.GetOrAdd(key, k => k.Type.GetProperty(k.Name, k.PropertyType));
+        }
+
+        /// <summary>
+        /// PropertyInfo 缓存的键。
+        /// </summary>
+        private struct PropertyCacheKey : IEquatable<PropertyCacheKey>
+        {
+            public PropertyCacheKey(Type type, string name, Type propertyType)
+            {
+                this.Type = type;
+                this.Name = name;
+                this.PropertyType = propertyType;
+            }
+
+            public Type Type { get; }
+
+            public string Name { get; }
+
+            public Type PropertyType { get; }
+
+            public bool Equals(PropertyCacheKey other)
+            {
+                return this.Type == other.Type
+                       && string.Equals(this.Name, other.Name, StringComparison.Ordinal)
+                       && this.PropertyType == other.PropertyType;
+            }
+
+            public override bool Equals(object obj)
+            {
+                return obj is PropertyCacheKey other && this.Equals(other);
+            }
+
+            public override int GetHashCode()
+            {
+                unchecked
+                {
+                    int hash = this.Type != null ? this.Type.GetHashCode() : 0;
+                    hash = (hash * 397) ^ (this.Name != null ? StringComparer.Ordinal.GetHashCode(this.Name) : 0);
+                    hash = (hash * 397) ^ (this.PropertyType != null ? this.PropertyType.GetHashCode() : 0);
+                    return hash;
+                }
+            }
         }
 
         /// <summary>

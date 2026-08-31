@@ -61,6 +61,15 @@ namespace Snet.Windows.Controls {
         }
         
         /// <summary>
+        ///   查找类似 SN 的本地化字符串。
+        /// </summary>
+        internal static string SN {
+            get {
+                return ResourceManager.GetString("SN", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 不存在 的本地化字符串。
         /// </summary>
         internal static string 不存在 {
@@ -102,6 +111,15 @@ namespace Snet.Windows.Controls {
         internal static string 否 {
             get {
                 return ResourceManager.GetString("否", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 固定 的本地化字符串。
+        /// </summary>
+        internal static string 固定 {
+            get {
+                return ResourceManager.GetString("固定", resourceCulture);
             }
         }
         
@@ -151,6 +169,15 @@ namespace Snet.Windows.Controls {
         }
         
         /// <summary>
+        ///   查找类似 已固定（右键可解除） 的本地化字符串。
+        /// </summary>
+        internal static string 已固定 {
+            get {
+                return ResourceManager.GetString("已固定", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 已存在 的本地化字符串。
         /// </summary>
         internal static string 已存在 {
@@ -165,6 +192,33 @@ namespace Snet.Windows.Controls {
         internal static string 异常 {
             get {
                 return ResourceManager.GetString("异常", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 扩展数据 的本地化字符串。
+        /// </summary>
+        internal static string 扩展数据 {
+            get {
+                return ResourceManager.GetString("扩展数据", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 控件源名称 的本地化字符串。
+        /// </summary>
+        internal static string 控件源名称 {
+            get {
+                return ResourceManager.GetString("控件源名称", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 提取 的本地化字符串。
+        /// </summary>
+        internal static string 提取 {
+            get {
+                return ResourceManager.GetString("提取", resourceCulture);
             }
         }
         
@@ -205,6 +259,15 @@ namespace Snet.Windows.Controls {
         }
         
         /// <summary>
+        ///   查找类似 移除 的本地化字符串。
+        /// </summary>
+        internal static string 移除 {
+            get {
+                return ResourceManager.GetString("移除", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 移除线条 的本地化字符串。
         /// </summary>
         internal static string 移除线条 {
@@ -228,6 +291,15 @@ namespace Snet.Windows.Controls {
         internal static string 线条操作 {
             get {
                 return ResourceManager.GetString("线条操作", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 设置 的本地化字符串。
+        /// </summary>
+        internal static string 设置 {
+            get {
+                return ResourceManager.GetString("设置", resourceCulture);
             }
         }
         

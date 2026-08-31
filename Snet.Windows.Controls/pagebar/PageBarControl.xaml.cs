@@ -1,4 +1,4 @@
-﻿using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Input;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -117,8 +117,14 @@ namespace Snet.Windows.Controls.pagebar
         private static void OnPageSizeChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             var pageBar = (PageBarControl)d;
+            int oldPageIndex = pageBar.PageIndex;
+            // PageIndex 变化时由 OnPageIndexChanged 触发刷新，避免双重刷新
             pageBar.PageIndex = 1;
-            _ = pageBar.RefreshPageBarAsync().ConfigureAwait(false);
+            // 原本就在第 1 页时 PageIndex 未变化（回调不触发），需手动刷新一次
+            if (oldPageIndex == 1)
+            {
+                _ = pageBar.RefreshPageBarAsync().ConfigureAwait(false);
+            }
             pageBar.RaisePageSizeChanged((int)e.OldValue, (int)e.NewValue);
         }
 
@@ -291,7 +297,7 @@ namespace Snet.Windows.Controls.pagebar
             Items.Clear();
 
             // 上一页
-            var previousPage = GetPageItem("＜", PageIndex - 1);
+            var previousPage = GetPageItem("‹", PageIndex - 1);
             previousPage.IsEnabled = PageIndex > 1;
             Items.Add(previousPage);
 
@@ -360,7 +366,7 @@ namespace Snet.Windows.Controls.pagebar
             }
 
             // 下一页
-            var nextPage = GetPageItem("＞", PageIndex + 1);
+            var nextPage = GetPageItem("›", PageIndex + 1);
             nextPage.IsEnabled = PageIndex < pageCount;
             Items.Add(nextPage);
         }

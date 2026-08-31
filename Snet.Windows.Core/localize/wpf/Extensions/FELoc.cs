@@ -1,4 +1,4 @@
-﻿
+
 
 namespace Snet.Windows.Core.localize.wpf.Extensions
 {
@@ -42,6 +42,13 @@ namespace Snet.Windows.Core.localize.wpf.Extensions
 
         #region Private variables
         private static readonly object ResourceBufferLock = new object();
+
+        /// <summary>
+        /// Upper bound for the resource buffer. When exceeded, the whole buffer is cleared
+        /// to prevent unbounded growth (entries are culture-specific and cheap to re-resolve).
+        /// </summary>
+        private const int ResourceBufferCapacity = 10000;
+
         private static Dictionary<string, object> _resourceBuffer = new Dictionary<string, object>();
 
         private ParentChangedNotifier _parentChangedNotifier;
@@ -51,13 +58,13 @@ namespace Snet.Windows.Core.localize.wpf.Extensions
         #region Resource buffer handling.
         /// <summary>
         /// Clears the common resource buffer.
+        /// The dictionary itself is kept (and simply emptied) so subsequent buffer operations stay safe.
         /// </summary>
         public static void ClearResourceBuffer()
         {
             lock (ResourceBufferLock)
             {
-                _resourceBuffer?.Clear();
-                _resourceBuffer = null;
+                _resourceBuffer.Clear();
             }
         }
 
@@ -70,7 +77,13 @@ namespace Snet.Windows.Core.localize.wpf.Extensions
         {
             lock (ResourceBufferLock)
             {
-                if (!LocalizeDictionary.Instance.DisableCache && !_resourceBuffer.ContainsKey(key))
+                if (LocalizeDictionary.Instance.DisableCache)
+                    return;
+
+                if (_resourceBuffer.Count >= ResourceBufferCapacity)
+                    _resourceBuffer.Clear();
+
+                if (!_resourceBuffer.ContainsKey(key))
                     _resourceBuffer.Add(key, item);
             }
         }
@@ -413,11 +426,12 @@ namespace Snet.Windows.Core.localize.wpf.Extensions
                 epProp = ((DependencyProperty)_targetInfo.TargetProperty).Name;
 
             // What are these names during design time good for? Any suggestions?
-            if (epProp.Contains("FrameworkElementWidth5"))
+            // Exact match only - substring matching here is a (correctness) foot-gun and costs 3 scans per call.
+            if (epProp.Equals("FrameworkElementWidth5", StringComparison.Ordinal))
                 epProp = "Height";
-            else if (epProp.Contains("FrameworkElementWidth6"))
+            else if (epProp.Equals("FrameworkElementWidth6", StringComparison.Ordinal))
                 epProp = "Width";
-            else if (epProp.Contains("FrameworkElementMargin12"))
+            else if (epProp.Equals("FrameworkElementMargin12", StringComparison.Ordinal))
                 epProp = "Margin";
 
             var resKeyBase = ci.Name + ":" + targetType.Name + ":";

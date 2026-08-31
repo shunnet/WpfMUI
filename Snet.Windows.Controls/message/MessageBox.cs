@@ -100,34 +100,35 @@ namespace Snet.Windows.Controls.message
                 Title = title
             };
 
-            // 设置对话框数据上下文
-            object dialogContent = null;
-
-            // 根据按钮类型设置对话框内容
-            switch (btn)
-            {
-                case MessageBoxButton.OK:
-                    oK.DataContext = messageModel;
-                    dialogContent = oK;
-                    break;
-                case MessageBoxButton.OKCancel:
-                    oKCancel.DataContext = messageModel;
-                    dialogContent = oKCancel;
-                    break;
-                case MessageBoxButton.Yes:
-                    yes.DataContext = messageModel;
-                    dialogContent = yes;
-                    break;
-                case MessageBoxButton.YesNo:
-                    yesNo.DataContext = messageModel;
-                    dialogContent = yesNo;
-                    break;
-            }
-
-            // 显示对话框
+            // 显示对话框（在 UI 线程上执行 DataContext 赋值 + 显示，避免跨线程赋值）
             var result = await Application.Current?.Dispatcher.InvokeAsync(() =>
-                         DialogHost.Show(dialogContent, SignPosition),
-                         DispatcherPriority.Loaded).Task.Unwrap();
+            {
+                // 设置对话框数据上下文
+                object dialogContent = null;
+
+                // 根据按钮类型设置对话框内容
+                switch (btn)
+                {
+                    case MessageBoxButton.OK:
+                        oK.DataContext = messageModel;
+                        dialogContent = oK;
+                        break;
+                    case MessageBoxButton.OKCancel:
+                        oKCancel.DataContext = messageModel;
+                        dialogContent = oKCancel;
+                        break;
+                    case MessageBoxButton.Yes:
+                        yes.DataContext = messageModel;
+                        dialogContent = yes;
+                        break;
+                    case MessageBoxButton.YesNo:
+                        yesNo.DataContext = messageModel;
+                        dialogContent = yesNo;
+                        break;
+                }
+
+                return DialogHost.Show(dialogContent, SignPosition);
+            }, DispatcherPriority.Loaded).Task.Unwrap();
 
             // 获取对话框结果并返回
             return result?.GetSource<bool>() ?? false;

@@ -1,4 +1,4 @@
-﻿
+
 
 namespace Snet.Windows.Core.localize.wpf.Engine
 {
@@ -426,8 +426,14 @@ namespace Snet.Windows.Core.localize.wpf.Engine
 
         /// <summary>
         /// Determines, if the cache is disabled.
+        /// Defaults to false, matching the DependencyProperty metadata of <see cref="DisableCacheProperty"/>.
         /// </summary>
-        private bool _disableCache = true;
+        private bool _disableCache = false;
+
+        /// <summary>
+        /// Caches the created specific culture. Invalidated whenever <see cref="Culture"/> changes.
+        /// </summary>
+        private CultureInfo _cachedSpecificCulture;
 
         /// <summary>
         /// Determines, if missing keys should be output.
@@ -489,15 +495,9 @@ namespace Snet.Windows.Core.localize.wpf.Engine
             }), e);
         }
 
-        /// <summary>
-        /// Destructor code.
-        /// </summary>
-        ~LocalizeDictionary()
-        {
-            LocExtension.ClearResourceBuffer();
-            FELoc.ClearResourceBuffer();
-            BLoc.ClearResourceBuffer();
-        }
+        // Note: The finalizer was removed - the singleton is rooted statically for the process lifetime,
+        // so it would only run during AppDomain unload, where clearing static buffers has no effect.
+        // Resource buffer invalidation is now handled on every Culture change (see Culture setter).
         #endregion
 
         #region Static Properties
@@ -605,6 +605,14 @@ namespace Snet.Windows.Core.localize.wpf.Engine
                         MergedAvailableCultures.Add(newCulture);
 
                     _culture = newCulture;
+
+                    // Invalidate the cached specific culture, as it depends on the current culture.
+                    _cachedSpecificCulture = null;
+
+                    // Invalidate all static resource buffers, as every cached entry is culture-specific.
+                    LocExtension.ClearResourceBuffer();
+                    FELoc.ClearResourceBuffer();
+                    BLoc.ClearResourceBuffer();
 
                     // Change the CurrentThread culture if needed.
                     if (_setCurrentThreadCulture && !GetIsInDesignMode())
@@ -740,7 +748,6 @@ namespace Snet.Windows.Core.localize.wpf.Engine
                 if (_mergedAvailableCultures == null)
                 {
                     _mergedAvailableCultures = new ObservableCollection<CultureInfo> { CultureInfo.InvariantCulture };
-                    _mergedAvailableCultures.CollectionChanged += (s, e) => { Culture = Culture; };
                 }
 
                 return _mergedAvailableCultures;
@@ -758,7 +765,17 @@ namespace Snet.Windows.Core.localize.wpf.Engine
         /// If the Culture is an invariant <see cref="CultureInfo"/>,
         /// SpecificCulture will also return an invariant <see cref="CultureInfo"/>.
         /// </summary>
-        public CultureInfo SpecificCulture => CultureInfo.CreateSpecificCulture(Culture.ToString());
+        public CultureInfo SpecificCulture
+        {
+            get
+            {
+                // Culture changes are infrequent, so a simple null-check cache is sufficient.
+                if (_cachedSpecificCulture == null)
+                    _cachedSpecificCulture = CultureInfo.CreateSpecificCulture(Culture.ToString());
+
+                return _cachedSpecificCulture;
+            }
+        }
 
         #endregion
 

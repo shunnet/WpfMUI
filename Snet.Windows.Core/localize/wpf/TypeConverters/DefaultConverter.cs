@@ -1,10 +1,10 @@
-﻿
+
 
 namespace Snet.Windows.Core.localize.wpf.TypeConverters
 {
     #region Usings
     using System;
-    using System.Collections.Generic;
+    using System.Collections.Concurrent;
     using System.ComponentModel;
     using System.Globalization;
     using System.Windows;
@@ -16,7 +16,7 @@ namespace Snet.Windows.Core.localize.wpf.TypeConverters
     /// </summary>
     public class DefaultConverter : IValueConverter
     {
-        private static readonly Dictionary<Type, TypeConverter> TypeConverters = new Dictionary<Type, TypeConverter>();
+        private static readonly ConcurrentDictionary<Type, TypeConverter> TypeConverters = new ConcurrentDictionary<Type, TypeConverter>();
 
         /// <summary>
         /// Modifies the source data before passing it to the target for display in the UI.
@@ -41,20 +41,17 @@ namespace Snet.Windows.Core.localize.wpf.TypeConverters
             // Register missing type converters - this class will do this only once per appdomain.
             RegisterMissingTypeConverters.Register();
 
-            // Is the type already known?
-            if (!TypeConverters.ContainsKey(targetType))
+            // Get (or create) the type converter for the target type - thread-safe via ConcurrentDictionary.
+            var conv = TypeConverters.GetOrAdd(targetType, t =>
             {
-                var c = TypeDescriptor.GetConverter(targetType);
+                var c = TypeDescriptor.GetConverter(t);
 
-                if (targetType == typeof(Thickness))
+                if (t == typeof(Thickness))
                     c = new ThicknessConverter();
 
-                // Get the type converter and store it in the dictionary (even if it is NULL).
-                TypeConverters.Add(targetType, c);
-            }
-
-            // Get the converter.
-            var conv = TypeConverters[targetType];
+                // Store the type converter in the dictionary (even if it is NULL).
+                return c;
+            });
 
             // No converter or not convertable?
             if (conv == null || !conv.CanConvertFrom(resourceType))

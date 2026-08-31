@@ -1,4 +1,4 @@
-﻿// --------------------------------------------------------------------------------------------------------------------
+// --------------------------------------------------------------------------------------------------------------------
 // <copyright file="TypeHelper.cs" company="Snet.Windows.Controls.property.core">
 //   Copyright (c) 2014 Snet.Windows.Controls.property.core contributors
 // </copyright>
@@ -11,6 +11,7 @@ namespace Snet.Windows.Controls.property.wpf
 {
     using System;
     using System.Collections;
+    using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Linq;
 
@@ -23,6 +24,11 @@ namespace Snet.Windows.Controls.property.wpf
         /// The generic sequence type.
         /// </summary>
         private static readonly Type GenericEnumerableType = typeof(IEnumerable<>);
+
+        /// <summary>
+        /// 接口缓存：每个类型的 <see cref="Type.GetInterfaces"/> 结果（避免每个属性 ~15 次接口枚举）。
+        /// </summary>
+        private static readonly ConcurrentDictionary<Type, Type[]> InterfaceCache = new ConcurrentDictionary<Type, Type[]>();
 
         /// <summary>
         /// Finds the biggest common type of items in the list.
@@ -165,7 +171,8 @@ namespace Snet.Windows.Controls.property.wpf
             }
 
             // checking generic interfaces
-            foreach (var @interface in firstType.GetInterfaces())
+            var interfaces = InterfaceCache.GetOrAdd(firstType, t => t.GetInterfaces());
+            foreach (var @interface in interfaces)
             {
                 if (@interface.IsGenericType)
                 {

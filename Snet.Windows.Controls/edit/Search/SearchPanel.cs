@@ -25,6 +25,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Threading;
 
 namespace Snet.Windows.Controls.edit.Search
 {
@@ -40,6 +41,13 @@ namespace Snet.Windows.Controls.edit.Search
         TextBox searchTextBox;
         Popup dropdownPopup;
         SearchPanelAdorner adorner;
+
+        // Full-document search is expensive; debounce consecutive triggers (keystrokes in the search
+        // box, document edits while the panel is open) with a DispatcherTimer so the search only runs
+        // once the input has settled for a short time. The search itself stays on the UI thread.
+        readonly DispatcherTimer searchTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
+        bool searchPending;
+        bool searchPendingChangeSelection;
 
         #region DependencyProperties
         /// <summary>
@@ -208,7 +216,6 @@ namespace Snet.Windows.Controls.edit.Search
             if (panel != null)
             {
                 panel.ValidateSearchText();
-                panel.UpdateSearch();
             }
         }
 
@@ -219,9 +226,35 @@ namespace Snet.Windows.Controls.edit.Search
             // if results are found by the next run, the message will be hidden inside DoSearch ...
             if (renderer.CurrentResults.Any())
                 messageView.IsOpen = false;
+            // Rebuild the strategy eagerly so regex syntax errors are still reported synchronously
+            // (the SearchPatternException is caught by ValidateSearchText); the actual full-document
+            // search is deferred to the debounce timer in SearchTimer_Tick.
             strategy = SearchStrategyFactory.Create(SearchPattern ?? "", !MatchCase, WholeWords, UseRegex ? SearchMode.RegEx : SearchMode.Normal);
             OnSearchOptionsChanged(new SearchOptionsChangedEventArgs(SearchPattern, MatchCase, UseRegex, WholeWords));
-            DoSearch(true);
+            ScheduleSearch(true);
+        }
+
+        /// <summary>
+        /// Marks a search as pending and (re)starts the debounce timer.
+        /// Multiple triggers within the debounce interval are merged into a single search run.
+        /// </summary>
+        void ScheduleSearch(bool changeSelection)
+        {
+            searchPending = true;
+            searchPendingChangeSelection = changeSelection;
+            searchTimer.Stop();
+            searchTimer.Start();
+        }
+
+        void SearchTimer_Tick(object sender, EventArgs e)
+        {
+            searchTimer.Stop();
+            if (!searchPending)
+                return;
+            searchPending = false;
+            bool changeSelection = searchPendingChangeSelection;
+            searchPendingChangeSelection = false;
+            DoSearch(changeSelection);
         }
 
         /// <summary>
@@ -269,6 +302,8 @@ namespace Snet.Windows.Controls.edit.Search
         /// </summary>
         public void Uninstall()
         {
+            searchTimer.Stop();
+            searchPending = false;
             Close();
             textArea.DocumentChanged -= textArea_DocumentChanged;
             if (currentDocument != null)
@@ -288,6 +323,7 @@ namespace Snet.Windows.Controls.edit.Search
                 currentDocument.TextChanged += textArea_Document_TextChanged;
             textArea.DocumentChanged += textArea_DocumentChanged;
             KeyDown += SearchLayerKeyDown;
+            searchTimer.Tick += SearchTimer_Tick;
 
             this.CommandBindings.Add(new CommandBinding(SearchCommands.FindNext, (sender, e) => FindNext()));
             this.CommandBindings.Add(new CommandBinding(SearchCommands.FindPrevious, (sender, e) => FindPrevious()));
@@ -303,13 +339,13 @@ namespace Snet.Windows.Controls.edit.Search
             if (currentDocument != null)
             {
                 currentDocument.TextChanged += textArea_Document_TextChanged;
-                DoSearch(false);
+                ScheduleSearch(false);
             }
         }
 
         void textArea_Document_TextChanged(object sender, EventArgs e)
         {
-            DoSearch(false);
+            ScheduleSearch(false);
         }
 
         /// <inheritdoc/>
@@ -470,6 +506,9 @@ namespace Snet.Windows.Controls.edit.Search
         {
             bool hasFocus = this.IsKeyboardFocusWithin;
 
+            searchTimer.Stop();
+            searchPending = false;
+
             var layer = AdornerLayer.GetAdornerLayer(textArea);
             if (layer != null)
                 layer.Remove(adorner);
@@ -496,6 +535,10 @@ namespace Snet.Windows.Controls.edit.Search
                 layer.Add(adorner);
             textArea.TextView.BackgroundRenderers.Add(renderer);
             IsClosed = false;
+            // Opening is a single explicit user action: cancel any pending debounced search
+            // and run one search synchronously so the results are visible immediately.
+            searchTimer.Stop();
+            searchPending = false;
             DoSearch(false);
         }
 

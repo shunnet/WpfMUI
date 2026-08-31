@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <!-- 
 		Microsoft ResX Schema
@@ -162,5 +162,32 @@
   </data>
   <data name="提示" xml:space="preserve">
     <value>提示</value>
+  </data>
+  <data name="固定" xml:space="preserve">
+    <value>固定</value>
+  </data>
+  <data name="调整" xml:space="preserve">
+    <value>调整</value>
+  </data>
+  <data name="提取" xml:space="preserve">
+    <value>提取</value>
+  </data>
+  <data name="移除" xml:space="preserve">
+    <value>移除</value>
+  </data>
+  <data name="已固定" xml:space="preserve">
+    <value>已固定（右键可解除）</value>
+  </data>
+  <data name="设置" xml:space="preserve">
+    <value>设置</value>
+  </data>
+  <data name="控件源名称" xml:space="preserve">
+    <value>控件源名称</value>
+  </data>
+  <data name="SN" xml:space="preserve">
+    <value>SN</value>
+  </data>
+  <data name="扩展数据" xml:space="preserve">
+    <value>扩展数据</value>
   </data>
 </root>

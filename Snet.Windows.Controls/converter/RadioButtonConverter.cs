@@ -19,8 +19,8 @@ namespace Snet.Windows.Controls.converter
         /// <returns>如果绑定值与参数相等，则返回 true，否则返回 false</returns>
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            // null 安全比较：value.ToString() == parameter.ToString()
-            return value?.ToString().Equals(parameter?.ToString()) ?? false;
+            // null 安全比较：直接 Equals 比较，避免 ToString 分配
+            return value != null && parameter != null && value.Equals(parameter);
         }
 
         /// <summary>

@@ -302,23 +302,26 @@
                                 </Grid>
                             </Border>
                             <!--  内容  -->
+                            <!--
+                                Foreground 设为 MaterialDesign 主题前景（继承源）：
+                                窗口内所有裸 TextBlock 的默认前景是黑色，MD 主题不提供全局隐式 TextBlock 样式，
+                                只有在此处设置主题前景，窗口内容区的文字才会随明暗皮肤自动切换
+                            -->
                             <ui:Card
                                 Grid.Row="1"
                                 ui:ColorZoneAssist.Mode="Standard"
+                                Foreground="{DynamicResource MaterialDesign.Brush.Foreground}"
                                 UniformCornerRadius="0">
                                 <Grid>
-                                    <Border x:Name="PART_ClientArea">
-                                        <ContentPresenter Content="{TemplateBinding Content}" />
-                                    </Border>
-                                    <ProgressBar
-                                        x:Name="PART_LoadAnimation"
-                                        Width="100"
-                                        Height="100"
-                                        Foreground="{DynamicResource MaterialDesignBody}"
-                                        IsIndeterminate="True"
-                                        Style="{DynamicResource MaterialDesignCircularProgressBar}"
-                                        Visibility="Collapsed" />
+                                    <!--
+                                        内容必须包裹在 DialogHost 内：
+                                        DialogHost.OpenDialogCommand 是路由命令（RoutedCommand），
+                                        只有命令源（按钮）位于 DialogHost 的子树中，WPF 路由才能命中
+                                        DialogHost 的类命令绑定；否则 CanExecute=false，按钮被自动禁用。
+                                        因此将 ContentPresenter 作为第一个 DialogHost 的 Content 呈现。
+                                    -->
                                     <ui:DialogHost
+                                        ui:TransitionAssist.DisableTransitions="True"
                                         CloseOnClickAway="False"
                                         DialogContentUniformCornerRadius="{DynamicResource WindowCornerRadius_Double}"
                                         DialogTheme="Inherit"
@@ -335,8 +338,20 @@
                                                 </KeyBinding.CommandParameter>
                                             </KeyBinding>
                                         </ui:DialogHost.InputBindings>
+                                        <Border x:Name="PART_ClientArea">
+                                            <ContentPresenter Content="{TemplateBinding Content}" />
+                                        </Border>
                                     </ui:DialogHost>
+                                    <ProgressBar
+                                        x:Name="PART_LoadAnimation"
+                                        Width="100"
+                                        Height="100"
+                                        Foreground="{DynamicResource MaterialDesignBody}"
+                                        IsIndeterminate="True"
+                                        Style="{DynamicResource MaterialDesignCircularProgressBar}"
+                                        Visibility="Collapsed" />
                                     <ui:DialogHost
+                                        ui:TransitionAssist.DisableTransitions="True"
                                         CloseOnClickAway="True"
                                         DialogContentUniformCornerRadius="{DynamicResource WindowCornerRadius_Double}"
                                         DialogTheme="Inherit"

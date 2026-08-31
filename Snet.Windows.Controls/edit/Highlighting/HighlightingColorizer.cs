@@ -79,6 +79,11 @@ namespace Snet.Windows.Controls.edit.Highlighting
         /// </summary>
         protected virtual void DeregisterServices(TextView textView)
         {
+            // the highlighter is about to be detached (document change / view removal);
+            // drop the cached lines so stale data can never be applied
+            highlightedLineCache.Clear();
+            highlightedLineCacheInvalidated = false;
+            highlightedLineCacheVersion = null;
             if (highlighter != null)
             {
                 if (isInHighlightingGroup)
@@ -216,13 +221,49 @@ namespace Snet.Windows.Controls.edit.Highlighting
 
         int lineNumberBeingColorized;
 
+        // Cache of highlighted lines per document version. Visual lines are re-constructed on every
+        // scroll / fold change / redraw even when the document text is unchanged; reusing the
+        // HighlightedLine (which is plain data: sections + colors) skips re-running the token scan
+        // in the highlighter. The cache is dropped whenever the document version changes, when the
+        // whole highlighting is invalidated (OnHighlightStateChanged with fromLineNumber == 1),
+        // or when it outgrows the size limit.
+        readonly Dictionary<int, HighlightedLine> highlightedLineCache = new Dictionary<int, HighlightedLine>();
+        ITextSourceVersion highlightedLineCacheVersion;
+        bool highlightedLineCacheInvalidated;
+        const int MaxHighlightedLineCacheSize = 4000;
+
+        HighlightedLine GetHighlightedLine(int lineNumber)
+        {
+            ITextSourceVersion currentVersion = highlighter.Document.Version;
+            bool versionChanged = highlightedLineCacheVersion == null
+                ? currentVersion != null
+                : (currentVersion == null
+                   || !highlightedLineCacheVersion.BelongsToSameDocumentAs(currentVersion)
+                   || highlightedLineCacheVersion.CompareAge(currentVersion) != 0);
+            if (highlightedLineCacheInvalidated || versionChanged)
+            {
+                highlightedLineCache.Clear();
+                highlightedLineCacheInvalidated = false;
+                highlightedLineCacheVersion = currentVersion;
+            }
+            HighlightedLine hl;
+            if (!highlightedLineCache.TryGetValue(lineNumber, out hl))
+            {
+                hl = highlighter.HighlightLine(lineNumber);
+                highlightedLineCache[lineNumber] = hl;
+                if (highlightedLineCache.Count > MaxHighlightedLineCacheSize)
+                    highlightedLineCache.Clear();
+            }
+            return hl;
+        }
+
         /// <inheritdoc/>
         protected override void ColorizeLine(DocumentLine line)
         {
             if (highlighter != null)
             {
                 lineNumberBeingColorized = line.LineNumber;
-                HighlightedLine hl = highlighter.HighlightLine(lineNumberBeingColorized);
+                HighlightedLine hl = GetHighlightedLine(lineNumberBeingColorized);
                 lineNumberBeingColorized = 0;
                 foreach (HighlightedSection section in hl.Sections)
                 {
@@ -298,6 +339,13 @@ namespace Snet.Windows.Controls.edit.Highlighting
         /// </remarks>
         void OnHighlightStateChanged(int fromLineNumber, int toLineNumber)
         {
+            if (fromLineNumber == 1)
+            {
+                // The whole highlighting was invalidated (e.g. the rule set was replaced) without
+                // a document version change; cached lines are stale and must not be reused.
+                highlightedLineCache.Clear();
+                highlightedLineCacheInvalidated = true;
+            }
             if (lineNumberBeingColorized != 0)
             {
                 // Ignore notifications for any line except the one we're interested in.

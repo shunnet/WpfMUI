@@ -91,7 +91,8 @@ internal static class TrayManager
             _ = Unregister(notifyIcon);
         }
 
-        notifyIcon.Id = TrayData.NotifyIcons.Count + 1;
+        // 分配最小的未使用 Id，注销后的 Id 会被复用
+        notifyIcon.Id = TrayData.AllocateId();
 
         notifyIcon.HookWindow = new TrayHandler(
             $"wpfui_th_{parentSource.Handle}_{notifyIcon.Id}",
@@ -178,6 +179,17 @@ internal static class TrayManager
 
         _ = Interop.Shell32.Shell_NotifyIcon(Interop.Shell32.NIM.DELETE, notifyIcon.ShellIconData);
 
+        // 注销时释放 HICON 句柄，防止内存泄漏
+        if (notifyIcon.ShellIconData.hIcon != IntPtr.Zero)
+        {
+            _ = Interop.User32.DestroyIcon(notifyIcon.ShellIconData.hIcon);
+            notifyIcon.ShellIconData.hIcon = IntPtr.Zero;
+            notifyIcon.ShellIconData.uFlags &= ~Interop.Shell32.NIF.ICON;
+        }
+
+        // 从注册列表中移除，Id 供后续复用
+        TrayData.Remove(notifyIcon);
+
         notifyIcon.IsRegistered = false;
 
         return true;
@@ -206,6 +218,13 @@ internal static class TrayManager
     /// <param name="notifyIcon">要加载图标的通知图标实例。</param>
     private static void ReloadHicon(INotifyIcon notifyIcon)
     {
+        // 替换前释放旧的 HICON 句柄，防止句柄泄漏
+        if (notifyIcon.ShellIconData.hIcon != IntPtr.Zero)
+        {
+            _ = Interop.User32.DestroyIcon(notifyIcon.ShellIconData.hIcon);
+            notifyIcon.ShellIconData.hIcon = IntPtr.Zero;
+        }
+
         IntPtr hIcon = IntPtr.Zero;
 
         if (notifyIcon.Icon is not null)

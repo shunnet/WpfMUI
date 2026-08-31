@@ -1,4 +1,4 @@
-﻿// --------------------------------------------------------------------------------------------------------------------
+// --------------------------------------------------------------------------------------------------------------------
 // <copyright file="PropertyGridControlFactory.cs" company="Snet.Windows.Controls.property.core">
 //   Copyright (c) 2014 Snet.Windows.Controls.property.core contributors
 // </copyright>
@@ -17,6 +17,7 @@ namespace Snet.Windows.Controls.property.wpf
     using System.Diagnostics;
     using System.IO;
     using System.Linq;
+    using System.Runtime.CompilerServices;
     using System.Security;
     using System.Windows;
     using System.Windows.Controls;
@@ -41,12 +42,125 @@ namespace Snet.Windows.Controls.property.wpf
         private static FontFamily[] cachedFontFamilies;
 
         /// <summary>
+        /// 错误通知订阅表：每个 <see cref="INotifyDataErrorInfo"/> 实例只订阅一次 ErrorsChanged（键为弱引用，
+        /// 实例销毁后条目自动回收），避免每行属性都订阅且永不退订导致的泄漏。
+        /// </summary>
+        private static readonly ConditionalWeakTable<INotifyDataErrorInfo, ErrorSubscriptionEntry> ErrorSubscriptions =
+            new ConditionalWeakTable<INotifyDataErrorInfo, ErrorSubscriptionEntry>();
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="PropertyGridControlFactory" /> class.
         /// </summary>
         public PropertyGridControlFactory()
         {
             this.Converters = new List<PropertyConverter>();
             this.Editors = new List<TypeEditor>();
+        }
+
+        /// <summary>
+        /// 订阅实例的 ErrorsChanged 事件（每个实例只订阅一次），并登记 (Tab, 属性名) 弱引用。
+        /// </summary>
+        /// <param name="instance">实现 <see cref="INotifyDataErrorInfo"/> 的实例。</param>
+        /// <param name="tab">所属 Tab。</param>
+        /// <param name="propertyName">属性名。</param>
+        private static void SubscribeErrorsChanged(INotifyDataErrorInfo instance, Tab tab, string propertyName)
+        {
+            var entry = ErrorSubscriptions.GetOrCreateValue(instance);
+            entry.Registrations.Add(new ErrorRegistration(tab, propertyName));
+            if (!entry.Subscribed)
+            {
+                instance.ErrorsChanged += OnErrorsChanged;
+                entry.Subscribed = true;
+            }
+        }
+
+        /// <summary>
+        /// 统一的 ErrorsChanged 处理器：只更新与发生错误属性相关的活动 Tab（增量更新）。
+        /// </summary>
+        /// <param name="sender">事件源。</param>
+        /// <param name="e">事件参数。</param>
+        private static void OnErrorsChanged(object? sender, DataErrorsChangedEventArgs e)
+        {
+            var instance = sender as INotifyDataErrorInfo;
+            if (instance == null || !ErrorSubscriptions.TryGetValue(instance, out var entry))
+            {
+                return;
+            }
+
+            List<Tab> tabs = null;
+            for (int i = entry.Registrations.Count - 1; i >= 0; i--)
+            {
+                var registration = entry.Registrations[i];
+                if (registration.TabReference.Target is Tab tab)
+                {
+                    // PropertyName 为空表示对象整体错误变化，需要全量重算
+                    if (string.IsNullOrEmpty(e.PropertyName) || registration.PropertyName == e.PropertyName)
+                    {
+                        if (tabs == null)
+                        {
+                            tabs = new List<Tab>();
+                        }
+
+                        tabs.Add(tab);
+                    }
+                }
+                else
+                {
+                    // Tab 已销毁，移除失效登记
+                    entry.Registrations.RemoveAt(i);
+                }
+            }
+
+            if (tabs != null)
+            {
+                foreach (var tab in tabs)
+                {
+                    tab.UpdateHasErrors(instance, e.PropertyName);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 记录一个实例的 ErrorsChanged 订阅状态及关联的 Tab（弱引用）列表。
+        /// </summary>
+        private sealed class ErrorSubscriptionEntry
+        {
+            /// <summary>
+            /// Gets the registrations.
+            /// </summary>
+            public readonly List<ErrorRegistration> Registrations = new List<ErrorRegistration>();
+
+            /// <summary>
+            /// Gets or sets a value indicating whether the ErrorsChanged event is subscribed.
+            /// </summary>
+            public bool Subscribed;
+        }
+
+        /// <summary>
+        /// 记录 (Tab, 属性名) 对，Tab 使用弱引用，避免订阅持有整个属性网格。
+        /// </summary>
+        private sealed class ErrorRegistration
+        {
+            /// <summary>
+            /// Initializes a new instance of the <see cref="ErrorRegistration" /> class.
+            /// </summary>
+            /// <param name="tab">所属 Tab。</param>
+            /// <param name="propertyName">属性名。</param>
+            public ErrorRegistration(Tab tab, string propertyName)
+            {
+                this.TabReference = new WeakReference(tab);
+                this.PropertyName = propertyName;
+            }
+
+            /// <summary>
+            /// Gets the weak reference to the tab.
+            /// </summary>
+            public WeakReference TabReference { get; }
+
+            /// <summary>
+            /// Gets the property name.
+            /// </summary>
+            public string PropertyName { get; }
         }
 
         /// <summary>
@@ -248,10 +362,8 @@ namespace Snet.Windows.Controls.property.wpf
                 errorConverter = new NotifyDataErrorInfoConverter(notifyDataErrorInfoInstance, pi.PropertyName);
                 propertyPath = nameof(tab.HasErrors);
                 source = tab;
-                notifyDataErrorInfoInstance.ErrorsChanged += (s, e) =>
-                {
-                    tab.UpdateHasErrors(notifyDataErrorInfoInstance);
-                };
+                // 弱引用注册 + 每实例只订阅一次，避免每行订阅且永不退订导致的泄漏
+                SubscribeErrorsChanged(notifyDataErrorInfoInstance, tab, pi.PropertyName);
             }
 
             var visibilityBinding = new Binding(propertyPath)
@@ -279,7 +391,7 @@ namespace Snet.Windows.Controls.property.wpf
             errorControl.TargetUpdated += (s, e) =>
             {
                 if (dataErrorInfoInstance != null)
-                    tab.UpdateHasErrors(dataErrorInfoInstance);
+                    tab.UpdateHasErrors(dataErrorInfoInstance, pi.PropertyName);
             };
             errorControl.SetBinding(ContentControl.ContentProperty, contentBinding);
             return errorControl;

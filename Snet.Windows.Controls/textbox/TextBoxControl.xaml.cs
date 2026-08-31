@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 
@@ -18,21 +18,6 @@ namespace Snet.Windows.Controls.textbox
         {
             InitializeComponent();
         }
-
-        /// <summary>
-        /// 获取或设置控件高度
-        /// </summary>
-        public double Height
-        {
-            get => (double)GetValue(HeightProperty);
-            set => SetValue(HeightProperty, value);
-        }
-        /// <summary>
-        /// 高度依赖属性<br/>
-        /// 控制文本框的高度，默认值为 30 像素
-        /// </summary>
-        public static readonly DependencyProperty HeightProperty =
-            DependencyProperty.Register(nameof(Height), typeof(double), typeof(TextBoxControl), new PropertyMetadata(30d));
 
         /// <summary>
         /// 获取或设置文本框左侧图标

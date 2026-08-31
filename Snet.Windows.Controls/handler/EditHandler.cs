@@ -1,4 +1,4 @@
-﻿using Snet.Windows.Controls.data;
+using Snet.Windows.Controls.data;
 using Snet.Windows.Controls.edit;
 using Snet.Windows.Controls.edit.CodeCompletion;
 using Snet.Windows.Controls.edit.Document;
@@ -282,6 +282,7 @@ namespace Snet.Windows.Controls.handler
 
         /// <summary>
         /// 获取光标前单词<br/>
+        /// 只取光标所在行文本，避免每次按键复制整篇文档
         /// </summary>
         private string GetWordBeforeCaret()
         {
@@ -291,10 +292,15 @@ namespace Snet.Windows.Controls.handler
             int offset = Math.Min(_editor.CaretOffset, _editor.Document.TextLength);
             if (offset == 0) return string.Empty;
 
-            var text = _editor.Document.Text;
+            // 只取光标所在行文本，避免复制整篇文档
+            var line = _editor.Document.GetLineByOffset(offset);
+            string text = _editor.Document.GetText(line);
+
+            // 光标在该行内的位置
+            int local = offset - line.Offset;
 
             // 从光标位置向前查找单词边界
-            int start = offset - 1;
+            int start = local - 1;
             while (start >= 0 && !IsWordSeparator(text[start]))
             {
                 start--;
@@ -302,17 +308,36 @@ namespace Snet.Windows.Controls.handler
             start++; // 调整到单词起始位置
 
             // 提取单词
-            if (start < offset)
+            if (start < local)
             {
-                string word = text.Substring(start, offset - start);
-                return word;
+                return text.Substring(start, local - start);
             }
 
             return string.Empty;
         }
 
+        // 补全候选缓存（用于判断候选是否变化，避免每次按键都 Clear+重建）
+        private string[]? _lastCompletionKeys;
+        private string? _lastCompletionWord;
+
+        /// <summary>
+        /// 判断两次候选列表是否相同（按名称逐项比较，忽略大小写）
+        /// </summary>
+        private static bool SameKeys(string[]? a, string[]? b)
+        {
+            if (ReferenceEquals(a, b)) return true;
+            if (a == null || b == null || a.Length != b.Length) return false;
+            for (int i = 0; i < a.Length; i++)
+            {
+                if (!string.Equals(a[i], b[i], StringComparison.OrdinalIgnoreCase))
+                    return false;
+            }
+            return true;
+        }
+
         /// <summary>
         /// 显示补全窗口<br/>
+        /// 优化：前缀快速过滤候选、候选超限截断、预计算匹配分数、候选未变化时跳过重建
         /// </summary>
         private void ShowCompletion(bool showAll = false)
         {
@@ -329,39 +354,58 @@ namespace Snet.Windows.Controls.handler
                 return;
             }
 
+            // 候选数量上限，避免候选过多导致排序和重建开销
+            const int MaxCandidates = 50;
+
             var matches = new List<EditModel>();
 
-            // 如果没有当前单词或者显示全部，则显示所有关键字
+            // 如果没有当前单词或者显示全部，则显示所有关键字（超限截断）
             if (showAll || string.IsNullOrEmpty(currentWord))
             {
                 matches.AddRange(_kwMap.Values);
+                if (matches.Count > MaxCandidates)
+                    matches = matches.GetRange(0, MaxCandidates);
             }
             else
             {
-                // 只匹配名称
+                // 快路径：先做 StartsWith 前缀过滤（忽略大小写），命中才加入候选
+                var prefixMatched = new HashSet<EditModel>();
                 foreach (var kw in _kwMap.Values)
                 {
-                    // 只检查名称匹配（前缀、包含、完全匹配）
-                    bool nameMatches = kw.Name.StartsWith(currentWord, StringComparison.OrdinalIgnoreCase) ||
-                                      kw.Name.Contains(currentWord, StringComparison.OrdinalIgnoreCase) ||
-                                      kw.Name.Equals(currentWord, StringComparison.OrdinalIgnoreCase);
-
-                    if (nameMatches)
+                    if (kw.Name.StartsWith(currentWord, StringComparison.OrdinalIgnoreCase))
                     {
                         matches.Add(kw);
+                        prefixMatched.Add(kw);
+                        if (matches.Count >= MaxCandidates) break;
+                    }
+                }
+
+                // 前缀匹配不足时，再补充包含匹配（保持原有"前缀或包含"的匹配语义）
+                if (matches.Count < MaxCandidates)
+                {
+                    foreach (var kw in _kwMap.Values)
+                    {
+                        if (prefixMatched.Contains(kw)) continue;
+                        if (kw.Name.Contains(currentWord, StringComparison.OrdinalIgnoreCase))
+                        {
+                            matches.Add(kw);
+                            if (matches.Count >= MaxCandidates) break;
+                        }
                     }
                 }
             }
 
-            // 按匹配质量排序
+            // 按匹配质量排序（预先计算分数存入列表，避免比较器重复调用 GetMatchScore）
             if (!string.IsNullOrEmpty(currentWord))
             {
-                matches.Sort((a, b) =>
-                {
-                    int scoreA = GetMatchScore(a, currentWord);
-                    int scoreB = GetMatchScore(b, currentWord);
-                    return scoreB.CompareTo(scoreA);
-                });
+                var scored = new List<(EditModel model, int score)>(matches.Count);
+                foreach (var m in matches)
+                    scored.Add((m, GetMatchScore(m, currentWord)));
+                scored.Sort((x, y) => y.score.CompareTo(x.score));
+
+                matches.Clear();
+                foreach (var s in scored)
+                    matches.Add(s.model);
             }
 
             // 如果没有匹配项，关闭补全窗口
@@ -369,21 +413,35 @@ namespace Snet.Windows.Controls.handler
             {
                 _completionWindow?.Close();
                 _completionWindow = null;
+                _lastCompletionKeys = null;
+                _lastCompletionWord = null;
                 return;
             }
 
             // 创建或更新补全窗口
             if (_completionWindow != null)
             {
-                // 更新现有窗口的数据
-                var completionList = _completionWindow.CompletionList;
-                completionList.CompletionData.Clear();
+                // 候选内容未变化时跳过 Clear+重建，减少每按键的分配
+                var keys = new string[matches.Count];
+                for (int i = 0; i < matches.Count; i++) keys[i] = matches[i].Name;
 
-                foreach (var kw in matches)
-                    completionList.CompletionData.Add(new KeywordCompletionData(kw));
+                bool sameCandidates = string.Equals(_lastCompletionWord, currentWord, StringComparison.OrdinalIgnoreCase) &&
+                                      SameKeys(_lastCompletionKeys, keys);
+
+                if (!sameCandidates)
+                {
+                    var completionList = _completionWindow.CompletionList;
+                    completionList.CompletionData.Clear();
+
+                    foreach (var kw in matches)
+                        completionList.CompletionData.Add(new KeywordCompletionData(kw));
+
+                    _lastCompletionKeys = keys;
+                    _lastCompletionWord = currentWord;
+                }
 
                 // 重置选择
-                completionList.SelectedItem = completionList.CompletionData.FirstOrDefault();
+                _completionWindow.CompletionList.SelectedItem = _completionWindow.CompletionList.CompletionData.FirstOrDefault();
             }
             else
             {
@@ -397,17 +455,26 @@ namespace Snet.Windows.Controls.handler
                     SizeToContent = SizeToContent.WidthAndHeight
                 };
 
-                ApplyCompletionTheme(_completionWindow);
-
                 foreach (var kw in matches)
                     _completionWindow.CompletionList.CompletionData.Add(new KeywordCompletionData(kw));
+
+                var keys = new string[matches.Count];
+                for (int i = 0; i < matches.Count; i++) keys[i] = matches[i].Name;
+                _lastCompletionKeys = keys;
+                _lastCompletionWord = currentWord;
 
                 _completionWindow.Closed += (_, _) =>
                 {
                     _completionWindow = null;
+                    _lastCompletionKeys = null;
+                    _lastCompletionWord = null;
                 };
 
                 _completionWindow.Show();
+
+                // 主题必须在此应用：Show() 触发 ApplyTemplate 后 CompletionList.ListBox 才非空；
+                // 若在 Show() 之前应用会因 CompletionList.ListBox 为 null 抛出 NullReferenceException
+                ApplyCompletionTheme(_completionWindow);
             }
         }
 
@@ -484,11 +551,53 @@ namespace Snet.Windows.Controls.handler
             private readonly Dictionary<string, Brush> _kwBrushCache;
             private readonly Func<Brush> _defaultBrushProvider;
 
+            /// <summary>
+            /// 含特殊字符的关键字（如 "[ Info ]"），必须整串匹配<br/>
+            /// 按长度降序排列，优先匹配更长的短语（避免 "[ Info]" 抢先匹配 "[ Info ]"）
+            /// </summary>
+            private readonly string[] _phraseKeywords;
+            private readonly Dictionary<string, Brush> _phraseBrushCache;
+
+            /// <summary>
+            /// 命中区间复用列表（避免每行分配），按行内偏移收集后排序统一着色
+            /// </summary>
+            private readonly List<(int start, int end, Brush brush)> _spans = new();
+
             public KeywordColorizer(Dictionary<string, EditModel> kwMap, Dictionary<string, Brush> kwBrushCache, Func<Brush> defaultBrushProvider)
             {
                 _kwMap = kwMap;
                 _kwBrushCache = kwBrushCache;
                 _defaultBrushProvider = defaultBrushProvider;
+
+                // 分离"整串短语"关键字：含空格/方括号等非标识符字符的（如 "[ Info ]"、"[ Error ]"），
+                // 单遍标识符扫描永远无法命中它们（"[ Info ]" 会被切分成 "Info"），必须按子串整串查找
+                var phrases = new List<string>();
+                var phraseBrushes = new Dictionary<string, Brush>(StringComparer.OrdinalIgnoreCase);
+                foreach (var kv in _kwMap)
+                {
+                    if (IsPureIdentifier(kv.Key)) continue;
+                    phrases.Add(kv.Key);
+                    if (kwBrushCache.TryGetValue(kv.Key, out var brush))
+                        phraseBrushes[kv.Key] = brush;
+                }
+                phrases.Sort((a, b) => b.Length.CompareTo(a.Length));
+                _phraseKeywords = phrases.ToArray();
+                _phraseBrushCache = phraseBrushes;
+            }
+
+            /// <summary>
+            /// 判断字符串是否全部由标识符字符组成<br/>
+            /// （字母/数字/下划线，含中文等 Unicode 字母）
+            /// </summary>
+            private static bool IsPureIdentifier(string s)
+            {
+                if (string.IsNullOrEmpty(s)) return false;
+                foreach (char c in s)
+                {
+                    if (!(char.IsLetterOrDigit(c) || c == '_'))
+                        return false;
+                }
+                return true;
             }
 
             protected override void ColorizeLine(DocumentLine line)
@@ -503,33 +612,69 @@ namespace Snet.Windows.Controls.handler
 
                 if (_kwMap.Count == 0) return;
 
-                // 对每个关键字进行匹配（支持中文）
-                foreach (var keyword in _kwMap.Keys)
+                _spans.Clear();
+
+                // 1. 单遍扫描：逐字符识别标识符（字母/数字/下划线，支持中文），命中关键字才着色<br/>
+                // 替代"每行文本 × 每关键字 IndexOf"嵌套循环，避免重复扫描
+                int length = text.Length;
+                int i = 0;
+                while (i < length)
                 {
-                    if (string.IsNullOrEmpty(keyword)) continue;
+                    // 跳过非标识符字符
+                    while (i < length && !IsIdentifierChar(text[i])) i++;
+                    if (i >= length) break;
 
-                    int index = 0;
-                    while (index < text.Length)
+                    int start = i;
+                    while (i < length && IsIdentifierChar(text[i])) i++;
+                    int end = i; // 单词结束位置（不包含）
+
+                    // 查关键字字典（忽略大小写），命中才着色
+                    string word = text.Substring(start, end - start);
+                    if (_kwMap.ContainsKey(word) && _kwBrushCache.TryGetValue(word, out var brush))
                     {
-                        int foundIndex = text.IndexOf(keyword, index, StringComparison.OrdinalIgnoreCase);
-                        if (foundIndex == -1) break;
-
-                        // 检查是否是完整单词（前后是分隔符或边界）
-                        bool isWordStart = foundIndex == 0 || EditHandler.IsWordSeparator(text[foundIndex - 1]);
-                        bool isWordEnd = foundIndex + keyword.Length == text.Length ||
-                                        EditHandler.IsWordSeparator(text[foundIndex + keyword.Length]);
-
-                        if (isWordStart && isWordEnd && _kwBrushCache.TryGetValue(keyword, out var brush))
-                        {
-                            ChangeLinePart(
-                                line.Offset + foundIndex,
-                                line.Offset + foundIndex + keyword.Length,
-                                e => e.TextRunProperties.SetForegroundBrush(brush));
-                        }
-
-                        index = foundIndex + keyword.Length;
+                        _spans.Add((start, end, brush));
                     }
                 }
+
+                // 2. 短语关键字整串匹配：处理 "[ Info ]" 等含特殊字符的行首标签。
+                //    短语数量少（通常十几个），每行 IndexOf 开销可忽略
+                if (_phraseKeywords.Length > 0)
+                {
+                    foreach (var phrase in _phraseKeywords)
+                    {
+                        if (!_phraseBrushCache.TryGetValue(phrase, out var phraseBrush)) continue;
+                        int pos = 0;
+                        while ((pos = text.IndexOf(phrase, pos, StringComparison.Ordinal)) >= 0)
+                        {
+                            _spans.Add((pos, pos + phrase.Length, phraseBrush));
+                            pos += phrase.Length;
+                        }
+                    }
+                }
+
+                // 3. 按偏移排序，跳过重叠区间后统一着色（ChangeLinePart 要求偏移递增且不重叠）
+                if (_spans.Count > 0)
+                {
+                    _spans.Sort((a, b) => a.start != b.start ? a.start.CompareTo(b.start) : b.end.CompareTo(a.end));
+                    int lastEnd = -1;
+                    foreach (var (s, e, brush) in _spans)
+                    {
+                        if (s < lastEnd || s >= e) continue;
+                        ChangeLinePart(
+                            line.Offset + s,
+                            line.Offset + e,
+                            o => o.TextRunProperties.SetForegroundBrush(brush));
+                        lastEnd = e;
+                    }
+                }
+            }
+
+            /// <summary>
+            /// 判断是否为标识符字符（字母、数字、下划线，含中文等 Unicode 字母）
+            /// </summary>
+            private static bool IsIdentifierChar(char c)
+            {
+                return char.IsLetterOrDigit(c) || c == '_';
             }
         }
         #endregion
@@ -580,24 +725,38 @@ namespace Snet.Windows.Controls.handler
         /// </summary>
         private void ApplyCompletionTheme(CompletionWindow win)
         {
-            win.CompletionList.ListBox.BorderThickness = new Thickness(0);
-            win.CompletionList.ListBox.ItemTemplate = CompletionItemTemplate;
+            // CompletionList.ListBox 是模板子元素：窗口 Show() 之后才非空；
+            // 此处做空保护，避免任何时序问题（如窗口尚未应用模板）导致 NullReferenceException
+            win?.CompletionList?.ListBox?.SetValue(Control.BorderThicknessProperty, new Thickness(0));
+            if (win?.CompletionList?.ListBox is ListBox listBox)
+            {
+                listBox.ItemTemplate = CompletionItemTemplate;
+
+                if (_isDark)
+                {
+                    listBox.Background = _dark;
+                    listBox.Foreground = Brushes.White;
+                }
+                else
+                {
+                    listBox.Background = _light;
+                    listBox.Foreground = Brushes.Black;
+                }
+            }
+
+            if (win == null) return;
 
             if (_isDark)
             {
                 win.Background = _dark;
                 win.Foreground = Brushes.White;
                 win.BorderBrush = Brushes.Gray;
-                win.CompletionList.ListBox.Background = _dark;
-                win.CompletionList.ListBox.Foreground = Brushes.White;
             }
             else
             {
                 win.Background = _light;
                 win.Foreground = Brushes.Black;
                 win.BorderBrush = Brushes.LightGray;
-                win.CompletionList.ListBox.Background = _light;
-                win.CompletionList.ListBox.Foreground = Brushes.Black;
             }
         }
         #endregion
@@ -605,21 +764,28 @@ namespace Snet.Windows.Controls.handler
         #region 辅助方法
         /// <summary>
         /// 获取指定偏移量处的关键字文本<br/>
+        /// 只取光标所在行文本，避免悬停时复制整篇文档
         /// </summary>
         private string? GetWordAtOffset(int offset)
         {
             if (_editor?.Document == null || _kwMap.Count == 0)
                 return null;
 
-            string text = _editor.Document.Text;
-            if (string.IsNullOrEmpty(text) || offset < 0 || offset > text.Length) return null;
+            if (offset < 0 || offset > _editor.Document.TextLength) return null;
+
+            // 只取光标所在行文本，避免复制整篇文档
+            var line = _editor.Document.GetLineByOffset(offset);
+            string text = _editor.Document.GetText(line);
+
+            // 光标在该行内的位置
+            int local = offset - line.Offset;
 
             // 向左找到单词开始
-            int start = offset;
+            int start = local;
             while (start > 0 && !IsWordSeparator(text[start - 1])) start--;
 
             // 向右找到单词结束（exclusive）
-            int end = offset;
+            int end = local;
             while (end < text.Length && !IsWordSeparator(text[end])) end++;
 
             if (end > start)

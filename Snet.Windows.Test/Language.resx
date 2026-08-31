@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <!-- 
 		Microsoft ResX Schema
@@ -105,5 +105,173 @@
   </data>
   <data name="Welcome" xml:space="preserve">
     <value>欢迎使用Snet界面小样</value>
+  </data>
+  <data name="基础控件" xml:space="preserve">
+    <value>基础控件</value>
+  </data>
+  <data name="按钮控件" xml:space="preserve">
+    <value>按钮控件</value>
+  </data>
+  <data name="下拉框" xml:space="preserve">
+    <value>下拉框</value>
+  </data>
+  <data name="文本框" xml:space="preserve">
+    <value>文本框</value>
+  </data>
+  <data name="LED指示灯" xml:space="preserve">
+    <value>LED指示灯</value>
+  </data>
+  <data name="页码条" xml:space="preserve">
+    <value>页码条</value>
+  </data>
+  <data name="属性与网格" xml:space="preserve">
+    <value>属性与网格</value>
+  </data>
+  <data name="属性框" xml:space="preserve">
+    <value>属性框</value>
+  </data>
+  <data name="树形列表" xml:space="preserve">
+    <value>树形列表</value>
+  </data>
+  <data name="自定义表格" xml:space="preserve">
+    <value>自定义表格</value>
+  </data>
+  <data name="代码编辑器" xml:space="preserve">
+    <value>代码编辑器</value>
+  </data>
+  <data name="对话框" xml:space="preserve">
+    <value>对话框</value>
+  </data>
+  <data name="消息框" xml:space="preserve">
+    <value>消息框</value>
+  </data>
+  <data name="高级编辑控件" xml:space="preserve">
+    <value>高级编辑控件</value>
+  </data>
+  <data name="数字调节" xml:space="preserve">
+    <value>数字调节</value>
+  </data>
+  <data name="勾选标记" xml:space="preserve">
+    <value>勾选标记</value>
+  </data>
+  <data name="带输入框滑块" xml:space="preserve">
+    <value>带输入框滑块</value>
+  </data>
+  <data name="单选列表" xml:space="preserve">
+    <value>单选列表</value>
+  </data>
+  <data name="文件选择" xml:space="preserve">
+    <value>文件选择</value>
+  </data>
+  <data name="颜色选择" xml:space="preserve">
+    <value>颜色选择</value>
+  </data>
+  <data name="弹出选择" xml:space="preserve">
+    <value>弹出选择</value>
+  </data>
+  <data name="打开属性对话框" xml:space="preserve">
+    <value>打开属性对话框</value>
+  </data>
+  <data name="打开向导对话框" xml:space="preserve">
+    <value>打开向导对话框</value>
+  </data>
+  <data name="当前选择" xml:space="preserve">
+    <value>当前选择</value>
+  </data>
+  <data name="输入内容" xml:space="preserve">
+    <value>输入内容</value>
+  </data>
+  <data name="点亮" xml:space="preserve">
+    <value>点亮</value>
+  </data>
+  <data name="闪烁" xml:space="preserve">
+    <value>闪烁</value>
+  </data>
+  <data name="选择颜色" xml:space="preserve">
+    <value>选择颜色</value>
+  </data>
+  <data name="总条数" xml:space="preserve">
+    <value>总条数</value>
+  </data>
+  <data name="每页" xml:space="preserve">
+    <value>每页</value>
+  </data>
+  <data name="当前页" xml:space="preserve">
+    <value>当前页</value>
+  </data>
+  <data name="单按钮" xml:space="preserve">
+    <value>单按钮</value>
+  </data>
+  <data name="取消" xml:space="preserve">
+    <value>取消</value>
+  </data>
+  <data name="是" xml:space="preserve">
+    <value>是</value>
+  </data>
+  <data name="否" xml:space="preserve">
+    <value>否</value>
+  </data>
+  <data name="确认" xml:space="preserve">
+    <value>确认</value>
+  </data>
+  <data name="属性编辑对话框" xml:space="preserve">
+    <value>属性编辑对话框</value>
+  </data>
+  <data name="向导对话框" xml:space="preserve">
+    <value>向导对话框</value>
+  </data>
+  <data name="拖拽控件" xml:space="preserve">
+    <value>拖拽控件</value>
+  </data>
+  <data name="可移动" xml:space="preserve">
+    <value>可移动</value>
+  </data>
+  <data name="可拖拽大小" xml:space="preserve">
+    <value>可拖拽大小</value>
+  </data>
+  <data name="可旋转" xml:space="preserve">
+    <value>可旋转</value>
+  </data>
+  <data name="清空画布" xml:space="preserve">
+    <value>清空画布</value>
+  </data>
+  <data name="消息记录" xml:space="preserve">
+    <value>消息记录</value>
+  </data>
+  <data name="拖拽提示" xml:space="preserve">
+    <value>从左侧控件按下鼠标左键拖出副本；右键副本菜单：固定 / 调整 / 提取 / 设置 / 移除；顶部按钮可保存/加载画布布局(JSON)</value>
+  </data>
+  <data name="固定" xml:space="preserve">
+    <value>固定</value>
+  </data>
+  <data name="解除固定" xml:space="preserve">
+    <value>解除固定</value>
+  </data>
+  <data name="已固定" xml:space="preserve">
+    <value>已固定（右键可解除）</value>
+  </data>
+  <data name="提取" xml:space="preserve">
+    <value>提取</value>
+  </data>
+  <data name="移除" xml:space="preserve">
+    <value>移除</value>
+  </data>
+  <data name="保存布局" xml:space="preserve">
+    <value>保存布局</value>
+  </data>
+  <data name="加载布局" xml:space="preserve">
+    <value>加载布局</value>
+  </data>
+  <data name="已提取到剪贴板" xml:space="preserve">
+    <value>已提取到剪贴板</value>
+  </data>
+  <data name="布局已保存" xml:space="preserve">
+    <value>布局已保存</value>
+  </data>
+  <data name="布局已加载" xml:space="preserve">
+    <value>布局已加载</value>
+  </data>
+  <data name="布局加载失败" xml:space="preserve">
+    <value>布局加载失败</value>
   </data>
 </root>

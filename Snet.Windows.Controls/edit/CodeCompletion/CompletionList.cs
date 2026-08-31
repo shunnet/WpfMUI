@@ -272,31 +272,29 @@ namespace Snet.Windows.Controls.edit.CodeCompletion
                                 query.StartsWith(this.currentText, StringComparison.Ordinal)) ?
                 this.currentList : this.completionData;
 
-            var matchingItems =
-                from item in listToFilter
-                let quality = GetMatchQuality(item.Text, query)
-                where quality > 0
-                select new { Item = item, Quality = quality };
-
             // e.g. "DateTimeKind k = (*cc here suggests DateTimeKind*)"
             ICompletionData suggestedItem = listBox.SelectedIndex != -1 ? (ICompletionData)(listBox.Items[listBox.SelectedIndex]) : null;
 
+            // Hand-written filter loop (no LINQ / anonymous objects) to keep per-keystroke
+            // allocation low; semantics identical to the original query.
             var listBoxItems = new ObservableCollection<ICompletionData>();
             int bestIndex = -1;
             int bestQuality = -1;
             double bestPriority = 0;
             int i = 0;
-            foreach (var matchingItem in matchingItems)
+            foreach (ICompletionData item in listToFilter)
             {
-                double priority = matchingItem.Item == suggestedItem ? double.PositiveInfinity : matchingItem.Item.Priority;
-                int quality = matchingItem.Quality;
+                int quality = GetMatchQuality(item.Text, query);
+                if (quality <= 0)
+                    continue;
+                double priority = item == suggestedItem ? double.PositiveInfinity : item.Priority;
                 if (quality > bestQuality || (quality == bestQuality && (priority > bestPriority)))
                 {
                     bestIndex = i;
                     bestPriority = priority;
                     bestQuality = quality;
                 }
-                listBoxItems.Add(matchingItem.Item);
+                listBoxItems.Add(item);
                 i++;
             }
             this.currentList = listBoxItems;

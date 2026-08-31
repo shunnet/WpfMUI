@@ -1,4 +1,5 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.ComponentModel;
+using System.Collections.Concurrent;
 using System.Linq.Expressions;
 using System.Reflection;
 
@@ -130,6 +131,14 @@ namespace Snet.Windows.Core.mvvm
         #region 表达式支持
 
         /// <summary>
+        /// 属性名解析缓存：以 MemberInfo 为键缓存已解析的属性名。<br/>
+        /// 表达式树每次调用都是新实例，无法直接按 Expression 缓存；但 MemberExpression.Member
+        /// 始终返回同一个 MemberInfo 实例（CLR 元数据缓存），因此按 MemberInfo 缓存可消除
+        /// 每次调用的反射取名开销。静态只增、线程安全。
+        /// </summary>
+        private static readonly ConcurrentDictionary<MemberInfo, string> PropertyNameCache = new();
+
+        /// <summary>
         /// 获取 Lambda 表达式中引用的属性名称。<br/>
         /// 用于替代硬编码的属性名字符串，提供编译期安全性。
         /// </summary>
@@ -156,6 +165,26 @@ namespace Snet.Windows.Core.mvvm
             }
 
             MemberInfo member = memberExpression.Member;
+
+            // 命中缓存直接返回，避免重复解析成员名
+            if (PropertyNameCache.TryGetValue(member, out string? cachedName))
+            {
+                return cachedName;
+            }
+
+            string name = ResolveMemberName(member);
+            PropertyNameCache.TryAdd(member, name);
+            return name;
+        }
+
+        /// <summary>
+        /// 将成员信息解析为属性名字符串。<br/>
+        /// 支持 VB.NET 编译器生成的 $VB$Local_ 前缀自动剥离。
+        /// </summary>
+        /// <param name="member">成员信息</param>
+        /// <returns>属性名称字符串</returns>
+        private static string ResolveMemberName(MemberInfo member)
+        {
             const string VbLocalPrefix = "$VB$Local_";
 
             // 修正 VB.NET 编译器局部变量前缀

@@ -1,6 +1,8 @@
-﻿using Snet.Core.handler;
+using Snet.Core.handler;
 using Snet.Log;
 using Snet.Model.data;
+using Snet.Windows.Controls.data;
+using Snet.Windows.Controls.handler;
 using Snet.Windows.Core.handler;
 using System.Windows;
 
@@ -15,6 +17,43 @@ namespace Snet.Windows.Test
         /// 语言操作
         /// </summary>
         public readonly static LanguageModel LanguageOperate = new LanguageModel("Snet.Windows.Test", "Language", "Snet.Windows.Test.dll");
+
+        /// <summary>
+        /// 编辑器关键字高亮规则集合（参考 Daq：日志标签/关键字的颜色高亮）
+        /// </summary>
+        public readonly static List<EditModel> EditModels = GetEditModels();
+
+        /// <summary>
+        /// 获取编辑模型集合，定义编辑器文本的颜色高亮规则
+        /// </summary>
+        /// <returns>编辑模型集合，包含各类关键字对应的高亮颜色</returns>
+        private static List<EditModel> GetEditModels() =>
+        [
+            new() { Name = "using",           Color = "#4CAF50" },
+            new() { Name = "namespace",       Color = "#2196F3" },
+            new() { Name = "class",           Color = "#2196F3" },
+            new() { Name = "public",          Color = "#E91E63" },
+            new() { Name = "private",         Color = "#E91E63" },
+            new() { Name = "static",          Color = "#E91E63" },
+            new() { Name = "void",            Color = "#9C27B0" },
+            new() { Name = "string",          Color = "#9C27B0" },
+            new() { Name = "int",             Color = "#9C27B0" },
+            new() { Name = "bool",            Color = "#9C27B0" },
+            new() { Name = "double",          Color = "#9C27B0" },
+            new() { Name = "return",          Color = "#9C27B0" },
+            new() { Name = "new",             Color = "#2196F3" },
+            new() { Name = "true",            Color = "#4CAF50" },
+            new() { Name = "false",           Color = "#F44336" },
+            new() { Name = "[ Info ]",        Color = "#4CAF50" },
+            new() { Name = "[ Error ]",       Color = "#F44336" },
+            new() { Name = "[ Warn ]",        Color = "#FBC31D" },
+            new() { Name = "异常",            Color = "#F44336" },
+            new() { Name = "Exception",       Color = "#F44336" },
+            new() { Name = "TRUE",            Color = "#4CAF50" },
+            new() { Name = "FALSE",           Color = "#F44336" },
+            new() { Name = ">",               Color = "#FBC31D" },
+            new() { Name = "<",               Color = "#FBC31D" }
+        ];
 
         /// <summary>
         /// 在应用程序关闭时发生

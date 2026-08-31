@@ -12,26 +12,66 @@
 
         <pb:IsEqualConverter x:Key="IsEqualConverter" />
 
+        <!--  页码按钮样式：统一圆形圆角按钮，选中页用 MaterialDesign Primary 主题色高亮  -->
         <Style x:Key="PageBarItem" TargetType="{x:Type pb:PageBarItem}">
-            <Setter Property="MinWidth" Value="30" />
-            <Setter Property="Padding" Value="5,0,5,0" />
+            <Setter Property="Width" Value="34" />
+            <Setter Property="Height" Value="34" />
+            <Setter Property="Margin" Value="3" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Foreground" Value="{DynamicResource MaterialDesign.Brush.Secondary}" />
+            <Setter Property="FontSize" Value="14" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="{x:Type pb:PageBarItem}">
                         <Button
                             x:Name="pageButton"
-                            MinWidth="{TemplateBinding MinWidth}"
-                            Margin="{TemplateBinding Padding}"
-                            ui:ButtonAssist.CornerRadius="{DynamicResource WindowCornerRadius}"
+                            Width="{TemplateBinding Width}"
+                            Height="{TemplateBinding Height}"
+                            Padding="0"
+                            BorderThickness="0"
                             Command="{TemplateBinding PageNumberCommand}"
                             CommandParameter="{TemplateBinding Value}"
                             Content="{TemplateBinding Content}"
+                            Focusable="False"
+                            FontSize="{TemplateBinding FontSize}"
                             Foreground="{TemplateBinding Foreground}"
                             IsEnabled="{TemplateBinding IsEnabled}"
-                            Style="{DynamicResource MaterialDesignRaisedButton}"
-                            ToolTip="{TemplateBinding ToolTip}" />
+                            ToolTip="{TemplateBinding ToolTip}">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border
+                                        x:Name="bg"
+                                        Background="{TemplateBinding Background}"
+                                        CornerRadius="12">
+                                        <ContentPresenter
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center"
+                                            RecognizesAccessKey="True" />
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <!--  悬停：淡主题色背景  -->
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="bg" Property="Background" Value="{DynamicResource MaterialDesign.Brush.PrimaryLight}" />
+                                        </Trigger>
+                                        <!--  按下：主题色背景  -->
+                                        <Trigger Property="IsPressed" Value="True">
+                                            <Setter TargetName="bg" Property="Background" Value="{DynamicResource MaterialDesign.Brush.PrimaryDark}" />
+                                        </Trigger>
+                                        <!--  禁用（上一页/下一页不可点）：降低透明度  -->
+                                        <Trigger Property="IsEnabled" Value="False">
+                                            <Setter Property="Opacity" Value="0.3" />
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Button.Template>
+                            <Button.Resources>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="VerticalAlignment" Value="Center" />
+                                </Style>
+                            </Button.Resources>
+                        </Button>
                         <ControlTemplate.Triggers>
-                            <!--  DataTrigger 用于判断当前项是否是选中的  -->
+                            <!--  当前选中页：主题 Secondary 色高亮（与背景对比明显）  -->
                             <DataTrigger Value="True">
                                 <DataTrigger.Binding>
                                     <MultiBinding Converter="{StaticResource IsEqualConverter}">
@@ -39,8 +79,8 @@
                                         <Binding Path="PageIndex" RelativeSource="{RelativeSource AncestorType=pb:PageBarControl}" />
                                     </MultiBinding>
                                 </DataTrigger.Binding>
-                                <Setter TargetName="pageButton" Property="Background" Value="{DynamicResource CalendarViewSelectedBackground}" />
-                                <Setter TargetName="pageButton" Property="Opacity" Value="0.7" />
+                                <Setter TargetName="pageButton" Property="Background" Value="{DynamicResource MaterialDesign.Brush.Secondary}" />
+                                <Setter TargetName="pageButton" Property="Foreground" Value="{DynamicResource MaterialDesign.Brush.Secondary.Foreground}" />
                             </DataTrigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>

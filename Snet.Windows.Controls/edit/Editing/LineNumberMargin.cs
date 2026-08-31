@@ -64,6 +64,15 @@ namespace Snet.Windows.Controls.edit.Editing
         /// </summary>
         protected double emSize;
 
+        // FormattedText creation is comparatively expensive; cache the rendered text per line number
+        // so scrolling only pays for newly visible lines. The cache is invalidated when the font
+        // (typeface/emSize), the foreground brush or the document/view changes.
+        readonly Dictionary<int, FormattedText> lineTextCache = new Dictionary<int, FormattedText>();
+        Typeface cachedTypeface;
+        double cachedEmSize;
+        Brush cachedForeground;
+        const int MaxLineTextCacheSize = 500;
+
         /// <inheritdoc/>
         protected override Size MeasureOverride(Size availableSize)
         {
@@ -88,16 +97,35 @@ namespace Snet.Windows.Controls.edit.Editing
             if (textView != null && textView.VisualLinesValid)
             {
                 var foreground = (Brush)GetValue(Control.ForegroundProperty);
+                // If the font or brush changed (MeasureOverride ran again), the cached text is stale.
+                if (foreground != cachedForeground || typeface != cachedTypeface || emSize != cachedEmSize)
+                {
+                    lineTextCache.Clear();
+                    cachedForeground = foreground;
+                    cachedTypeface = typeface;
+                    cachedEmSize = emSize;
+                }
                 foreach (VisualLine line in textView.VisualLines)
                 {
                     int lineNumber = line.FirstDocumentLine.LineNumber;
-                    FormattedText text = TextFormatterFactory.CreateFormattedText(
-                        this,
-                        lineNumber.ToString(CultureInfo.CurrentCulture),
-                        typeface, emSize, foreground
-                    );
+                    FormattedText text;
+                    if (!lineTextCache.TryGetValue(lineNumber, out text))
+                    {
+                        text = TextFormatterFactory.CreateFormattedText(
+                            this,
+                            lineNumber.ToString(CultureInfo.CurrentCulture),
+                            typeface, emSize, foreground
+                        );
+                        lineTextCache[lineNumber] = text;
+                    }
                     double y = line.GetTextLineVisualYPosition(line.TextLines[0], VisualYPosition.TextTop);
                     drawingContext.DrawText(text, new Point(renderSize.Width - text.Width, y - textView.VerticalOffset));
+                }
+                // Simple bound: when scrolled far, drop the whole cache instead of tracking which
+                // entries left the viewport. The visible set (~50 entries) is rebuilt on demand.
+                if (lineTextCache.Count > MaxLineTextCacheSize)
+                {
+                    lineTextCache.Clear();
                 }
             }
         }
@@ -121,6 +149,8 @@ namespace Snet.Windows.Controls.edit.Editing
             {
                 textArea = null;
             }
+            // line numbers belong to the old view's document; drop cached text
+            lineTextCache.Clear();
             InvalidateVisual();
         }
 
@@ -136,6 +166,8 @@ namespace Snet.Windows.Controls.edit.Editing
             {
                 PropertyChangedEventManager.AddListener(newDocument, this, "LineCount");
             }
+            // the new document may map the same line numbers to different text; drop cached text
+            lineTextCache.Clear();
             OnDocumentLineCountChanged();
         }
 

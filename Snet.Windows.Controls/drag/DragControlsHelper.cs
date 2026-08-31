@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 using System.Windows.Documents;
 
 namespace Snet.Windows.Controls.drag
@@ -24,15 +24,16 @@ namespace Snet.Windows.Controls.drag
         /// </summary>
         /// <param name="Controls">要拖动的控件</param>
         /// <param name="LlayoutContainer">窗体的布局容器：即该控件所在的父容器</param>
-        /// <param name="Move">是否启用移动功能</param>
-        /// <param name="DragSize">是否启用拖拽大小功能</param>
+        /// <param name="Move">是否启用移动功能（含中心移动圈）</param>
+        /// <param name="DragSize">是否启用拖拽大小功能（四周缩放点）</param>
+        /// <param name="Rotate">是否启用旋转功能（顶部旋转圈）</param>
         /// <returns>操作结果消息字符串</returns>
-        public string Insert(UIElement Controls, FrameworkElement LlayoutContainer, bool Move, bool DragSize)
+        public string Insert(UIElement Controls, FrameworkElement LlayoutContainer, bool Move, bool DragSize, bool Rotate = false)
         {
             string Message = "功能都已启用";
             if (!DictionaryDataList.ContainsKey(Controls))
             {
-                var dragControlsBase = new DragControlsBase(Controls, LlayoutContainer, Move, DragSize);
+                var dragControlsBase = new DragControlsBase(Controls, LlayoutContainer, Move, DragSize, Rotate);
                 var adornerLayer = AdornerLayer.GetAdornerLayer(Controls);
                 adornerLayer?.Add(dragControlsBase);
                 DictionaryDataList.Add(Controls, (adornerLayer, dragControlsBase));
@@ -49,6 +50,13 @@ namespace Snet.Windows.Controls.drag
         }
 
         /// <summary>
+        /// 获取控件当前的拖拽装饰器（未挂过则返回 null）。
+        /// </summary>
+        /// <param name="Controls">要查询的控件</param>
+        public DragControlsBase? Find(UIElement Controls)
+            => DictionaryDataList.TryGetValue(Controls, out var entry) ? entry.Base : null;
+
+        /// <summary>
         /// 移除控件的拖动功能。<br/>
         /// 从装饰器层中移除装饰器，并从数据字典中删除记录。<br/>
         /// 当 AdornerLayer 为空时（控件未呈现时添加的），跳过装饰器移除操作。
@@ -58,6 +66,8 @@ namespace Snet.Windows.Controls.drag
         {
             if (DictionaryDataList.TryGetValue(Controls, out var entry))
             {
+                // 退订移动事件，避免事件泄漏
+                entry.Base.Detach();
                 // AdornerLayer 可能为 null（控件在界面未呈现时添加的情况）
                 entry.Layer?.Remove(entry.Base);
                 DictionaryDataList.Remove(Controls);

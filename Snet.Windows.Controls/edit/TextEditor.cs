@@ -70,6 +70,10 @@ namespace Snet.Windows.Controls.edit
 
             SetCurrentValue(OptionsProperty, textArea.Options);
             SetCurrentValue(DocumentProperty, new TextDocument());
+            // Bound the undo history of the default document: the upstream default (int.MaxValue)
+            // keeps every edit group in memory for the lifetime of the editor. Documents created
+            // by the host keep their own UndoStack configuration.
+            this.Document.UndoStack.SizeLimit = 500;
         }
 
         #endregion

@@ -1,4 +1,4 @@
-﻿// --------------------------------------------------------------------------------------------------------------------
+// --------------------------------------------------------------------------------------------------------------------
 // <copyright file="ItemsBagTypeDescriptor.cs" company="Snet.Windows.Controls.property.core">
 //   Copyright (c) 2014 Snet.Windows.Controls.property.core contributors
 // </copyright>
@@ -9,6 +9,8 @@
 
 namespace Snet.Windows.Controls.property.wpf
 {
+    using System;
+    using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.ComponentModel;
 
@@ -17,6 +19,14 @@ namespace Snet.Windows.Controls.property.wpf
     /// </summary>
     public class ItemsBagTypeDescriptor : CustomTypeDescriptor
     {
+        /// <summary>
+        /// 属性描述符集合缓存（按 BiggestType 缓存）。
+        /// ItemsBag 的 Objects 在构造后不再变化，因此按 BiggestType 缓存是安全的；
+        /// 若派生类会修改对象列表，则需要额外失效逻辑。
+        /// </summary>
+        private static readonly ConcurrentDictionary<Type, PropertyDescriptorCollection> PropertiesCache =
+            new ConcurrentDictionary<Type, PropertyDescriptorCollection>();
+
         /// <summary>
         /// The bag.
         /// </summary>
@@ -41,13 +51,17 @@ namespace Snet.Windows.Controls.property.wpf
         /// </returns>
         public override PropertyDescriptorCollection GetProperties()
         {
-            var result = new List<PropertyDescriptor>();
-            foreach (PropertyDescriptor pd in TypeDescriptor.GetProperties(this.bag.BiggestType))
+            // 按 BiggestType 缓存描述符集合，避免每次 GetProperties 都新建 N 个 descriptor
+            return PropertiesCache.GetOrAdd(this.bag.BiggestType, t =>
             {
-                result.Add(new ItemsBagPropertyDescriptor(pd, this.bag.BiggestType));
-            }
+                var result = new List<PropertyDescriptor>();
+                foreach (PropertyDescriptor pd in TypeDescriptor.GetProperties(t))
+                {
+                    result.Add(new ItemsBagPropertyDescriptor(pd, t));
+                }
 
-            return new PropertyDescriptorCollection(result.ToArray());
+                return new PropertyDescriptorCollection(result.ToArray());
+            });
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿// --------------------------------------------------------------------------------------------------------------------
+// --------------------------------------------------------------------------------------------------------------------
 // <copyright file="FormattingTextBox.cs" company="Snet.Windows.Controls.property.core">
 //   Copyright (c) 2014 Snet.Windows.Controls.property.core contributors
 // </copyright>
@@ -52,6 +52,12 @@ namespace Snet.Windows.Controls.property.wpf
         /// The user is changing.
         /// </summary>
         private bool userIsChanging = true;
+
+        /// <summary>
+        /// 用于去除字符串格式前后缀的正则（静态预编译，避免每次 Text 变化都 new Regex）。
+        /// Regex 实例的 Match 方法是线程安全的。
+        /// </summary>
+        private static readonly Regex UnFormatRegex = new Regex(@"(.*)(\{0.*\})(.*)", RegexOptions.Compiled);
 
         /// <summary>
         /// Initializes static members of the <see cref="FormattingTextBox" /> class.
@@ -164,8 +170,7 @@ namespace Snet.Windows.Controls.property.wpf
                 return s;
             }
 
-            var r = new Regex(@"(.*)(\{0.*\})(.*)");
-            var match = r.Match(this.StringFormat);
+            var match = UnFormatRegex.Match(this.StringFormat);
             if (!match.Success)
             {
                 return s;

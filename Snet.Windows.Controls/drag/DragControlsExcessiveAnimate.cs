@@ -1,7 +1,8 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media.Animation;
 
 namespace Snet.Windows.Controls.drag
 {
@@ -131,6 +132,7 @@ namespace Snet.Windows.Controls.drag
             ControlsShow.PreviewMouseLeftButtonDown += ControlsShow_PreviewMouseLeftButtonDown;
             ControlsShow.PreviewMouseLeftButtonUp += ControlsShow_PreviewMouseLeftButtonUp;
             ControlsShow.PreviewMouseMove += ControlsShow_PreviewMouseMove;
+            ControlsShow.LostMouseCapture += ControlsShow_LostMouseCapture;
         }
         /// <summary>
         /// 移除事件
@@ -141,6 +143,7 @@ namespace Snet.Windows.Controls.drag
             ControlsShow.PreviewMouseLeftButtonDown -= ControlsShow_PreviewMouseLeftButtonDown;
             ControlsShow.PreviewMouseLeftButtonUp -= ControlsShow_PreviewMouseLeftButtonUp;
             ControlsShow.PreviewMouseMove -= ControlsShow_PreviewMouseMove;
+            ControlsShow.LostMouseCapture -= ControlsShow_LostMouseCapture;
         }
 
         #endregion
@@ -217,14 +220,34 @@ namespace Snet.Windows.Controls.drag
 
         /// <summary>
         /// 鼠标左键松开事件处理<br/>
-        /// 停止拖动状态，启动控件渐隐消失效果，并通知外部按钮已松开
+        /// 停止拖动状态，释放鼠标捕获，启动控件渐隐消失效果，并通知外部按钮已松开
         /// </summary>
         private void ControlsShow_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
             IsMouseDown = false;
+            if (sender is UIElement uiElement)
+            {
+                uiElement.ReleaseMouseCapture();
+            }
             if (ControlsObj == null) return;
-            ControlsVanish(ControlsObj);
+            _ = ControlsVanish(ControlsObj);   //异步渐隐，不阻塞当前线程
             ControlsObj = null;
+            ActionEvenTrigger(ButtonState.Up, sender as Button);
+        }
+
+        /// <summary>
+        /// 鼠标捕获丢失事件处理。<br/>
+        /// 捕获被其他窗口抢占（如 Alt+Tab 切换）时，结束拖动并通知外部按钮已松开。
+        /// </summary>
+        private void ControlsShow_LostMouseCapture(object sender, MouseEventArgs e)
+        {
+            if (!IsMouseDown) return;
+            IsMouseDown = false;
+            if (ControlsObj != null)
+            {
+                _ = ControlsVanish(ControlsObj);   //捕获被抢占也执行渐隐，避免残留
+                ControlsObj = null;
+            }
             ActionEvenTrigger(ButtonState.Up, sender as Button);
         }
 
@@ -240,10 +263,15 @@ namespace Snet.Windows.Controls.drag
                 if (!layout.Children.Contains(ControlsObj))
                 {
                     IsMouseDown = true;
+                    // 捕获鼠标：拖出源控件边界后继续跟随，直到左键松开
+                    if (sender is UIElement source)
+                    {
+                        source.CaptureMouse();
+                    }
                     Point Position = e.GetPosition(Windows);
                     ControlsObj.Opacity = 0.5;
-                    Canvas.SetLeft(ControlsObj, Position.X - ControlsObj.Width / 2);
-                    Canvas.SetTop(ControlsObj, Position.Y - ControlsObj.Height / 2);
+                    Canvas.SetLeft(ControlsObj, Position.X - ControlsObj.Width / 2 - WidthOffset);
+                    Canvas.SetTop(ControlsObj, Position.Y - ControlsObj.Height / 2 - HeightOffset);
                     layout.Children.Add(ControlsObj);
                 }
             }
@@ -255,11 +283,16 @@ namespace Snet.Windows.Controls.drag
                 if (!layout.Children.Contains(ControlsObj))
                 {
                     IsMouseDown = true;
+                    // 捕获鼠标：拖出源控件边界后继续跟随，直到左键松开
+                    if (sender is UIElement source)
+                    {
+                        source.CaptureMouse();
+                    }
                     Point Position = e.GetPosition(Windows);
                     ControlsObj.Opacity = 0.5;
 
-                    double Left = Position.X - ControlsObj.Width / 2;
-                    double Top = Position.Y - ControlsObj.Height / 2;
+                    double Left = Position.X - ControlsObj.Width / 2 - WidthOffset;
+                    double Top = Position.Y - ControlsObj.Height / 2 - HeightOffset;
                     double Right = Windows.ActualWidth - Left - ControlsObj.Width;
                     double Bottom = Windows.ActualHeight - Top - ControlsObj.Height;
                     ControlsObj.Margin = new Thickness(Left, Top, Right, Bottom);
@@ -291,37 +324,62 @@ namespace Snet.Windows.Controls.drag
 
         /// <summary>
         /// 控件渐隐消失效果<br/>
-        /// 使用异步方式逐步降低控件透明度，消失后从容器中移除<br/>
-        /// 替代旧的 new Thread + Task.Delay(1).Wait() 实现，避免线程阻塞和资源浪费
+        /// 使用 DoubleAnimation 动画替代旧的 100 次 Dispatcher+Task.Delay 循环模拟渐隐，避免频繁调度开销<br/>
+        /// 动画完成后从容器中移除控件，外部可 await 等待动画完成
         /// </summary>
         /// <param name="element">需要执行消失动画的控件对象</param>
-        async void ControlsVanish(object element)
+        async Task ControlsVanish(object element)
         {
             if (element is not FrameworkElement fe)
                 return;
 
-            // 逐步降低透明度实现渐隐效果
-            for (double opacity = 1.0; opacity > 0; opacity -= 0.01)
+            var dispatcher = Application.Current?.Dispatcher;
+            if (dispatcher == null)
             {
-                await Application.Current.Dispatcher.InvokeAsync(() =>
-                {
-                    fe.Opacity = opacity;
-                });
-                await Task.Delay(1);
+                // 没有 UI 环境时直接移除控件
+                RemoveElement(fe);
+                return;
             }
 
-            // 透明度归零后，从容器中移除控件
-            await Application.Current.Dispatcher.InvokeAsync(() =>
+            try
             {
-                if (LlayoutContainer is Canvas canvas)
+                // 在 UI 线程上启动渐隐动画，并返回动画完成信号
+                Task animationCompleted = await dispatcher.InvokeAsync(() =>
                 {
-                    canvas.Children.Remove(fe);
-                }
-                else if (LlayoutContainer is Grid grid)
-                {
-                    grid.Children.Remove(fe);
-                }
-            });
+                    var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+                    var animation = new DoubleAnimation(1.0, 0.0, TimeSpan.FromMilliseconds(300));
+                    animation.Completed += (_, _) => tcs.TrySetResult();
+                    fe.BeginAnimation(UIElement.OpacityProperty, animation);
+                    return tcs.Task;
+                });
+
+                // 等待动画完成
+                await animationCompleted;
+
+                // 动画完成后在 UI 线程上从容器中移除控件
+                await dispatcher.InvokeAsync(() => RemoveElement(fe));
+            }
+            catch (Exception ex)
+            {
+                // 动画启动或等待失败时直接移除控件，避免残留
+                RemoveElement(fe);
+            }
+        }
+
+        /// <summary>
+        /// 从容器中移除控件
+        /// </summary>
+        /// <param name="fe">要移除的控件</param>
+        private void RemoveElement(FrameworkElement fe)
+        {
+            if (LlayoutContainer is Canvas canvas)
+            {
+                canvas.Children.Remove(fe);
+            }
+            else if (LlayoutContainer is Grid grid)
+            {
+                grid.Children.Remove(fe);
+            }
         }
         #endregion
 

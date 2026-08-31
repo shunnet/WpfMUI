@@ -78,7 +78,7 @@ namespace Snet.Windows.Controls.handler
         /// <param name="maxLength">日志内容的最大长度。超过此长度时会自动清空旧内容，防止内存无限增长</param>
         /// <param name="maxBatchCount">每次最大出队日志条数，防止极端情况下 UI 卡顿</param>
         /// <exception cref="ObjectDisposedException">如果对象已被释放，调用此方法会抛出异常</exception>
-        public async Task StartAsync(int intervalMs = 100, int maxLength = 10000, int maxBatchCount = 1000)
+        public async Task StartAsync(int intervalMs = 200, int maxLength = 10000, int maxBatchCount = 1000)
         {
             // 安全检查：确保对象未被释放
             if (_disposed)
@@ -256,10 +256,15 @@ namespace Snet.Windows.Controls.handler
 
             // 追加新内容（使用 StringBuilder 避免重复的字符串分配）
             _infoBuilder.Append(text);
-            Info = _infoBuilder.ToString();
+            string newInfo = _infoBuilder.ToString();
 
-            // 触发事件，通知订阅者内容已更新
-            OnInfoEventHandler(this, EventInfoResult.CreateSuccessResult(Info));
+            // 内容确实变化时才赋值并触发事件，避免重复 ToString 分配与无效刷新
+            if (!string.Equals(newInfo, Info, StringComparison.Ordinal))
+            {
+                Info = newInfo;
+                // 触发事件，通知订阅者内容已更新
+                OnInfoEventHandler(this, EventInfoResult.CreateSuccessResult(Info));
+            }
         }
 
         /// <summary>
@@ -286,13 +291,36 @@ namespace Snet.Windows.Controls.handler
             // 清空队列
             while (_logQueue.TryDequeue(out _)) { }
 
-            // 清空显示内容
-            Info = string.Empty;
-            _sbCache.Clear();
-            _infoBuilder.Clear();
+            // 修改 Info 和触发事件前先封送到 UI 线程，避免后台线程直接修改绑定属性
+            var dispatcher = Application.Current?.Dispatcher;
+            if (dispatcher != null && !dispatcher.CheckAccess())
+            {
+                await dispatcher.InvokeAsync(() =>
+                {
+                    _sbCache.Clear();
+                    _infoBuilder.Clear();
 
-            // 通知订阅者内容已清空
-            await OnInfoEventHandlerAsync(this, EventInfoResult.CreateSuccessResult(""));
+                    // 内容确实变化时才赋值并触发事件
+                    if (!string.IsNullOrEmpty(Info))
+                    {
+                        Info = string.Empty;
+                        OnInfoEventHandler(this, EventInfoResult.CreateSuccessResult(""));
+                    }
+                });
+            }
+            else
+            {
+                // 已经在 UI 线程或没有 UI 环境，直接更新内容
+                _sbCache.Clear();
+                _infoBuilder.Clear();
+                if (!string.IsNullOrEmpty(Info))
+                {
+                    Info = string.Empty;
+                }
+
+                // 通知订阅者内容已清空
+                await OnInfoEventHandlerAsync(this, EventInfoResult.CreateSuccessResult(""));
+            }
         }
 
         /// <summary>

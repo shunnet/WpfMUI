@@ -16,6 +16,15 @@ namespace Snet.Windows.Controls.edit
         /// </summary>
         private const string EditThemeResourceUri = "pack://application:,,,/Snet.Windows.Controls;component/edit/Themes.xaml";
 
+        // 主题资源与隐式样式在进程内只需解析一次：ResourceDictionary 被多个元素的
+        // MergedDictionaries 引用是 WPF 的标准共享方式（只读使用），Style 同理。
+        private static readonly ResourceDictionary _theme = new ResourceDictionary
+        {
+            Source = new Uri(EditThemeResourceUri, UriKind.Absolute)
+        };
+
+        private static readonly Style _selfStyle = _theme[typeof(TextEditor)] as Style;
+
         static TextEditorControl()
         {
             DefaultStyleKeyProperty.OverrideMetadata(typeof(TextEditorControl),
@@ -23,22 +32,17 @@ namespace Snet.Windows.Controls.edit
         }
 
         /// <summary>
-        /// 构造函数：合并 edit 主题资源，并构建基于 TextEditor 默认样式的隐式样式。
+        /// 构造函数：合并共享的 edit 主题资源，并应用基于 TextEditor 默认样式的隐式样式。
         /// </summary>
         public TextEditorControl()
         {
-            var editResources = new ResourceDictionary
-            {
-                Source = new Uri(EditThemeResourceUri, UriKind.Absolute)
-            };
-            Resources.MergedDictionaries.Add(editResources);
+            Resources.MergedDictionaries.Add(_theme);
 
             // 自身类型的隐式样式：继承 TextEditor 的默认样式（含 ScrollViewer 模板）。
             // 样式查找需在合并字典之后，此时 TextEditor 的隐式样式已可用。
-            if (editResources[typeof(TextEditor)] is Style baseStyle)
+            if (_selfStyle != null)
             {
-                var selfStyle = new Style(typeof(TextEditorControl), baseStyle);
-                Resources[typeof(TextEditorControl)] = selfStyle;
+                Resources[typeof(TextEditorControl)] = _selfStyle;
             }
         }
     }

@@ -1,4 +1,4 @@
-﻿// --------------------------------------------------------------------------------------------------------------------
+// --------------------------------------------------------------------------------------------------------------------
 // <copyright file="PropertyGrid.cs" company="Snet.Windows.Controls.property.core">
 //   Copyright (c) 2014 Snet.Windows.Controls.property.core contributors
 // </copyright>
@@ -25,6 +25,7 @@ namespace Snet.Windows.Controls.property.wpf
     using System.Windows.Data;
     using System.Windows.Input;
     using System.Windows.Media;
+    using System.Windows.Threading;
     using HorizontalAlignment = System.Windows.HorizontalAlignment;
 
     /// <summary>
@@ -461,6 +462,31 @@ namespace Snet.Windows.Controls.property.wpf
         /// The current selected object type.
         /// </summary>
         private Type currentSelectedObjectType;
+
+        /// <summary>
+        /// 控件是否已置脏（需要重建）。
+        /// </summary>
+        private bool controlsInvalidated;
+
+        /// <summary>
+        /// 是否已安排重建（用于合并多次置脏为一次重建）。
+        /// </summary>
+        private bool controlsUpdateScheduled;
+
+        /// <summary>
+        /// 当前外观版本戳（外观 DP 变化时递增）。
+        /// </summary>
+        private long appearanceStamp;
+
+        /// <summary>
+        /// 上次重建时的外观版本戳。
+        /// </summary>
+        private long lastAppearanceStamp;
+
+        /// <summary>
+        /// 上次重建时的对象引用（用于跳过无变化的重复重建）。
+        /// </summary>
+        private object lastControlsObject;
 
         /// <summary>
         /// The panel control.
@@ -1286,7 +1312,7 @@ namespace Snet.Windows.Controls.property.wpf
         /// <param name="e">The e.</param>
         protected virtual void OnSelectedObjectChanged(DependencyPropertyChangedEventArgs e)
         {
-            this.CurrentObject = this.SelectedObject;
+            this.SetCurrentObject(this.SelectedObject);
             this.UpdateControls();
         }
 
@@ -1297,7 +1323,10 @@ namespace Snet.Windows.Controls.property.wpf
         /// <param name="e">The e.</param>
         private static void AppearanceChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
-            ((PropertyGrid)d).UpdateControls();
+            // 外观 DP 变化置脏：合并多次变化为一次重建，避免逐个 DP 全量重建
+            var grid = (PropertyGrid)d;
+            grid.appearanceStamp++;
+            grid.InvalidateControls();
         }
 
         /// <summary>
@@ -1851,11 +1880,10 @@ namespace Snet.Windows.Controls.property.wpf
             }
             else
             {
-                this.CurrentObject = null;
+                this.SetCurrentObject(null);
                 this.UpdateControls();
             }
         }
-
         /// <summary>
         /// Called when the selected objects collection is changed.
         /// </summary>
@@ -1878,18 +1906,33 @@ namespace Snet.Windows.Controls.property.wpf
             var list = enumerable.Cast<object>().ToList();
             if (list.Count == 0)
             {
-                this.CurrentObject = null;
+                this.SetCurrentObject(null);
             }
             else if (list.Count == 1)
             {
-                this.CurrentObject = list[0];
+                this.SetCurrentObject(list[0]);
             }
             else
             {
-                this.CurrentObject = new ItemsBag(list);
+                this.SetCurrentObject(new ItemsBag(list));
             }
 
             this.UpdateControls();
+        }
+
+        /// <summary>
+        /// 设置 CurrentObject，并释放旧的 <see cref="ItemsBag"/>（避免 ItemsBag 的订阅泄漏）。
+        /// </summary>
+        /// <param name="value">新的当前对象。</param>
+        private void SetCurrentObject(object value)
+        {
+            var oldBag = this.CurrentObject as ItemsBag;
+            if (oldBag != null)
+            {
+                oldBag.Dispose();
+            }
+
+            this.CurrentObject = value;
         }
 
         /// <summary>
@@ -1898,6 +1941,18 @@ namespace Snet.Windows.Controls.property.wpf
         private void UpdateControls()
         {
             if (this.Operator == null)
+            {
+                return;
+            }
+
+            // 模板尚未应用时无法重建（OnApplyTemplate 会再次调用）
+            if (this.tabControl == null)
+            {
+                return;
+            }
+
+            // 对象引用与外观版本戳均未变化时跳过重建（例如重复的集合变更通知）
+            if (ReferenceEquals(this.CurrentObject, this.lastControlsObject) && this.appearanceStamp == this.lastAppearanceStamp)
             {
                 return;
             }
@@ -1935,6 +1990,34 @@ namespace Snet.Windows.Controls.property.wpf
             }
 
             this.currentSelectedObjectType = newSelectedObjectType;
+            this.lastControlsObject = this.CurrentObject;
+            this.lastAppearanceStamp = this.appearanceStamp;
+        }
+
+        /// <summary>
+        /// 标记控件需要重建（合并多次置脏为一次重建）。
+        /// </summary>
+        private void InvalidateControls()
+        {
+            this.controlsInvalidated = true;
+            if (!this.controlsUpdateScheduled)
+            {
+                this.controlsUpdateScheduled = true;
+                this.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(this.ProcessControlsInvalidation));
+            }
+        }
+
+        /// <summary>
+        /// 处理置脏的控件重建（由 Dispatcher 合并调度，只执行一次）。
+        /// </summary>
+        private void ProcessControlsInvalidation()
+        {
+            this.controlsUpdateScheduled = false;
+            if (this.controlsInvalidated)
+            {
+                this.controlsInvalidated = false;
+                this.UpdateControls();
+            }
         }
 
         /// <summary>

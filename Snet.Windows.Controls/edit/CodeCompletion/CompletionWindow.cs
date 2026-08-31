@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2014 AlphaSierraPapa for the SharpDevelop Team
+// Copyright (c) 2014 AlphaSierraPapa for the SharpDevelop Team
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this
 // software and associated documentation files (the "Software"), to deal in the Software
@@ -42,10 +42,26 @@ namespace Snet.Windows.Controls.edit.CodeCompletion
         }
 
         /// <summary>
+        /// edit 主题资源路径（含 CompletionList.xaml 模板、CompletionListBox 等补全窗口依赖样式）。
+        /// <br/>
+        /// 必须合并到 CompletionWindow 自身：CompletionWindow 是独立窗口（Popup 树），
+        /// 资源查找沿自己的可视树进行，无法访问宿主编辑器（TextEditorControl）的 Resources，
+        /// 若不在此合并，CompletionList.OnApplyTemplate 的 GetTemplateChild("PART_ListBox")
+        /// 永远返回 null，导致 SelectItemFiltering 中 listBox 为 null 抛出 NullReferenceException。
+        /// </summary>
+        private const string EditThemeResourceUri = "pack://application:,,,/Snet.Windows.Controls;component/edit/Themes.xaml";
+
+        /// <summary>
         /// Creates a new code completion window.
         /// </summary>
         public CompletionWindow(TextArea textArea) : base(textArea)
         {
+            // 合并编辑主题资源（含 CompletionList 模板），必须发生在 CompletionList 应用模板之前
+            Resources.MergedDictionaries.Add(new ResourceDictionary
+            {
+                Source = new Uri(EditThemeResourceUri, UriKind.Absolute)
+            });
+
             // keep height automatic
             this.CloseAutomatically = true;
             this.SizeToContent = SizeToContent.Height;

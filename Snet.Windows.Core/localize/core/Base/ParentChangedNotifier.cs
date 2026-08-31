@@ -1,4 +1,4 @@
-﻿#region Copyright information
+#region Copyright information
 // <copyright file="ParentChangedNotifier.cs">
 //     Licensed under Microsoft Public License (Ms-PL)
 //     https://github.com/Snet.Windows.Core.localize.core/Snet.Windows.Core.localize.core/blob/master/LICENSE
@@ -58,11 +58,10 @@ namespace Snet.Windows.Core.localize.core.Base
         {
             if (obj is FrameworkElement notifier)
             {
-                var weakNotifier = OnParentChangedList.Keys.SingleOrDefault(x => x.IsAlive && ReferenceEquals(x.Target, notifier));
-
-                if (weakNotifier != null)
+                // Direct dictionary lookup (O(1)) instead of a linear Keys.SingleOrDefault scan.
+                if (OnParentChangedList.TryGetValue(notifier, out var actions))
                 {
-                    var list = new List<Action>(OnParentChangedList[weakNotifier]);
+                    var list = new List<Action>(actions);
                     foreach (var OnParentChanged in list)
                         OnParentChanged();
                     list.Clear();
@@ -76,8 +75,8 @@ namespace Snet.Windows.Core.localize.core.Base
         /// <para>- Entries are added by each call of the constructor.</para>
         /// <para>- All elements are called by the parent changed callback with the particular sender as the key.</para>
         /// </summary>
-        private static Dictionary<WeakReference, List<Action>> OnParentChangedList =
-            new Dictionary<WeakReference, List<Action>>();
+        private static readonly Dictionary<DependencyObject, List<Action>> OnParentChangedList =
+            new Dictionary<DependencyObject, List<Action>>();
 
         /// <summary>
         /// The element this notifier is bound to. Needed to release the binding and Action entry.
@@ -95,25 +94,14 @@ namespace Snet.Windows.Core.localize.core.Base
 
             if (onParentChanged != null)
             {
-                if (!OnParentChangedList.ContainsKey(this.element))
+                // Key the list directly by the element object - O(1) add/lookup.
+                if (!OnParentChangedList.TryGetValue(element, out var actions))
                 {
-                    var foundOne = false;
-
-                    foreach (var key in OnParentChangedList.Keys)
-                    {
-                        if (ReferenceEquals(key.Target, element))
-                        {
-                            this.element = key;
-                            foundOne = true;
-                            break;
-                        }
-                    }
-
-                    if (!foundOne)
-                        OnParentChangedList.Add(this.element, new List<Action>());
+                    actions = new List<Action>();
+                    OnParentChangedList.Add(element, actions);
                 }
 
-                OnParentChangedList[this.element].Add(onParentChanged);
+                actions.Add(onParentChanged);
             }
 
             // 元素尚未挂载（ContextMenu、未初始化的 DataGrid 列头等）时直接注册
@@ -170,13 +158,17 @@ namespace Snet.Windows.Core.localize.core.Base
         protected virtual void Dispose(bool isDisposing)
         {
             var weakElement = element;
+
+            // Guard against double dispose (element is set to null after the first one).
+            if (weakElement == null)
+                return;
+
             var weakElementReference = weakElement.Target;
 
-            if (OnParentChangedList.ContainsKey(weakElement))
+            if (weakElementReference is DependencyObject key && OnParentChangedList.TryGetValue(key, out var list))
             {
-                var list = OnParentChangedList[weakElement];
                 list.Clear();
-                OnParentChangedList.Remove(weakElement);
+                OnParentChangedList.Remove(key);
             }
 
             if (isDisposing)

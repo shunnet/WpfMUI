@@ -161,6 +161,10 @@ namespace Snet.Windows.Controls.edit.Highlighting
             isValid.Add(true);
             isValid.InsertRange(1, document.LineCount, false);
             firstInvalidLine = 1;
+            // The document version does not change when only the highlighting rules are invalidated,
+            // so the HighlightUpTo result cache must be dropped explicitly to stay correct.
+            lastHighlightUpToTarget = -1;
+            lastHighlightUpToVersion = null;
         }
 
         int firstInvalidLine;
@@ -242,6 +246,21 @@ namespace Snet.Windows.Controls.edit.Highlighting
         /// </summary>
         void HighlightUpTo(int targetLineNumber)
         {
+            // Result cache / version guard: HighlightUpTo is often invoked multiple times for the
+            // same document version (e.g. once per visible line during visual line construction, or
+            // by GetSpanStack consumers polling the same position). The scan below is only needed
+            // when invalid lines actually exist, so if we already advanced past the requested line
+            // and the document hasn't changed since, the result is provably identical — skip it.
+            // The cache is reset whenever the stored highlighting info is invalidated
+            // (see InvalidateSpanStacks), so rule-set changes are always picked up.
+            if (lastHighlightUpToTarget >= targetLineNumber
+                && lastHighlightUpToVersion != null
+                && document.Version != null
+                && lastHighlightUpToVersion.CompareAge(document.Version) == 0)
+            {
+                return;
+            }
+
             for (int currentLine = 0; currentLine <= targetLineNumber; currentLine++)
             {
                 if (firstInvalidLine > currentLine)
@@ -266,7 +285,12 @@ namespace Snet.Windows.Controls.edit.Highlighting
                 UpdateTreeList(currentLine);
             }
             Debug.Assert(EqualSpanStacks(engine.CurrentSpanStack, storedSpanStacks[targetLineNumber]));
+            lastHighlightUpToTarget = targetLineNumber;
+            lastHighlightUpToVersion = document.Version;
         }
+
+        int lastHighlightUpToTarget = -1;
+        ITextSourceVersion lastHighlightUpToVersion;
 
         void UpdateTreeList(int lineNumber)
         {
