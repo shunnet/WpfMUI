@@ -53,6 +53,8 @@ namespace Snet.Windows.Controls.property.wpf
         /// 初始为 NaN，保证首次 LayoutUpdated 一定计算。
         /// </summary>
         private Point lastRootPosition = new Point(double.NaN, double.NaN);
+        /// <summary>上次计算像素偏移时的设备（DPI）变换，跨显示器移动时设备变换会变化而根位置不变</summary>
+        private Matrix lastDeviceTransform = Matrix.Identity;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Bitmap" /> class.
@@ -289,12 +291,17 @@ namespace Snet.Windows.Controls.property.wpf
             }
 
             Point rootPosition = this.TransformToAncestor(ps.RootVisual).Transform(new Point(0, 0));
-            if (this.AreClose(rootPosition, this.lastRootPosition))
+            // 位置与设备（DPI）变换均未变时才跳过：跨 DPI 显示器移动、根变换变化等场景
+            // 会改变 GetPixelOffset 结果（依赖 TransformToDevice），仅比较位置会导致图像错位/模糊。
+            Matrix deviceTransform = ps.CompositionTarget.TransformToDevice;
+            if (this.AreClose(rootPosition, this.lastRootPosition)
+                && deviceTransform.Equals(this.lastDeviceTransform))
             {
                 return;
             }
 
             this.lastRootPosition = rootPosition;
+            this.lastDeviceTransform = deviceTransform;
 
             Point pixelOffset = this.GetPixelOffset();
             if (!this.AreClose(pixelOffset, this.pixelOffset))

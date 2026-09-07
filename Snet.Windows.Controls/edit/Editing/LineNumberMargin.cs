@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2014 AlphaSierraPapa for the SharpDevelop Team
+// Copyright (c) 2014 AlphaSierraPapa for the SharpDevelop Team
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this
 // software and associated documentation files (the "Software"), to deal in the Software
@@ -98,7 +98,14 @@ namespace Snet.Windows.Controls.edit.Editing
             {
                 var foreground = (Brush)GetValue(Control.ForegroundProperty);
                 // If the font or brush changed (MeasureOverride ran again), the cached text is stale.
-                if (foreground != cachedForeground || typeface != cachedTypeface || emSize != cachedEmSize)
+                // 注意：CreateTypeface() 每次 MeasureOverride 都新建 Typeface 实例，
+                // 按引用比较会导致任何一次重新测量都清空缓存；按字体属性值比较。
+                bool typefaceChanged = cachedTypeface == null
+                    || !string.Equals(typeface.FontFamily?.Source, cachedTypeface.FontFamily?.Source, StringComparison.Ordinal)
+                    || typeface.Style != cachedTypeface.Style
+                    || typeface.Weight != cachedTypeface.Weight
+                    || typeface.Stretch != cachedTypeface.Stretch;
+                if (foreground != cachedForeground || typefaceChanged || emSize != cachedEmSize)
                 {
                     lineTextCache.Clear();
                     cachedForeground = foreground;

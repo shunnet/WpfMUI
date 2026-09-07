@@ -302,10 +302,15 @@ namespace Snet.Windows.Controls.handler
             // 清空队列
             while (_logQueue.TryDequeue(out _)) { }
 
-            // 修改 Info 和触发事件前先封送到 UI 线程，避免后台线程直接修改绑定属性
             var dispatcher = Application.Current?.Dispatcher;
-            if (dispatcher != null && !dispatcher.CheckAccess())
+            bool canMarshal = dispatcher is not null
+                && !dispatcher.CheckAccess()
+                && !dispatcher.HasShutdownStarted
+                && !dispatcher.HasShutdownFinished;
+
+            if (canMarshal)
             {
+                // 修改 Info 和触发事件前先封送到 UI 线程，避免后台线程直接修改绑定属性
                 await dispatcher.InvokeAsync(() =>
                 {
                     _sbCache.Clear();
@@ -321,7 +326,7 @@ namespace Snet.Windows.Controls.handler
             }
             else
             {
-                // 已经在 UI 线程或没有 UI 环境，直接更新内容
+                // 已经在 UI 线程、没有 UI 环境或调度器已关闭，直接更新内容
                 _sbCache.Clear();
                 _infoBuilder.Clear();
                 if (!string.IsNullOrEmpty(Info))
@@ -358,16 +363,23 @@ namespace Snet.Windows.Controls.handler
             {
                 await StopCoreAsync().ConfigureAwait(false);
                 await ClearCoreAsync().ConfigureAwait(false);
-                await base.DisposeAsync().ConfigureAwait(false);
             }
             catch (Exception ex)
             {
                 // 记录释放过程中发生的异常，但不抛出
                 LogHelper.Error($"[UiMessageHandler.DisposeAsync] 释放资源时发生异常：{ex}", foldername: "UiMessageHandler");
             }
-
             finally
             {
+                // 基类释放必须执行：负责从静态 LanguageHandler 事件退订，避免事件泄漏
+                try
+                {
+                    await base.DisposeAsync().ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    LogHelper.Error($"[UiMessageHandler.DisposeAsync] 基类释放异常：{ex}", foldername: "UiMessageHandler");
+                }
                 _lifecycleGate.Dispose();
             }
         }
@@ -382,28 +394,61 @@ namespace Snet.Windows.Controls.handler
 
             try
             {
-                StopCoreAsync().GetAwaiter().GetResult();
-
-                var dispatcher = Application.Current?.Dispatcher;
-                if (dispatcher is not null && !dispatcher.CheckAccess())
+                // 非阻塞停止：只解绑并取消后台任务，不等待其退出，
+                // 避免在 UI 线程 GetAwaiter().GetResult()/Dispatcher.Invoke 阻塞导致死锁
+                // （后台循环自身会响应取消并优雅退出，异常均在 RunLoop 内部捕获）。
+                CancellationTokenSource? cts = _logCts;
+                Task? logTask = _logTask;
+                _logCts = null;
+                _logTask = null;
+                if (cts is not null)
                 {
-                    dispatcher.Invoke(ClearSynchronously);
+                    try
+                    {
+                        cts.Cancel();
+                    }
+                    catch (ObjectDisposedException) { }
+                    finally
+                    {
+                        cts.Dispose();
+                    }
                 }
-                else
+                _ = logTask; // 仅解绑引用；任务结束由运行循环自行完成
+
+                // 清空显示内容：可直接同步执行的路径才同步，否则投递到 UI 线程异步执行
+                var dispatcher = Application.Current?.Dispatcher;
+                if (dispatcher is null || dispatcher.CheckAccess())
                 {
                     ClearSynchronously();
                 }
-
-                base.Dispose();
+                else
+                {
+                    try
+                    {
+                        dispatcher.BeginInvoke(new Action(ClearSynchronously));
+                    }
+                    catch (Exception ex)
+                    {
+                        LogHelper.Error($"[UiMessageHandler.Dispose] 投递清理任务失败：{ex}", foldername: "UiMessageHandler");
+                    }
+                }
             }
             catch (Exception ex)
             {
                 // 记录释放过程中发生的异常
                 LogHelper.Error($"[UiMessageHandler.Dispose] 释放资源时发生异常：{ex}", foldername: "UiMessageHandler");
             }
-
             finally
             {
+                // 基类释放必须执行：负责从静态 LanguageHandler 事件退订，避免事件泄漏
+                try
+                {
+                    base.Dispose();
+                }
+                catch (Exception ex)
+                {
+                    LogHelper.Error($"[UiMessageHandler.Dispose] 基类释放异常：{ex}", foldername: "UiMessageHandler");
+                }
                 _lifecycleGate.Dispose();
             }
         }

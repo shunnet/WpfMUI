@@ -1,4 +1,4 @@
-using Snet.Windows.Controls.data;
+﻿using Snet.Windows.Controls.data;
 using Snet.Windows.Controls.edit;
 using Snet.Windows.Controls.edit.CodeCompletion;
 using Snet.Windows.Controls.edit.Document;
@@ -191,8 +191,7 @@ namespace Snet.Windows.Controls.handler
 
             foreach (var k in keywords)
             {
-                if (string.IsNullOrWhiteSpace(k?.Name))
-                    continue;
+                if (string.IsNullOrWhiteSpace(k?.Name)) continue;
 
                 _kwMap[k.Name] = new EditModel
                 {
@@ -221,6 +220,8 @@ namespace Snet.Windows.Controls.handler
             }
 
             _editor.TextArea.TextView.InvalidateVisual();
+            // 短语关键词（含特殊字符）在 KeywordColorizer 构造时快照，需标记重建
+            _colorizer?.MarkPhrasesDirty();
         }
         #endregion
 
@@ -555,13 +556,9 @@ namespace Snet.Windows.Controls.handler
             /// 含特殊字符的关键字（如 "[ Info ]"），必须整串匹配<br/>
             /// 按长度降序排列，优先匹配更长的短语（避免 "[ Info]" 抢先匹配 "[ Info ]"）
             /// </summary>
-            private readonly string[] _phraseKeywords;
-            private readonly Dictionary<string, Brush> _phraseBrushCache;
-
-            /// <summary>
-            /// 命中区间复用列表（避免每行分配），按行内偏移收集后排序统一着色
-            /// </summary>
-            private readonly List<(int start, int end, Brush brush)> _spans = new();
+            private string[] _phraseKeywords;
+            private Dictionary<string, Brush> _phraseBrushCache;
+            private bool _phrasesDirty = true;
 
             public KeywordColorizer(Dictionary<string, EditModel> kwMap, Dictionary<string, Brush> kwBrushCache, Func<Brush> defaultBrushProvider)
             {
@@ -569,15 +566,34 @@ namespace Snet.Windows.Controls.handler
                 _kwBrushCache = kwBrushCache;
                 _defaultBrushProvider = defaultBrushProvider;
 
-                // 分离"整串短语"关键字：含空格/方括号等非标识符字符的（如 "[ Info ]"、"[ Error ]"），
-                // 单遍标识符扫描永远无法命中它们（"[ Info ]" 会被切分成 "Info"），必须按子串整串查找
+                // 短语列表延迟构建：SetKeywords 可能在构造后再次调用（_kwMap 是引用共享的），
+                // 直接快照会导致新增/删除的短语关键词不更新；因此先置脏，首次 ColorizeLine 时重建。
+                _phraseKeywords = Array.Empty<string>();
+                _phraseBrushCache = new Dictionary<string, Brush>(StringComparer.OrdinalIgnoreCase);
+            }
+
+            /// <summary>
+            /// 标记短语缓存过期（SetKeywords 修改关键字集合后调用）
+            /// </summary>
+            public void MarkPhrasesDirty() => _phrasesDirty = true;
+
+            /// <summary>
+            /// 按需重建短语关键词缓存<br/>
+            /// 分离"整串短语"关键字：含空格/方括号等非标识符字符的（如 "[ Info ]"、"[ Error ]"），
+            /// 单遍标识符扫描永远无法命中它们（"[ Info ]" 会被切分成 "Info"），必须按子串整串查找
+            /// </summary>
+            private void EnsurePhrasesUpToDate()
+            {
+                if (!_phrasesDirty) return;
+                _phrasesDirty = false;
+
                 var phrases = new List<string>();
                 var phraseBrushes = new Dictionary<string, Brush>(StringComparer.OrdinalIgnoreCase);
                 foreach (var kv in _kwMap)
                 {
                     if (IsPureIdentifier(kv.Key)) continue;
                     phrases.Add(kv.Key);
-                    if (kwBrushCache.TryGetValue(kv.Key, out var brush))
+                    if (_kwBrushCache.TryGetValue(kv.Key, out var brush))
                         phraseBrushes[kv.Key] = brush;
                 }
                 phrases.Sort((a, b) => b.Length.CompareTo(a.Length));
@@ -600,11 +616,18 @@ namespace Snet.Windows.Controls.handler
                 return true;
             }
 
+            /// <summary>
+            /// 命中区间复用列表（避免每行分配），按行内偏移收集后排序统一着色
+            /// </summary>
+            private readonly List<(int start, int end, Brush brush)> _spans = new();
+
             protected override void ColorizeLine(DocumentLine line)
             {
                 if (line.IsDeleted) return;
                 var doc = CurrentContext.Document;
                 string text = doc.GetText(line);
+
+                EnsurePhrasesUpToDate();
 
                 // 设置默认画刷
                 Brush defaultBrush = _defaultBrushProvider() ?? Brushes.Black;
@@ -644,7 +667,7 @@ namespace Snet.Windows.Controls.handler
                     {
                         if (!_phraseBrushCache.TryGetValue(phrase, out var phraseBrush)) continue;
                         int pos = 0;
-                        while ((pos = text.IndexOf(phrase, pos, StringComparison.Ordinal)) >= 0)
+                        while ((pos = text.IndexOf(phrase, pos, StringComparison.OrdinalIgnoreCase)) >= 0)
                         {
                             _spans.Add((pos, pos + phrase.Length, phraseBrush));
                             pos += phrase.Length;

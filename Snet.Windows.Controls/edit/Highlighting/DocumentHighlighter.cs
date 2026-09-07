@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2014 AlphaSierraPapa for the SharpDevelop Team
+// Copyright (c) 2014 AlphaSierraPapa for the SharpDevelop Team
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this
 // software and associated documentation files (the "Software"), to deal in the Software
@@ -258,6 +258,11 @@ namespace Snet.Windows.Controls.edit.Highlighting
                 && document.Version != null
                 && lastHighlightUpToVersion.CompareAge(document.Version) == 0)
             {
+                // 早退前必须把引擎基线恢复为"目标行末尾"的 span 栈：
+                // 同版本内先高亮深行、再高亮浅行（向上滚动/跳转是常态）时，若不恢复，
+                // engine 会以更深一行的 span 栈为基线扫描浅行，跨行 span 着色错误，
+                // 且 UpdateTreeList 会把错误栈写回 storedSpanStacks 并在本版本内持续传播。
+                engine.CurrentSpanStack = storedSpanStacks[targetLineNumber];
                 return;
             }
 

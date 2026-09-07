@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2014 AlphaSierraPapa for the SharpDevelop Team
+// Copyright (c) 2014 AlphaSierraPapa for the SharpDevelop Team
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this
 // software and associated documentation files (the "Software"), to deal in the Software
@@ -95,7 +95,9 @@ namespace Snet.Windows.Controls.edit.Search
                     if (!matchWholeWords || (IsWordBorder(document, index) && IsWordBorder(document, resultEndOffset)))
                         yield return new SearchResult { StartOffset = index, Length = literalSearchPattern.Length, Data = null };
                 }
-                searchOffset = index + 1;
+                // 推进 searchOffset 到匹配之后（而非 +1），避免产生重叠匹配：
+                // "aa" 在 "aaa" 中应返回 1 个结果（与旧 Regex.Escape 实现一致），而非 2 个。
+                searchOffset = index + Math.Max(literalSearchPattern.Length, 1);
             }
         }
 

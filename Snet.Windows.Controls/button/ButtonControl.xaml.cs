@@ -25,7 +25,7 @@ namespace Snet.Windows.Controls.button
         /// 控制按钮四个角的圆角大小，默认值为 8
         /// </summary>
         public static readonly DependencyProperty CornerRadiusProperty =
-            DependencyProperty.Register(nameof(CornerRadius), typeof(CornerRadius), typeof(ButtonControl), new PropertyMetadata(new CornerRadius(8)));
+            DependencyProperty.Register(nameof(CornerRadius), typeof(CornerRadius), typeof(ButtonControl), new PropertyMetadata(new CornerRadius(5)));
 
         /// <summary>
         /// 获取或设置按钮的圆角半径

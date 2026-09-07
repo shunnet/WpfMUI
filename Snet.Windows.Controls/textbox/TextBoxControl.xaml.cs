@@ -20,6 +20,24 @@ namespace Snet.Windows.Controls.textbox
         }
 
         /// <summary>
+        /// 获取或设置控件高度<br/>
+        /// 注意：XAML 模板中的内部控件通过 RelativeSource 绑定本控件的 Height，
+        /// 必须保留此依赖属性（默认 30），否则绑定会解析到 FrameworkElement.Height（NaN/Auto），
+        /// 导致控件默认高度变为内容自适应，界面高度错乱。
+        /// </summary>
+        public double Height
+        {
+            get => (double)GetValue(HeightProperty);
+            set => SetValue(HeightProperty, value);
+        }
+        /// <summary>
+        /// 高度依赖属性<br/>
+        /// 控制文本框的高度，默认值为 30 像素
+        /// </summary>
+        public static readonly DependencyProperty HeightProperty =
+            DependencyProperty.Register(nameof(Height), typeof(double), typeof(TextBoxControl), new PropertyMetadata(30d));
+
+        /// <summary>
         /// 获取或设置文本框左侧图标
         /// </summary>
         public ImageSource Icon

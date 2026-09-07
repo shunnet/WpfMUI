@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2014 AlphaSierraPapa for the SharpDevelop Team
+// Copyright (c) 2014 AlphaSierraPapa for the SharpDevelop Team
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this
 // software and associated documentation files (the "Software"), to deal in the Software
@@ -256,7 +256,11 @@ namespace Snet.Windows.Controls.edit.Folding
                     FoldingSection currentSection = FoldingManager.GetNextFolding(m.VisualLine.FirstDocumentLine.Offset);
                     // Removed or replaced folding sections are no longer returned by GetNextFolding,
                     // so the reference comparison detects both deletion and re-creation.
-                    if (currentSection == null || currentSection != m.FoldingSection)
+                    // 注意：滚动时 VisualLine 每次重建为新实例，必须同时检查"行已不在视口内"，
+                    // 否则旧标记永远不会被移除（section 引用未变），每次滚动都会为同一折叠段
+                    // 新增一个标记，markers/markerByVisualLine 无限积累并钉住旧 VisualLine（内存泄漏）。
+                    if (!TextView.VisualLines.Contains(m.VisualLine)
+                        || currentSection == null || currentSection != m.FoldingSection)
                     {
                         RemoveVisualChild(m);
                         markerByVisualLine.Remove(m.VisualLine);

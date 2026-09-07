@@ -3771,24 +3771,30 @@ namespace Snet.Windows.Controls.property.wpf
             {
                 // For Replace actions (e.g. list[i] = newValue), only update the affected cell(s)
                 // instead of rebuilding the entire grid content.
-                this.Dispatcher.Invoke(
-                    new Action(() =>
-                    {
-                        for (int i = 0; i < e.NewItems.Count; i++)
-                        {
-                            var index = e.NewStartingIndex + i;
+                // 注意：若同一调度周期内已有整体重建排队（collectionUpdateScheduled），
+                // 说明网格马上会被重建，此时逐格更新会基于旧网格错位执行，直接跳过即可。
+                if (this.collectionUpdateScheduled)
+                {
+                    return;
+                }
 
-                            // Update all columns/rows for this item
-                            var count = this.ItemsInRows ? this.Columns : this.Rows;
-                            for (int j = 0; j < count; j++)
-                            {
-                                var cellRef = this.ItemsInRows
-                                    ? new CellRef(index, j)
-                                    : new CellRef(j, index);
-                                this.UpdateCellContent(cellRef);
-                            }
+                this.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
+                {
+                    for (int i = 0; i < e.NewItems.Count; i++)
+                    {
+                        var index = e.NewStartingIndex + i;
+
+                        // Update all columns/rows for this item
+                        var count = this.ItemsInRows ? this.Columns : this.Rows;
+                        for (int j = 0; j < count; j++)
+                        {
+                            var cellRef = this.ItemsInRows
+                                ? new CellRef(index, j)
+                                : new CellRef(j, index);
+                            this.UpdateCellContent(cellRef);
                         }
-                    }));
+                    }
+                }));
 
                 return;
             }

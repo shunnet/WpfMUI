@@ -234,29 +234,39 @@ namespace Snet.Windows.Core.handler
 
         /// <summary>
         /// 校验并读取缓存的语言类型（调用方需持有 _languageCacheLock）。<br/>
-        /// 当缓存未初始化、或语言文件被外部修改/删除时返回 false，触发重新读取。
+        /// 当缓存未初始化、或语言文件被外部修改/删除时返回 false，触发重新读取。<br/>
+        /// 注意：文件系统访问（File.GetLastWriteTimeUtc 等）可能抛出异常（文件被删除/独占锁定），
+        /// 调用方 GetLanguage() 被 WindowBase 构造函数使用，异常会导致窗口创建失败，因此这里兜底。
         /// </summary>
         private static bool TryGetCachedLanguageUnsafe(out LanguageType language)
         {
             language = default;
-            if (_cachedLanguage is null)
+            try
             {
+                if (_cachedLanguage is null)
+                {
+                    return false;
+                }
+
+                bool fileExists = File.Exists(path_language);
+                if (fileExists != _cachedLanguageFileExisted)
+                {
+                    return false;
+                }
+
+                if (fileExists && File.GetLastWriteTimeUtc(path_language) != _cachedLanguageFileTimeUtc)
+                {
+                    return false;
+                }
+
+                language = _cachedLanguage.Value;
+                return true;
+            }
+            catch (Exception)
+            {
+                // 文件系统异常（文件被删/独占锁定等）时视为缓存失效，走重新读取路径
                 return false;
             }
-
-            bool fileExists = File.Exists(path_language);
-            if (fileExists != _cachedLanguageFileExisted)
-            {
-                return false;
-            }
-
-            if (fileExists && File.GetLastWriteTimeUtc(path_language) != _cachedLanguageFileTimeUtc)
-            {
-                return false;
-            }
-
-            language = _cachedLanguage.Value;
-            return true;
         }
 
         /// <summary>

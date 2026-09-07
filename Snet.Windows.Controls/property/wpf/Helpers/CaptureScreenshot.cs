@@ -1,4 +1,4 @@
-﻿// --------------------------------------------------------------------------------------------------------------------
+// --------------------------------------------------------------------------------------------------------------------
 // <copyright file="CaptureScreenshot.cs" company="Snet.Windows.Controls.property.core">
 //   Copyright (c) 2014 Snet.Windows.Controls.property.core contributors
 // </copyright>
@@ -115,6 +115,12 @@ namespace Snet.Windows.Controls.property.wpf
         /// </returns>
         public static BitmapSource Capture(Rect area)
         {
+            // NaN/∞ 的 checked 转换会抛 OverflowException，与下方守卫意图不符，先显式判断
+            if (double.IsNaN(area.Width) || double.IsNaN(area.Height)
+                || double.IsInfinity(area.Width) || double.IsInfinity(area.Height))
+            {
+                throw new ArgumentOutOfRangeException(nameof(area), "The capture area must have a positive width and height.");
+            }
             int width = checked((int)area.Width);
             int height = checked((int)area.Height);
             if (width <= 0 || height <= 0)

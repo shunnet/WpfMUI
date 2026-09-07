@@ -1,4 +1,4 @@
-﻿using MaterialDesignThemes.Wpf;
+using MaterialDesignThemes.Wpf;
 using Snet.Model.data;
 using System.Reflection;
 using System.Windows;
@@ -408,13 +408,34 @@ namespace Snet.Windows.Controls.drag
             => Snet.Core.handler.LanguageHandler.GetLanguageValue(key, Language) ?? key;
 
         /// <summary>
-        /// 订阅语言切换事件：切换中英文时重建所有副本的右键菜单（菜单文案在拖出时解析，需刷新）。
+        /// 订阅语言切换事件：切换中英文时重建所有副本的右键菜单（菜单文案在拖出时解析，需刷新）。<br/>
+        /// 注意：LanguageHandler.OnLanguageEvent 是静态事件，订阅后必须在窗口关闭时退订，
+        /// 否则 静态事件 → DragControlsAnimate → Window 引用链常驻，窗口反复创建/关闭会内存泄漏。
         /// </summary>
         private void EnsureLanguageSubscription()
         {
             if (languageSubscribed) return;
             languageSubscribed = true;
             Snet.Core.handler.LanguageHandler.OnLanguageEvent += LanguageHandler_OnLanguageEvent;
+
+            if (Windows is FrameworkElement window)
+            {
+                window.Unloaded -= Windows_Unloaded_DetachLanguage;
+                window.Unloaded += Windows_Unloaded_DetachLanguage;
+            }
+        }
+
+        /// <summary>窗口卸载时退订语言事件（幂等）</summary>
+        private void Windows_Unloaded_DetachLanguage(object? sender, RoutedEventArgs e) => Detach();
+
+        /// <summary>
+        /// 退订语言切换事件（幂等，可安全重复调用）。
+        /// </summary>
+        public void Detach()
+        {
+            if (!languageSubscribed) return;
+            languageSubscribed = false;
+            Snet.Core.handler.LanguageHandler.OnLanguageEvent -= LanguageHandler_OnLanguageEvent;
         }
 
         /// <summary>语言切换回调：在 UI 线程上重建副本菜单</summary>
@@ -654,6 +675,15 @@ namespace Snet.Windows.Controls.drag
             if (copy == null) return;
             double x = Canvas.GetLeft(copy);
             double y = Canvas.GetTop(copy);
+            // 实际显示位置 = Canvas 坐标 + Margin 偏移（拖动本体/中心点时只更新 Margin，
+            // Canvas.Left/Top 保持初始值，仅取其一会导致提取/保存的坐标与实际位置不一致）
+            if (!double.IsNaN(x)) x += copy.Margin.Left;
+            if (!double.IsNaN(y)) y += copy.Margin.Top;
+            // Grid 容器中 GetLeft/GetTop 为 NaN，改用 Margin；仍为 NaN 时归零，避免输出 -2147483648
+            if (double.IsNaN(x)) x = copy.Margin.Left;
+            if (double.IsNaN(y)) y = copy.Margin.Top;
+            if (double.IsNaN(x)) x = 0;
+            if (double.IsNaN(y)) y = 0;
             string text = $"X={(int)Math.Round(x)}, Y={(int)Math.Round(y)}";
             try
             {
@@ -844,17 +874,21 @@ namespace Snet.Windows.Controls.drag
 
         /// <summary>
         /// 源控件自检（保险丝）：拖拽期间装饰器层会触发全局布局，个别控件在全局重排后
-        /// 可能被压成 0 尺寸（如内部内容测量塌缩）。这里对已注册的拖动源强制恢复可见并重测，
-        /// 保证“左侧源”在任何拖拽流程后都原样存在、不被影响。
+        /// 可能被压成 0 尺寸（如内部内容测量塌缩）。这里仅对"被压塌"的源强制恢复可见并重测，
+        /// 不会复活用户主动 Collapsed/隐藏的源。
         /// </summary>
         private void EnsureSourcesVisible()
         {
             foreach (var source in ShowControlsList)
             {
                 if (source == null || source.IsVisible) continue;
-                source.Visibility = Visibility.Visible;
-                source.InvalidateMeasure();
-                source.InvalidateVisual();
+                // 仅当实际尺寸塌缩（≤0）才恢复；用户主动隐藏/折叠的源保持不变
+                if (source.ActualWidth <= 0 && source.ActualHeight <= 0)
+                {
+                    source.Visibility = Visibility.Visible;
+                    source.InvalidateMeasure();
+                    source.InvalidateVisual();
+                }
             }
         }
 
@@ -898,6 +932,31 @@ namespace Snet.Windows.Controls.drag
         /// </summary>
         private void ControlsShow_PreviewMouseMove(object sender, System.Windows.Input.MouseEventArgs e)
         {
+            // 延迟拖拽启动：位移超过系统阈值才真正开始拖拽（保留源控件的单击行为）
+            if (_pendingDragSource is not null)
+            {
+                if (e.LeftButton != MouseButtonState.Pressed)
+                {
+                    _pendingDragSource = null; // 左键已松开（事件顺序异常时兜底）
+                }
+                else
+                {
+                    Point pos = e.GetPosition(Windows);
+                    if (Math.Abs(pos.X - _pendingDragStart.X) > SystemParameters.MinimumHorizontalDragDistance
+                        || Math.Abs(pos.Y - _pendingDragStart.Y) > SystemParameters.MinimumVerticalDragDistance)
+                    {
+                        var source = _pendingDragSource;
+                        _pendingDragSource = null;
+                        StartDrag(source, e);
+                        if (ControlsObj != null && IsMouseDown)
+                        {
+                            UpdateDragClone(pos);
+                        }
+                    }
+                    return;
+                }
+            }
+
             if (ControlsObj == null) return;
             if (IsMouseDown)
             {
@@ -932,6 +991,8 @@ namespace Snet.Windows.Controls.drag
         /// </summary>
         private void ControlsShow_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
+            // 未达到拖拽阈值就松开：视为普通点击，取消延迟拖拽状态，交给源控件正常处理
+            _pendingDragSource = null;
             IsMouseDown = false;
             if (sender is UIElement uiElement)
             {
@@ -972,28 +1033,46 @@ namespace Snet.Windows.Controls.drag
 
 
         /// <summary>
+        /// 延迟拖拽启动：记录按下位置，仅当位移超过系统拖拽阈值时才真正开始拖拽。<br/>
+        /// 旧实现按下瞬间就 CaptureMouse + e.Handled=true，会吞掉源控件所有纯单击行为
+        /// （Button.Click、CheckBox 勾选、TextBox 聚焦输入等全部失效）——回归，这里修复。
+        /// </summary>
+        private FrameworkElement? _pendingDragSource;
+        private Point _pendingDragStart;
+
+        /// <summary>
         /// 鼠标左键按下事件处理。<br/>
-        /// 通过委托创建新控件，设置半透明并添加到容器中，启动拖动。
+        /// 只记录按下位置，不启动拖拽——把正常单击留给源控件。
         /// </summary>
         private void ControlsShow_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            _pendingDragSource = sender as FrameworkElement;
+            _pendingDragStart = e.GetPosition(Windows);
+        }
+
+        /// <summary>
+        /// 真正开始拖拽（位移超过阈值后调用，原按下阶段的逻辑）。<br/>
+        /// 通过委托创建新控件，设置半透明并添加到容器中，启动拖动。
+        /// </summary>
+        private void StartDrag(FrameworkElement source, MouseEventArgs e)
         {
             if (LlayoutContainer.GetType().Equals(typeof(Canvas)))
             {
                 Canvas layout = LlayoutContainer as Canvas;
-                (FrameworkElement element, bool IsMove, bool IsDragSize, bool IsRotate) = DragEvenTrigger(sender as FrameworkElement);
+                (FrameworkElement element, bool IsMove, bool IsDragSize, bool IsRotate) = DragEvenTrigger(source);
                 ControlsObj = element;
                 if (!layout.Children.Contains(ControlsObj))
                 {
                     IsMouseDown = true;
                     // 防御：触发器若返回源对象本身，强制按类型克隆，绝不把拖动源搬进画布
-                    if (ReferenceEquals(ControlsObj, sender))
+                    if (ReferenceEquals(ControlsObj, source))
                     {
-                        ControlsObj = DefaultClone(sender as FrameworkElement);
+                        ControlsObj = DefaultClone(source);
                     }
                     // 捕获鼠标：拖出源控件边界后继续跟随，直到左键松开
-                    if (sender is UIElement source)
+                    if (source is UIElement uiSource)
                     {
-                        source.CaptureMouse();
+                        uiSource.CaptureMouse();
                         // 关键：终止后续路由 —— 源控件内部（如 TextBox/TextBoxControl）若再捕获鼠标，
                         // 会覆盖源控件的捕获，导致 PreviewMouseMove 收不到、副本不跟随鼠标
                         e.Handled = true;
@@ -1008,38 +1087,38 @@ namespace Snet.Windows.Controls.drag
                     UpdateDragClone(Position);
                     AttachCopyMenu(ControlsObj);
                     // 副本携带源名称（布局持久化 SourceName）
-                    if (sender is FrameworkElement sourceElement && GetSourceName(sourceElement) is { } sourceName)
+                    if (source is FrameworkElement sourceElement && GetSourceName(sourceElement) is { } sourceName)
                     {
                         SetSourceName(ControlsObj, sourceName);
                     }
                     //添加拖拽大小与移动
-                    MessageEvenTrigger(MoveAndDragSizeInsert(ControlsObj, Windows, IsMove, IsDragSize, IsRotate), sender as FrameworkElement);
+                    MessageEvenTrigger(MoveAndDragSizeInsert(ControlsObj, Windows, IsMove, IsDragSize, IsRotate), source);
                     // 保险丝：装饰器层全局布局后，确保源控件未被压成 0 高（0 尺寸时强制恢复可见）
                     EnsureSourcesVisible();
                 }
                 else
                 {
-                    MessageEvenTrigger("此控件已在布局中存在", sender as FrameworkElement);
+                    MessageEvenTrigger("此控件已在布局中存在", source);
                     ControlsObj = null;
                 }
             }
             else if (LlayoutContainer.GetType().Equals(typeof(Grid)))
             {
                 Grid layout = LlayoutContainer as Grid;
-                (FrameworkElement element, bool IsMove, bool IsDragSize, bool IsRotate) = DragEvenTrigger(sender as FrameworkElement);
+                (FrameworkElement element, bool IsMove, bool IsDragSize, bool IsRotate) = DragEvenTrigger(source);
                 ControlsObj = element;
                 if (!layout.Children.Contains(ControlsObj))
                 {
                     IsMouseDown = true;
                     // 防御：触发器若返回源对象本身，强制按类型克隆，绝不把拖动源搬进画布
-                    if (ReferenceEquals(ControlsObj, sender))
+                    if (ReferenceEquals(ControlsObj, source))
                     {
-                        ControlsObj = DefaultClone(sender as FrameworkElement);
+                        ControlsObj = DefaultClone(source);
                     }
                     // 捕获鼠标：拖出源控件边界后继续跟随，直到左键松开
-                    if (sender is UIElement source)
+                    if (source is UIElement uiSource)
                     {
-                        source.CaptureMouse();
+                        uiSource.CaptureMouse();
                         // 关键：终止后续路由 —— 源控件内部（如 TextBox/TextBoxControl）若再捕获鼠标，
                         // 会覆盖源控件的捕获，导致 PreviewMouseMove 收不到、副本不跟随鼠标
                         e.Handled = true;
@@ -1054,18 +1133,18 @@ namespace Snet.Windows.Controls.drag
 
                     AttachCopyMenu(ControlsObj);
                     // 副本携带源名称（布局持久化 SourceName）
-                    if (sender is FrameworkElement sourceElement && GetSourceName(sourceElement) is { } sourceName)
+                    if (source is FrameworkElement sourceElement && GetSourceName(sourceElement) is { } sourceName)
                     {
                         SetSourceName(ControlsObj, sourceName);
                     }
                     //添加拖拽大小与移动
-                    MessageEvenTrigger(MoveAndDragSizeInsert(ControlsObj, Windows, IsMove, IsDragSize, IsRotate), sender as FrameworkElement);
+                    MessageEvenTrigger(MoveAndDragSizeInsert(ControlsObj, Windows, IsMove, IsDragSize, IsRotate), source);
                     // 保险丝：装饰器层全局布局后，确保源控件未被压成 0 高（0 尺寸时强制恢复可见）
                     EnsureSourcesVisible();
                 }
                 else
                 {
-                    MessageEvenTrigger("此控件已在布局中存在", sender as FrameworkElement);
+                    MessageEvenTrigger("此控件已在布局中存在", source);
                     ControlsObj = null;
                 }
             }

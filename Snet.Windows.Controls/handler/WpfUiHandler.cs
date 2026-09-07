@@ -1,4 +1,5 @@
 using Snet.Core.handler;
+using Snet.Log;
 using Snet.Model.data;
 using Snet.Utility;
 using Snet.Windows.Core.@enum;
@@ -175,29 +176,23 @@ namespace Snet.Windows.Controls.handler
                 if (app.Resources == null)
                     app.Resources = new ResourceDictionary();
 
-                // 添加资源字典
-                app.Resources.MergedDictionaries.Add(
-                    new ResourceDictionary
-                    {
-                        Source = new Uri("pack://application:,,,/Wpf.Ui;component/Resources/Theme/Dark.xaml", UriKind.Absolute)
-                    });
-
+                // 添加资源字典（注意顺序：Wpf.Ui.xaml 在前，Theme/Dark.xaml 在后，
+                // 否则 Theme 中引用 SystemAccentColorPrimary 等键的 StaticResource 会延迟解析失败，Badge 实例化即抛异常）
                 app.Resources.MergedDictionaries.Add(
                     new ResourceDictionary
                     {
                         Source = new Uri("pack://application:,,,/Wpf.Ui;component/Resources/Wpf.Ui.xaml", UriKind.Absolute)
                     });
-            }
-            //设置汉堡菜单皮肤（具名处理器 + 先退订再订阅，避免重复订阅导致多次触发）
-            SkinHandler.OnSkinEvent -= SkinHandler_OnSkinEvent;
-            s_skinTargetApp = app;
-            SkinHandler.OnSkinEvent += SkinHandler_OnSkinEvent;
 
-            //语言切换（具名处理器 + 先退订再订阅，避免重复订阅导致多次触发）
-            Snet.Core.handler.LanguageHandler.OnLanguageEventAsync -= LanguageHandler_OnLanguageEvent;
-            s_languageNavigation = navigation;
-            s_languageModel = model;
-            Snet.Core.handler.LanguageHandler.OnLanguageEventAsync += LanguageHandler_OnLanguageEvent;
+                app.Resources.MergedDictionaries.Add(
+                    new ResourceDictionary
+                    {
+                        Source = new Uri("pack://application:,,,/Wpf.Ui;component/Resources/Theme/Dark.xaml", UriKind.Absolute)
+                    });
+            }
+            // 注册皮肤/语言更新目标（支持多窗口：每个窗口都注册，弱引用 + 去重）
+            RegisterTargets(app, navigation, model);
+            EnsureEventsRegistered();
 
             //当数据源发送变化则触发
             navigation.SelectionChanged += Navigation_SelectionChanged;
@@ -207,28 +202,108 @@ namespace Snet.Windows.Controls.handler
         /// </summary>
         private static LanguageModel languageModel;
 
-        /// <summary>皮肤更新目标容器（静态，供皮肤事件处理器使用）</summary>
-        private static FrameworkElement? s_skinTargetApp;
-        /// <summary>语言切换目标导航（静态，供语言事件处理器使用）</summary>
-        private static NavigationView? s_languageNavigation;
-        /// <summary>语言切换使用的语言模型（静态，供语言事件处理器使用）</summary>
-        private static LanguageModel? s_languageModel;
-
         /// <summary>
-        /// 皮肤事件处理（具名方法，便于退订）
+        /// 处理多个窗口的皮肤/语言更新目标（每个注册的窗口各一份，弱引用防止窗口常驻）。<br/>
+        /// 注意：此前的实现只有单一静态槽（s_skinTargetApp/s_languageNavigation），
+        /// 第二个窗口注册时会摘除第一个窗口的订阅——多窗口应用只有最后一个窗口能收到更新（回归）。
         /// </summary>
-        private static void SkinHandler_OnSkinEvent(object? sender, Windows.Core.data.EventSkinResult e)
+        private static readonly object TargetLock = new();
+        private static readonly List<WeakReference<FrameworkElement>> skinTargets = new();
+        private static readonly List<(WeakReference<NavigationView> Navigation, LanguageModel Model)> languageTargets = new();
+        private static bool eventsRegistered;
+
+        private static void EnsureEventsRegistered()
         {
-            s_skinTargetApp?.WpfUI_SkinUpdate(e.Skin);
+            lock (TargetLock)
+            {
+                if (eventsRegistered) return;
+                eventsRegistered = true;
+            }
+
+            // 皮肤更新（同步事件，具名处理器 + 先退订再订阅，避免重复订阅）
+            SkinHandler.OnSkinEvent -= SkinHandler_OnSkinEvent;
+            SkinHandler.OnSkinEvent += SkinHandler_OnSkinEvent;
+
+            // 语言切换（异步事件，具名处理器 + 先退订再订阅，避免重复订阅）
+            Snet.Core.handler.LanguageHandler.OnLanguageEventAsync -= LanguageHandler_OnLanguageEvent;
+            Snet.Core.handler.LanguageHandler.OnLanguageEventAsync += LanguageHandler_OnLanguageEvent;
+        }
+
+        private static void RegisterTargets(FrameworkElement app, NavigationView navigation, LanguageModel model)
+        {
+            if (app is null || navigation is null || model is null) return;
+            lock (TargetLock)
+            {
+                // 去重：同一容器/导航重复注册时更新一次即可
+                skinTargets.RemoveAll(w => !w.TryGetTarget(out var t) || ReferenceEquals(t, app));
+                languageTargets.RemoveAll(t => !t.Navigation.TryGetTarget(out var n) || ReferenceEquals(n, navigation));
+                skinTargets.Add(new WeakReference<FrameworkElement>(app));
+                languageTargets.Add((new WeakReference<NavigationView>(navigation), model));
+            }
         }
 
         /// <summary>
-        /// 语言切换事件处理（具名方法，便于退订）
+        /// 皮肤事件处理（更新所有已注册窗口的主题资源）
+        /// </summary>
+        private static void SkinHandler_OnSkinEvent(object? sender, Windows.Core.data.EventSkinResult e)
+        {
+            List<FrameworkElement> targets;
+            lock (TargetLock)
+            {
+                targets = new List<FrameworkElement>(skinTargets.Count);
+                foreach (var weak in skinTargets)
+                {
+                    if (weak.TryGetTarget(out var target) && target is not null)
+                    {
+                        targets.Add(target);
+                    }
+                }
+                skinTargets.RemoveAll(w => !w.TryGetTarget(out _));
+            }
+
+            foreach (var target in targets)
+            {
+                try
+                {
+                    target.WpfUI_SkinUpdate(e.Skin);
+                }
+                catch (Exception ex)
+                {
+                    LogHelper.Error($"Skin update failed for window: {ex}", "Snet.Windows.Core", ex);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 语言切换事件处理（更新所有已注册窗口的导航菜单文本）
         /// </summary>
         private static async Task LanguageHandler_OnLanguageEvent(object? sender, Snet.Model.data.EventLanguageResult e)
         {
-            if (s_languageNavigation == null || s_languageModel == null) return;
-            await LanguageHandler_OnLanguageEventAsync(sender, e, s_languageNavigation!, s_languageModel!);
+            List<(NavigationView Navigation, LanguageModel Model)> targets;
+            lock (TargetLock)
+            {
+                targets = new List<(NavigationView, LanguageModel)>(languageTargets.Count);
+                foreach (var (weak, model) in languageTargets)
+                {
+                    if (weak.TryGetTarget(out var navigation) && navigation is not null)
+                    {
+                        targets.Add((navigation, model));
+                    }
+                }
+                languageTargets.RemoveAll(t => !t.Navigation.TryGetTarget(out _));
+            }
+
+            foreach (var (navigation, model) in targets)
+            {
+                try
+                {
+                    await LanguageHandler_OnLanguageEventAsync(sender, e, navigation, model);
+                }
+                catch (Exception ex)
+                {
+                    LogHelper.Error($"Language update failed for window: {ex}", "Snet.Windows.Core", ex);
+                }
+            }
         }
 
         private static void Navigation_SelectionChanged(NavigationView sender, RoutedEventArgs args)

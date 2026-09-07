@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2014 AlphaSierraPapa for the SharpDevelop Team
+// Copyright (c) 2014 AlphaSierraPapa for the SharpDevelop Team
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this
 // software and associated documentation files (the "Software"), to deal in the Software
@@ -361,7 +361,12 @@ namespace Snet.Windows.Controls.edit.Search
         void ValidateSearchText()
         {
             if (searchTextBox == null)
+            {
+                // 模板尚未应用（面板未打开）时也必须重建搜索策略：
+                // 否则设置 SearchPattern 后 Open() → DoSearch 会因 strategy == null 抛 NullReferenceException。
+                UpdateSearch();
                 return;
+            }
 
             var be = searchTextBox.GetBindingExpression(TextBox.TextProperty);
 
@@ -439,6 +444,7 @@ namespace Snet.Windows.Controls.edit.Search
                 // We cast from ISearchResult to SearchResult; this is safe because we always use the built-in strategy
                 try
                 {
+                    strategy ??= SearchStrategyFactory.Create(SearchPattern ?? "", !MatchCase, WholeWords, UseRegex ? SearchMode.RegEx : SearchMode.Normal);
                     foreach (SearchResult result in strategy.FindAll(textArea.Document, 0, textArea.Document.TextLength))
                     {
                         if (changeSelection && result.StartOffset >= offset)
@@ -455,6 +461,8 @@ namespace Snet.Windows.Controls.edit.Search
                     messageView.Content = Localization.ErrorText + " " + ex.Message;
                     messageView.PlacementTarget = searchTextBox;
                     messageView.IsOpen = true;
+                    // 结果已清空，必须让旧高亮立即失效，否则残留到下一次重绘
+                    textArea.TextView.InvalidateLayer(KnownLayer.Selection);
                     return;
                 }
                 if (!renderer.CurrentResults.Any())
@@ -484,6 +492,14 @@ namespace Snet.Windows.Controls.edit.Search
             {
                 case Key.Enter:
                     e.Handled = true;
+                    // 若防抖搜索仍在等待中，先同步执行本次搜索，
+                    // 避免 FindNext/FindPrevious 基于上一次模式的旧结果导航（随后定时器再跑一次并打断选择）。
+                    if (searchPending)
+                    {
+                        searchTimer.Stop();
+                        searchPending = false;
+                        DoSearch(false);
+                    }
                     if ((Keyboard.Modifiers & ModifierKeys.Shift) == ModifierKeys.Shift)
                         FindPrevious();
                     else

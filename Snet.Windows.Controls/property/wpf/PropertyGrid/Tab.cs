@@ -33,7 +33,7 @@ namespace Snet.Windows.Controls.property.wpf
         /// <summary>
         /// 每属性的错误计数（增量维护，避免每次 ErrorsChanged 全表扫描）。
         /// </summary>
-        private readonly Dictionary<string, int> propertyErrorCounts = new Dictionary<string, int>();
+        private readonly Dictionary<string, bool> propertyErrorCounts = new Dictionary<string, bool>();
 
         /// <summary>
         /// 错误计数是否已初始化（首次全量扫描后切换为增量更新）。
@@ -283,7 +283,10 @@ namespace Snet.Windows.Controls.property.wpf
         }
 
         /// <summary>
-        /// 更新指定属性的错误计数（有错误 +1，无错误 -1，归零后移除）。
+        /// 更新指定属性的错误状态（绝对状态：有错则记录，无错则移除）。<br/>
+        /// 注意：调用方传入的是绝对布尔状态（每次全量重算），而不是增量；
+        /// 此前按"有错 +1、无错 -1"增量处理会导致同一错误状态被重复累加
+        /// （TargetUpdated 每次目标更新都会上报一次），清除一次后计数仍 >0，HasErrors 永久卡在 true。
         /// </summary>
         /// <param name="propertyName">属性名。</param>
         /// <param name="hasErrors">是否处于错误状态。</param>
@@ -294,32 +297,22 @@ namespace Snet.Windows.Controls.property.wpf
                 return;
             }
 
-            this.propertyErrorCounts.TryGetValue(propertyName, out var count);
-            var newCount = hasErrors ? count + 1 : Math.Max(0, count - 1);
-            if (newCount == 0)
+            if (hasErrors)
             {
-                this.propertyErrorCounts.Remove(propertyName);
+                this.propertyErrorCounts[propertyName] = true;
             }
             else
             {
-                this.propertyErrorCounts[propertyName] = newCount;
+                this.propertyErrorCounts.Remove(propertyName);
             }
         }
 
         /// <summary>
-        /// 根据错误计数更新 HasErrors（仅在变化时触发属性变更通知）。
+        /// 根据错误状态字典更新 HasErrors（仅在变化时触发属性变更通知）。
         /// </summary>
         private void UpdateHasErrorsCore()
         {
-            bool hasErrors = false;
-            foreach (var count in this.propertyErrorCounts.Values)
-            {
-                if (count > 0)
-                {
-                    hasErrors = true;
-                    break;
-                }
-            }
+            bool hasErrors = this.propertyErrorCounts.Count > 0;
 
             if (hasErrors != this.hasErrors)
             {

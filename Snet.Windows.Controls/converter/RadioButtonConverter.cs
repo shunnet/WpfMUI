@@ -19,8 +19,12 @@ namespace Snet.Windows.Controls.converter
         /// <returns>如果绑定值与参数相等，则返回 true，否则返回 false</returns>
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            // null 安全比较：直接 Equals 比较，避免 ToString 分配
-            return value != null && parameter != null && value.Equals(parameter);
+            // 注意：XAML 中 ConverterParameter=0 传入的是字符串 "0"（ConverterParameter 是 object 类型，不会被类型转换），
+            // 而绑定源（如 DataFormat/DataType）是 int。int.Equals(string) 恒为 false，
+            // 直接 Equals 比较会导致 RadioButton 永远无法勾选/勾选后被立即打回（选中后无反应），
+            // 因此必须统一转字符串再比较。
+            return value != null && parameter != null
+                && value.ToString().Equals(parameter.ToString(), StringComparison.Ordinal);
         }
 
         /// <summary>

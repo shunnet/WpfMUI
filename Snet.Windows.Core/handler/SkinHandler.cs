@@ -1,4 +1,4 @@
-﻿using MaterialDesignThemes.Wpf;
+using MaterialDesignThemes.Wpf;
 using Snet.Log;
 using Snet.Model.@event;
 using Snet.Utility;
@@ -180,9 +180,6 @@ namespace Snet.Windows.Core.handler
             // 修改 Wpf.Ui 主题
             UpdateWpfUI(skinType);
 
-            // Persist before announcing success so subscribers observe the new durable state.
-            Save(skinType);
-
             //是否通知
             if (notice)
             {
@@ -191,6 +188,17 @@ namespace Snet.Windows.Core.handler
                     Snet.Core.handler.LanguageHandler.GetLanguageValue("皮肤设置成功", _skinLanguageModel) ?? string.Empty,
                     skinType);
                 ObserveSkinEvent(OnSkinEventHandlerAsync(skinType == SkinType.Dark ? "#505050" : "#F5F5F5", eventArgs));
+            }
+
+            // 持久化放在通知之后（与旧行为一致）：Save 失败不应阻断订阅者收到主题切换通知，
+            // 否则界面已切换但订阅者未更新，产生界面与持久化状态不一致。
+            try
+            {
+                Save(skinType);
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Error($"Skin save failed: {ex}", "Snet.Windows.Core", ex);
             }
         }
 
