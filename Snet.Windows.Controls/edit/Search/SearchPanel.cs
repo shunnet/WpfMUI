@@ -19,6 +19,7 @@
 using Snet.Windows.Controls.edit.Document;
 using Snet.Windows.Controls.edit.Editing;
 using Snet.Windows.Controls.edit.Rendering;
+using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -436,14 +437,25 @@ namespace Snet.Windows.Controls.edit.Search
                     textArea.ClearSelection();
                 }
                 // We cast from ISearchResult to SearchResult; this is safe because we always use the built-in strategy
-                foreach (SearchResult result in strategy.FindAll(textArea.Document, 0, textArea.Document.TextLength))
+                try
                 {
-                    if (changeSelection && result.StartOffset >= offset)
+                    foreach (SearchResult result in strategy.FindAll(textArea.Document, 0, textArea.Document.TextLength))
                     {
-                        SelectResult(result);
-                        changeSelection = false;
+                        if (changeSelection && result.StartOffset >= offset)
+                        {
+                            SelectResult(result);
+                            changeSelection = false;
+                        }
+                        renderer.CurrentResults.Add(result);
                     }
-                    renderer.CurrentResults.Add(result);
+                }
+                catch (RegexMatchTimeoutException ex)
+                {
+                    renderer.CurrentResults.Clear();
+                    messageView.Content = Localization.ErrorText + " " + ex.Message;
+                    messageView.PlacementTarget = searchTextBox;
+                    messageView.IsOpen = true;
+                    return;
                 }
                 if (!renderer.CurrentResults.Any())
                 {

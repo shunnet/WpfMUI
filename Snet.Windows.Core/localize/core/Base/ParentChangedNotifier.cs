@@ -1,4 +1,4 @@
-#region Copyright information
+﻿#region Copyright information
 // <copyright file="ParentChangedNotifier.cs">
 //     Licensed under Microsoft Public License (Ms-PL)
 //     https://github.com/Snet.Windows.Core.localize.core/Snet.Windows.Core.localize.core/blob/master/LICENSE
@@ -11,7 +11,7 @@ namespace Snet.Windows.Core.localize.core.Base
     #region Usings
     using System;
     using System.Collections.Generic;
-    using System.Linq;
+    using System.Runtime.CompilerServices;
     using System.Windows;
     using System.Windows.Data;
     #endregion
@@ -61,10 +61,13 @@ namespace Snet.Windows.Core.localize.core.Base
                 // Direct dictionary lookup (O(1)) instead of a linear Keys.SingleOrDefault scan.
                 if (OnParentChangedList.TryGetValue(notifier, out var actions))
                 {
-                    var list = new List<Action>(actions);
+                    List<Action> list;
+                    lock (actions)
+                    {
+                        list = new List<Action>(actions);
+                    }
                     foreach (var OnParentChanged in list)
                         OnParentChanged();
-                    list.Clear();
                 }
             }
         }
@@ -75,8 +78,7 @@ namespace Snet.Windows.Core.localize.core.Base
         /// <para>- Entries are added by each call of the constructor.</para>
         /// <para>- All elements are called by the parent changed callback with the particular sender as the key.</para>
         /// </summary>
-        private static readonly Dictionary<DependencyObject, List<Action>> OnParentChangedList =
-            new Dictionary<DependencyObject, List<Action>>();
+        private static readonly ConditionalWeakTable<DependencyObject, List<Action>> OnParentChangedList = new();
 
         /// <summary>
         /// The element this notifier is bound to. Needed to release the binding and Action entry.
@@ -95,13 +97,11 @@ namespace Snet.Windows.Core.localize.core.Base
             if (onParentChanged != null)
             {
                 // Key the list directly by the element object - O(1) add/lookup.
-                if (!OnParentChangedList.TryGetValue(element, out var actions))
+                var actions = OnParentChangedList.GetValue(element, static _ => new List<Action>());
+                lock (actions)
                 {
-                    actions = new List<Action>();
-                    OnParentChangedList.Add(element, actions);
+                    actions.Add(onParentChanged);
                 }
-
-                actions.Add(onParentChanged);
             }
 
             // 元素尚未挂载（ContextMenu、未初始化的 DataGrid 列头等）时直接注册
@@ -167,14 +167,20 @@ namespace Snet.Windows.Core.localize.core.Base
 
             if (weakElementReference is DependencyObject key && OnParentChangedList.TryGetValue(key, out var list))
             {
-                list.Clear();
+                lock (list)
+                {
+                    list.Clear();
+                }
                 OnParentChangedList.Remove(key);
             }
 
             if (isDisposing)
             {
                 if (weakElementReference == null || !weakElement.IsAlive)
+                {
+                    element = null;
                     return;
+                }
 
                 try
                 {
@@ -189,6 +195,11 @@ namespace Snet.Windows.Core.localize.core.Base
 
         private void SetBinding()
         {
+            if (element?.Target is not FrameworkElement frameworkElement)
+            {
+                return;
+            }
+
             var binding = new Binding("Parent")
             {
                 RelativeSource = new RelativeSource()
@@ -202,7 +213,7 @@ namespace Snet.Windows.Core.localize.core.Base
                 // 元素挂载后绑定会自动重新解析，ParentChanged 通知仍能正常触发。
                 FallbackValue = null
             };
-            BindingOperations.SetBinding((FrameworkElement)element.Target, ParentProperty, binding);
+            BindingOperations.SetBinding(frameworkElement, ParentProperty, binding);
         }
     }
 }

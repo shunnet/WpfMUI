@@ -1,4 +1,4 @@
-// --------------------------------------------------------------------------------------------------------------------
+﻿// --------------------------------------------------------------------------------------------------------------------
 // <copyright file="NaturalStringComparer.cs" company="Snet.Windows.Controls.property.core">
 //   Copyright (c) 2014 Snet.Windows.Controls.property.core contributors
 // </copyright>
@@ -9,20 +9,14 @@
 
 namespace Snet.Windows.Controls.property.wpf
 {
-    using System;
     using System.Collections.Generic;
     using System.Text.RegularExpressions;
 
     /// <summary>
     /// Implements a natural comparer for strings.
     /// </summary>
-    public class NaturalStringComparer : IComparer<string>
+    public class NaturalStringComparer : IComparer<string?>
     {
-        /// <summary>
-        /// The comparer for sequences of objects.
-        /// </summary>
-        private static readonly EnumerableComparer<object> EnumerableOfObjectComparer = new EnumerableComparer<object>();
-
         /// <summary>
         /// The regular expression used to split numbers and text.
         /// </summary>
@@ -36,7 +30,7 @@ namespace Snet.Windows.Controls.property.wpf
         /// <returns>
         /// A signed integer that indicates the relative values of <paramref name="x" /> and <paramref name="y" />, as shown in the following table.Value Meaning Less than zero<paramref name="x" /> is less than <paramref name="y" />.Zero<paramref name="x" /> equals <paramref name="y" />.Greater than zero<paramref name="x" /> is greater than <paramref name="y" />.
         /// </returns>
-        public int Compare(string x, string y)
+        public int Compare(string? x, string? y)
         {
             if (x == null)
             {
@@ -48,12 +42,22 @@ namespace Snet.Windows.Controls.property.wpf
                 return 1;
             }
 
-            // convert to sequences of int/string（循环转换，避免每次比较都产生 LINQ 迭代器与闭包开销）
+            // Convert to homogeneous string tokens. Keeping numeric tokens as strings avoids
+            // mixing Int32 and String when a numeric run exceeds Int32.MaxValue.
             var xitems = SplitToTokens(x.Replace(" ", string.Empty));
             var yitems = SplitToTokens(y.Replace(" ", string.Empty));
 
-            // compare the sequences
-            return EnumerableOfObjectComparer.Compare(xitems, yitems);
+            int commonLength = Math.Min(xitems.Length, yitems.Length);
+            for (int i = 0; i < commonLength; i++)
+            {
+                int result = CompareToken(xitems[i], yitems[i]);
+                if (result != 0)
+                {
+                    return result;
+                }
+            }
+
+            return xitems.Length.CompareTo(yitems.Length);
         }
 
         /// <summary>
@@ -61,24 +65,71 @@ namespace Snet.Windows.Controls.property.wpf
         /// </summary>
         /// <param name="str">去除空格后的字符串。</param>
         /// <returns>token 数组。</returns>
-        private static object[] SplitToTokens(string str)
+        private static string[] SplitToTokens(string str)
         {
-            var parts = Digits.Split(str);
-            var tokens = new object[parts.Length];
-            for (int i = 0; i < parts.Length; i++)
+            return Digits.Split(str);
+        }
+
+        /// <summary>
+        /// Compares two text or numeric tokens without converting numeric values to a bounded integer type.
+        /// </summary>
+        private static int CompareToken(string left, string right)
+        {
+            bool leftIsNumber = IsDigits(left);
+            bool rightIsNumber = IsDigits(right);
+            if (leftIsNumber && rightIsNumber)
             {
-                int result;
-                if (int.TryParse(parts[i], out result))
+                string normalizedLeft = left.TrimStart('0');
+                string normalizedRight = right.TrimStart('0');
+                if (normalizedLeft.Length == 0)
                 {
-                    tokens[i] = result;
+                    normalizedLeft = "0";
                 }
-                else
+                if (normalizedRight.Length == 0)
                 {
-                    tokens[i] = parts[i];
+                    normalizedRight = "0";
+                }
+
+                int lengthResult = normalizedLeft.Length.CompareTo(normalizedRight.Length);
+                if (lengthResult != 0)
+                {
+                    return lengthResult;
+                }
+
+                int numericResult = string.CompareOrdinal(normalizedLeft, normalizedRight);
+                if (numericResult != 0)
+                {
+                    return numericResult;
+                }
+
+                // Preserve a total order for values such as "1" and "01".
+                return left.Length.CompareTo(right.Length);
+            }
+
+            if (leftIsNumber != rightIsNumber)
+            {
+                return leftIsNumber ? -1 : 1;
+            }
+
+            return StringComparer.CurrentCulture.Compare(left, right);
+        }
+
+        private static bool IsDigits(string value)
+        {
+            if (value.Length == 0)
+            {
+                return false;
+            }
+
+            foreach (char character in value)
+            {
+                if (character is < '0' or > '9')
+                {
+                    return false;
                 }
             }
 
-            return tokens;
+            return true;
         }
     }
 }

@@ -93,6 +93,7 @@ namespace Snet.Windows.Core.handler
                     if (!File.Exists(path_language))
                     {
                         // 默认保存当前语言（文件不存在的情况同样写入缓存，避免反复读取）
+                        Directory.CreateDirectory(WindowHandler.BasePath);
                         var currentLang = Snet.Core.handler.LanguageHandler.GetLanguage();
                         File.WriteAllText(path_language, new UseLanguageModel(currentLang).ToJson());
                         result = currentLang;
@@ -101,7 +102,7 @@ namespace Snet.Windows.Core.handler
                     {
                         // 读取并反序列化
                         string str = File.ReadAllText(path_language);
-                        result = str.ToJsonEntity<UseLanguageModel>().LanguageType;
+                        result = str.ToJsonEntity<UseLanguageModel>()?.LanguageType ?? LanguageType.zh;
                     }
 
                     StoreLanguageCacheUnsafe(result);
@@ -122,6 +123,7 @@ namespace Snet.Windows.Core.handler
         /// <returns>返回语言类型</returns>
         public static async Task<LanguageType> GetLanguageAsync(CancellationToken token = default)
         {
+            token.ThrowIfCancellationRequested();
             // 快速路径：缓存命中且文件未被外部修改时直接返回
             lock (_languageCacheLock)
             {
@@ -137,6 +139,7 @@ namespace Snet.Windows.Core.handler
                 if (!File.Exists(path_language))
                 {
                     // 默认保存当前语言
+                    Directory.CreateDirectory(WindowHandler.BasePath);
                     var currentLang = await Snet.Core.handler.LanguageHandler.GetLanguageAsync(token);
                     await File.WriteAllTextAsync(path_language, new UseLanguageModel(currentLang).ToJson(), token);
                     result = currentLang;
@@ -145,13 +148,25 @@ namespace Snet.Windows.Core.handler
                 {
                     // 读取并反序列化
                     string str = await File.ReadAllTextAsync(path_language, token);
-                    result = str.ToJsonEntity<UseLanguageModel>().LanguageType;
+                    result = str.ToJsonEntity<UseLanguageModel>()?.LanguageType ?? LanguageType.zh;
                 }
 
                 UpdateLanguageCache(result);
                 return result;
             }
-            catch
+            catch (OperationCanceledException) when (token.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (IOException)
+            {
+                return LanguageType.zh;
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return LanguageType.zh;
+            }
+            catch (System.Text.Json.JsonException)
             {
                 // 出现异常时返回默认语言
                 return LanguageType.zh;

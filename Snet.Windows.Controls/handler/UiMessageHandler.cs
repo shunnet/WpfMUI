@@ -26,8 +26,9 @@ namespace Snet.Windows.Controls.handler
         // 后台任务的引用，用于监控任务状态和等待任务完成
         private Task? _logTask;
 
-        // 标记对象是否已被释放，防止重复释放资源
-        private bool _disposed;
+        // 保护启动/停止状态转换；0=活动，1=正在释放或已释放。
+        private readonly SemaphoreSlim _lifecycleGate = new(1, 1);
+        private int _disposeState;
 
         // 字符串构建器缓存，预分配4KB容量以减少内存分配次数
         // 复用这个实例可以显著降低垃圾回收的压力
@@ -64,6 +65,8 @@ namespace Snet.Windows.Controls.handler
                                  !_logTask.IsFaulted &&
                                  !_logTask.IsCanceled;
 
+        private bool IsDisposed => Volatile.Read(ref _disposeState) != 0;
+
         /// <summary>
         /// 获取当前队列中等待处理的日志数量
         /// 这个值反映了尚未显示到界面的日志条目数
@@ -77,49 +80,50 @@ namespace Snet.Windows.Controls.handler
         /// <param name="intervalMs">刷新间隔时间，单位毫秒。较小的值会使界面更新更及时，但会增加系统负载</param>
         /// <param name="maxLength">日志内容的最大长度。超过此长度时会自动清空旧内容，防止内存无限增长</param>
         /// <param name="maxBatchCount">每次最大出队日志条数，防止极端情况下 UI 卡顿</param>
+        /// <param name="cancellationToken">用于取消等待启动锁的令牌</param>
         /// <exception cref="ObjectDisposedException">如果对象已被释放，调用此方法会抛出异常</exception>
-        public async Task StartAsync(int intervalMs = 200, int maxLength = 10000, int maxBatchCount = 1000)
+        public async Task StartAsync(int intervalMs = 200, int maxLength = 10000, int maxBatchCount = 1000, CancellationToken cancellationToken = default)
         {
-            // 安全检查：确保对象未被释放
-            if (_disposed)
-                throw new ObjectDisposedException(nameof(UiMessageHandler));
+            ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(intervalMs, 0);
+            ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(maxLength, 0);
+            ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(maxBatchCount, 0);
 
-            // 如果服务已经在运行，则不再重复启动
-            if (IsRunning)
-                return;
-
-            // 创建取消令牌，用于后续优雅停止服务
-            _logCts = new CancellationTokenSource();
-            var token = _logCts.Token;
-
-            // 启动后台任务，使用LongRunning选项提示线程池这是长时间运行的任务
-            _logTask = Task.Run(async () =>
+            await _lifecycleGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+            try
             {
-                try
+                ObjectDisposedException.ThrowIf(IsDisposed, this);
+                if (IsRunning)
                 {
-                    // 使用.NET 6新增的PeriodicTimer，比传统的Timer更高效
-                    using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(intervalMs));
+                    return;
+                }
 
-                    // 主循环：等待定时器信号，然后处理日志
-                    while (await timer.WaitForNextTickAsync(token).ConfigureAwait(false))
-                    {
-                        // 将队列中的日志批量刷新到界面
-                        FlushToUI(maxLength, maxBatchCount);
-                    }
-                }
-                catch (OperationCanceledException)
-                {
-                    // 这是正常情况：当取消令牌被触发时，任务会优雅退出
-                }
-                catch (Exception ex)
-                {
-                    // 记录未预期的异常，但不会让任务崩溃
-                    LogHelper.Error($"[UiMessageHandler] 后台循环发生异常：{ex}", foldername: "UiMessageHandler");
-                }
-            }, token);
+                _logCts?.Dispose();
+                _logCts = new CancellationTokenSource();
+                _logTask = RunLoopAsync(intervalMs, maxLength, maxBatchCount, _logCts.Token);
+            }
+            finally
+            {
+                _lifecycleGate.Release();
+            }
+        }
 
-            // 立即返回控制权，让调用方不必等待后台任务启动完成
-            await Task.Yield();
+        private async Task RunLoopAsync(int intervalMs, int maxLength, int maxBatchCount, CancellationToken token)
+        {
+            try
+            {
+                using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(intervalMs));
+                while (await timer.WaitForNextTickAsync(token).ConfigureAwait(false))
+                {
+                    FlushToUI(maxLength, maxBatchCount);
+                }
+            }
+            catch (OperationCanceledException) when (token.IsCancellationRequested)
+            {
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Error($"[UiMessageHandler] 后台循环发生异常：{ex}", foldername: "UiMessageHandler");
+            }
         }
 
         /// <summary>
@@ -128,32 +132,47 @@ namespace Snet.Windows.Controls.handler
         /// </summary>
         public async Task StopAsync()
         {
-            // 如果对象已释放或服务未启动，直接返回
-            if (_disposed || _logCts == null)
-                return;
+            await StopCoreAsync().ConfigureAwait(false);
+        }
 
+        private async Task StopCoreAsync()
+        {
+            CancellationTokenSource? cancellationSource;
+            Task? logTask;
+
+            await _lifecycleGate.WaitAsync().ConfigureAwait(false);
             try
             {
-                // 发送取消信号，通知后台任务停止
-                await _logCts.CancelAsync();
-
-                // 等待后台任务完成当前工作并退出
-                if (_logTask != null)
-                    await _logTask.ConfigureAwait(false);
-            }
-            catch (OperationCanceledException)
-            {
-                // 预期中的异常，表示任务已响应取消请求
-            }
-            catch (Exception ex)
-            {
-                // 记录停止过程中发生的意外异常
-                LogHelper.Error($"[UiMessageHandler.StopAsync] 停止服务时发生异常：{ex}", foldername: "UiMessageHandler");
+                cancellationSource = _logCts;
+                logTask = _logTask;
+                _logCts = null;
+                _logTask = null;
             }
             finally
             {
-                // 无论是否发生异常，都要执行资源清理
-                Cleanup();
+                _lifecycleGate.Release();
+            }
+
+            if (cancellationSource is null)
+            {
+                return;
+            }
+
+            try
+            {
+                await cancellationSource.CancelAsync().ConfigureAwait(false);
+                if (logTask is not null)
+                {
+                    await logTask.ConfigureAwait(false);
+                }
+                if (!_logQueue.IsEmpty && !IsDisposed)
+                {
+                    FlushToUI();
+                }
+            }
+            finally
+            {
+                cancellationSource.Dispose();
             }
         }
 
@@ -168,7 +187,8 @@ namespace Snet.Windows.Controls.handler
         public Task ShowAsync(string msg, DateTime? dateTime = null, bool withTime = true)
         {
             // 安全检查：如果服务已停止或正在停止，不再接受新日志
-            if (_disposed || _logCts == null || _logCts.IsCancellationRequested)
+            var cancellationSource = _logCts;
+            if (IsDisposed || cancellationSource == null || cancellationSource.IsCancellationRequested)
                 return Task.CompletedTask;
 
             // 忽略空消息
@@ -227,7 +247,7 @@ namespace Snet.Windows.Controls.handler
                 dispatcher.BeginInvoke(() =>
                 {
                     // 再次检查对象是否已被释放
-                    if (_disposed) return;
+                    if (IsDisposed) return;
                     // 实际更新界面内容
                     AppendInfo(merged, maxLength);
                 }, DispatcherPriority.Render);
@@ -248,7 +268,7 @@ namespace Snet.Windows.Controls.handler
         private void AppendInfo(string text, int maxLength)
         {
             // 安全检查
-            if (_disposed) return;
+            if (IsDisposed) return;
 
             // 内存管理：如果内容超过最大长度，清空旧内容
             if (_infoBuilder.Length + text.Length > maxLength)
@@ -268,25 +288,16 @@ namespace Snet.Windows.Controls.handler
         }
 
         /// <summary>
-        /// 清理后台任务和相关资源
-        /// </summary>
-        private void Cleanup()
-        {
-            // 在停止前处理队列中剩余的日志，避免数据丢失
-            if (!_logQueue.IsEmpty)
-                FlushToUI();
-
-            // 释放取消令牌源
-            _logCts?.Dispose();
-            _logCts = null;
-            _logTask = null;
-        }
-
-        /// <summary>
         /// 清空所有日志内容
         /// 包括队列中的待处理日志和当前显示的内容
         /// </summary>
         public async Task ClearAsync()
+        {
+            ObjectDisposedException.ThrowIf(IsDisposed, this);
+            await ClearCoreAsync().ConfigureAwait(false);
+        }
+
+        private async Task ClearCoreAsync()
         {
             // 清空队列
             while (_logQueue.TryDequeue(out _)) { }
@@ -323,21 +334,31 @@ namespace Snet.Windows.Controls.handler
             }
         }
 
+        private void ClearSynchronously()
+        {
+            while (_logQueue.TryDequeue(out _)) { }
+            _sbCache.Clear();
+            _infoBuilder.Clear();
+            if (!string.IsNullOrEmpty(Info))
+            {
+                Info = string.Empty;
+                OnInfoEventHandler(this, EventInfoResult.CreateSuccessResult(string.Empty));
+            }
+        }
+
         /// <summary>
         /// 异步释放对象占用的所有资源
         /// 这是推荐的释放方式，特别是当对象正在运行后台任务时
         /// </summary>
         public override async ValueTask DisposeAsync()
         {
-            if (_disposed) return;
-            _disposed = true;
+            if (Interlocked.CompareExchange(ref _disposeState, 1, 0) != 0) return;
 
             try
             {
-                // 先停止后台服务
-                await StopAsync().ConfigureAwait(false);
-                // 清空所有内容
-                await ClearAsync().ConfigureAwait(false);
+                await StopCoreAsync().ConfigureAwait(false);
+                await ClearCoreAsync().ConfigureAwait(false);
+                await base.DisposeAsync().ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -345,8 +366,10 @@ namespace Snet.Windows.Controls.handler
                 LogHelper.Error($"[UiMessageHandler.DisposeAsync] 释放资源时发生异常：{ex}", foldername: "UiMessageHandler");
             }
 
-            // 调用基类的释放逻辑
-            await base.DisposeAsync();
+            finally
+            {
+                _lifecycleGate.Dispose();
+            }
         }
 
         /// <summary>
@@ -355,15 +378,23 @@ namespace Snet.Windows.Controls.handler
         /// </summary>
         public override void Dispose()
         {
-            if (_disposed) return;
-            _disposed = true;
+            if (Interlocked.CompareExchange(ref _disposeState, 1, 0) != 0) return;
 
             try
             {
-                // 异步停止服务，但不等待完成（避免死锁风险）
-                _ = StopAsync().ConfigureAwait(false);
-                // 清空所有内容
-                _ = ClearAsync().ConfigureAwait(false);
+                StopCoreAsync().GetAwaiter().GetResult();
+
+                var dispatcher = Application.Current?.Dispatcher;
+                if (dispatcher is not null && !dispatcher.CheckAccess())
+                {
+                    dispatcher.Invoke(ClearSynchronously);
+                }
+                else
+                {
+                    ClearSynchronously();
+                }
+
+                base.Dispose();
             }
             catch (Exception ex)
             {
@@ -371,8 +402,10 @@ namespace Snet.Windows.Controls.handler
                 LogHelper.Error($"[UiMessageHandler.Dispose] 释放资源时发生异常：{ex}", foldername: "UiMessageHandler");
             }
 
-            // 调用基类的释放逻辑
-            base.Dispose();
+            finally
+            {
+                _lifecycleGate.Dispose();
+            }
         }
     }
 }

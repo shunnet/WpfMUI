@@ -72,7 +72,17 @@ namespace Snet.Windows.Controls.edit.Rendering
         /// <see cref="RequireControlModifierForClick"/> is disabled.</remarks>
         protected virtual bool LinkIsClickable()
         {
-            if (NavigateUri == null)
+            if (NavigateUri == null || !NavigateUri.IsAbsoluteUri)
+                return false;
+
+            // Only launch protocols that are intended for external navigation.  The
+            // URI is populated from document content, so allowing arbitrary schemes
+            // would let a document invoke local handlers (for example file:// or
+            // custom shell protocols) through Process.Start.
+            if (!NavigateUri.Scheme.Equals(Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase)
+                && !NavigateUri.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)
+                && !NavigateUri.Scheme.Equals(Uri.UriSchemeMailto, StringComparison.OrdinalIgnoreCase)
+                && !NavigateUri.Scheme.Equals(Uri.UriSchemeFtp, StringComparison.OrdinalIgnoreCase))
                 return false;
             if (RequireControlModifierForClick)
                 return (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control;

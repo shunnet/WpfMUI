@@ -24,7 +24,7 @@ namespace Snet.Windows.Core.handler
         /// <summary>
         /// 同步皮肤切换事件
         /// </summary>
-        public static event EventHandler<EventSkinResult> OnSkinEvent;
+        public static event EventHandler<EventSkinResult>? OnSkinEvent;
 
         /// <summary>
         /// 异步皮肤切换事件（通过包装器调用）
@@ -43,10 +43,25 @@ namespace Snet.Windows.Core.handler
         /// <summary>
         /// 内部方法：统一触发同步与异步事件
         /// </summary>
-        private static async void OnSkinEventHandlerAsync(object? sender, EventSkinResult e)
+        private static Task OnSkinEventHandlerAsync(object? sender, EventSkinResult e)
         {
             OnSkinEvent?.Invoke(sender, e);
-            await OnSkinEventWrapperAsync.InvokeAsync(sender, e);
+            return OnSkinEventWrapperAsync.InvokeAsync(sender, e);
+        }
+
+        private static void ObserveSkinEvent(Task notificationTask)
+        {
+            notificationTask.GetAwaiter().OnCompleted(() =>
+            {
+                try
+                {
+                    notificationTask.GetAwaiter().GetResult();
+                }
+                catch (Exception ex)
+                {
+                    LogHelper.Error($"Skin change event handler failed: {ex}", "Snet.Windows.Core", ex);
+                }
+            });
         }
 
         #endregion
@@ -165,14 +180,18 @@ namespace Snet.Windows.Core.handler
             // 修改 Wpf.Ui 主题
             UpdateWpfUI(skinType);
 
+            // Persist before announcing success so subscribers observe the new durable state.
+            Save(skinType);
+
             //是否通知
             if (notice)
             {
-                OnSkinEventHandlerAsync(skinType == SkinType.Dark ? "#505050" : "#F5F5F5", new EventSkinResult(true, Snet.Core.handler.LanguageHandler.GetLanguageValue("皮肤设置成功", _skinLanguageModel), skinType));
+                var eventArgs = new EventSkinResult(
+                    true,
+                    Snet.Core.handler.LanguageHandler.GetLanguageValue("皮肤设置成功", _skinLanguageModel) ?? string.Empty,
+                    skinType);
+                ObserveSkinEvent(OnSkinEventHandlerAsync(skinType == SkinType.Dark ? "#505050" : "#F5F5F5", eventArgs));
             }
-
-            // 持久化保存皮肤设置
-            Save(skinType);
         }
 
         /// <summary>

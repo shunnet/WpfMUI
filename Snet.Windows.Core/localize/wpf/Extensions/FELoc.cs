@@ -51,7 +51,7 @@ namespace Snet.Windows.Core.localize.wpf.Extensions
 
         private static Dictionary<string, object> _resourceBuffer = new Dictionary<string, object>();
 
-        private ParentChangedNotifier _parentChangedNotifier;
+        private ParentChangedNotifier? _parentChangedNotifier;
         private TargetInfo _targetInfo;
         #endregion
 
@@ -256,7 +256,7 @@ namespace Snet.Windows.Core.localize.wpf.Extensions
         {
             _parentChangedNotifier = new ParentChangedNotifier(this, () =>
             {
-                _parentChangedNotifier.Dispose();
+                _parentChangedNotifier?.Dispose();
                 _parentChangedNotifier = null;
                 var targetObject = Parent;
                 if (targetObject != null)
@@ -310,16 +310,12 @@ namespace Snet.Windows.Core.localize.wpf.Extensions
         /// </summary>
         public void Dispose()
         {
+            _parentChangedNotifier?.Dispose();
+            _parentChangedNotifier = null;
             LocalizeDictionary.DictionaryEvent.RemoveListener(this);
+            GC.SuppressFinalize(this);
         }
 
-        /// <summary>
-        /// The finalizer.
-        /// </summary>
-        ~FELoc()
-        {
-            Dispose();
-        }
         #endregion
 
         #region Forced culture handling

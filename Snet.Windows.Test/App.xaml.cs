@@ -1,8 +1,7 @@
-using Snet.Core.handler;
+﻿using Snet.Core.handler;
 using Snet.Log;
 using Snet.Model.data;
 using Snet.Windows.Controls.data;
-using Snet.Windows.Controls.handler;
 using Snet.Windows.Core.handler;
 using System.Windows;
 
@@ -98,65 +97,50 @@ namespace Snet.Windows.Test
         }
 
         //Task线程报错
-        private void TaskScheduler_UnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
+        private async void TaskScheduler_UnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
         {
+            e.SetObserved();
             try
             {
-                var exception = e.Exception as Exception;
+                var exception = e.Exception;
                 if (exception.HResult == -2146233088)
                     return;
 
-                if (exception != null)
-                {
-                    HandleException(exception);
-                }
+                await HandleException(exception);
             }
             catch (Exception ex)
             {
-                HandleException(ex);
-            }
-            finally
-            {
-                e.SetObserved();
+                LogHelper.Error(ex.Message, "Snet.Windows.Test.ExceptionHandler", ex);
             }
         }
 
         //非UI线程未捕获异常处理事件(例如自己创建的一个子线程)
-        private void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
+        private async void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
         {
             try
             {
-                var exception = e.ExceptionObject as Exception;
-                if (exception != null)
+                if (e.ExceptionObject is Exception exception)
                 {
-                    HandleException(exception);
+                    await HandleException(exception);
                 }
             }
             catch (Exception ex)
             {
-                HandleException(ex);
-            }
-            finally
-            {
-                //ignore
+                LogHelper.Error(ex.Message, "Snet.Windows.Test.ExceptionHandler", ex);
             }
         }
 
         //UI线程未捕获异常处理事件（UI主线程）
-        private void App_DispatcherUnhandledException(object sender, System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e)
+        private async void App_DispatcherUnhandledException(object sender, System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e)
         {
+            e.Handled = true;
             try
             {
-                HandleException(e.Exception);
+                await HandleException(e.Exception);
             }
             catch (Exception ex)
             {
-                HandleException(ex);
-            }
-            finally
-            {
-                //处理完后，我们需要将Handler=true表示已此异常已处理过
-                e.Handled = true;
+                LogHelper.Error(ex.Message, "Snet.Windows.Test.ExceptionHandler", ex);
             }
         }
 
@@ -189,15 +173,26 @@ namespace Snet.Windows.Test
                 msg = stackTrace;
             else
                 msg = "未知异常";
-            if (Application.Current == null)
-                return;
-            await Application.Current.Dispatcher.InvokeAsync(async () =>
-            {
-                await Snet.Windows.Controls.message.MessageBox.Show(msg, LanguageOperate.GetLanguageValue("全局异常捕获"), Snet.Windows.Controls.@enum.MessageBoxButton.OK, Snet.Windows.Controls.@enum.MessageBoxImage.Exclamation);
-            }
-            , System.Windows.Threading.DispatcherPriority.Loaded);
 
             LogHelper.Error(msg, "Snet.Windows.Test", e);
+            if (Application.Current == null)
+                return;
+
+            var dispatcher = Application.Current.Dispatcher;
+            string title = LanguageOperate.GetLanguageValue("全局异常捕获") ?? string.Empty;
+            if (dispatcher.CheckAccess())
+            {
+                await Snet.Windows.Controls.message.MessageBox.Show(msg, title, Snet.Windows.Controls.@enum.MessageBoxButton.OK, Snet.Windows.Controls.@enum.MessageBoxImage.Exclamation);
+            }
+            else
+            {
+                Func<Task<bool>> showDialog = () => Snet.Windows.Controls.message.MessageBox.Show(
+                    msg,
+                    title,
+                    Snet.Windows.Controls.@enum.MessageBoxButton.OK,
+                    Snet.Windows.Controls.@enum.MessageBoxImage.Exclamation);
+                await await dispatcher.InvokeAsync(showDialog, System.Windows.Threading.DispatcherPriority.Loaded);
+            }
         }
 
         #endregion

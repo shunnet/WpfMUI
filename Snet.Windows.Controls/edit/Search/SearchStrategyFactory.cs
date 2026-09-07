@@ -16,7 +16,6 @@
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System.Collections.Generic;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -34,6 +33,7 @@ namespace Snet.Windows.Controls.edit.Search
         static readonly Dictionary<CacheKey, Regex> regexCache = new Dictionary<CacheKey, Regex>();
         static readonly List<CacheKey> regexCacheOrder = new List<CacheKey>();
         const int MaxRegexCacheSize = 20;
+        static readonly TimeSpan RegexMatchTimeout = TimeSpan.FromSeconds(2);
 
         struct CacheKey : IEquatable<CacheKey>
         {
@@ -89,7 +89,7 @@ namespace Snet.Windows.Controls.edit.Search
                 RegexOptions options = RegexOptions.Compiled | RegexOptions.Multiline;
                 if (ignoreCase)
                     options |= RegexOptions.IgnoreCase;
-                regex = new Regex(regexPattern, options);
+                regex = new Regex(regexPattern, options, RegexMatchTimeout);
                 regexCache.Add(key, regex);
                 regexCacheOrder.Insert(0, key);
                 if (regexCacheOrder.Count > MaxRegexCacheSize)

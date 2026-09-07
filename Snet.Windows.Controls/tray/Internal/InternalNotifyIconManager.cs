@@ -262,7 +262,16 @@ internal class InternalNotifyIconManager : IDisposable, INotifyIcon
             "Wpf.Ui.NotifyIcon"
         );
 
+        ApplicationThemeManager.Changed -= OnThemeChanged;
         _ = Unregister();
+        ContextMenu = null;
+        HookWindow = null!;
+        LeftClick = null;
+        LeftDoubleClick = null;
+        RightClick = null;
+        RightDoubleClick = null;
+        MiddleClick = null;
+        MiddleDoubleClick = null;
     }
 
     /// <inheritdoc />

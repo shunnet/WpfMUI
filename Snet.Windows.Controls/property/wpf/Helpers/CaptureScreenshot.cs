@@ -115,27 +115,81 @@ namespace Snet.Windows.Controls.property.wpf
         /// </returns>
         public static BitmapSource Capture(Rect area)
         {
-            var screenDeviceContext = GetDC(IntPtr.Zero);
-            var memoryDeviceContext = CreateCompatibleDC(screenDeviceContext);
-            var bitmapHandle = CreateCompatibleBitmap(screenDeviceContext, (int)area.Width, (int)area.Height);
-            SelectObject(memoryDeviceContext, bitmapHandle); // Select bitmap from compatible bitmap to memDC
+            int width = checked((int)area.Width);
+            int height = checked((int)area.Height);
+            if (width <= 0 || height <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(area), "The capture area must have a positive width and height.");
+            }
 
-            BitBlt(
-                memoryDeviceContext,
-                0,
-                0,
-                (int)area.Width,
-                (int)area.Height,
-                screenDeviceContext,
-                (int)area.X,
-                (int)area.Y,
-                TernaryRasterOperations.SRCCOPY);
-            var bitmapSource = Imaging.CreateBitmapSourceFromHBitmap(bitmapHandle, IntPtr.Zero, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
+            IntPtr screenDeviceContext = IntPtr.Zero;
+            IntPtr memoryDeviceContext = IntPtr.Zero;
+            IntPtr bitmapHandle = IntPtr.Zero;
+            IntPtr previousObject = IntPtr.Zero;
 
-            DeleteObject(bitmapHandle);
-            ReleaseDC(IntPtr.Zero, screenDeviceContext);
-            ReleaseDC(IntPtr.Zero, memoryDeviceContext);
-            return bitmapSource;
+            try
+            {
+                screenDeviceContext = GetDC(IntPtr.Zero);
+                if (screenDeviceContext == IntPtr.Zero)
+                {
+                    throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
+                }
+
+                memoryDeviceContext = CreateCompatibleDC(screenDeviceContext);
+                if (memoryDeviceContext == IntPtr.Zero)
+                {
+                    throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
+                }
+
+                bitmapHandle = CreateCompatibleBitmap(screenDeviceContext, width, height);
+                if (bitmapHandle == IntPtr.Zero)
+                {
+                    throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
+                }
+
+                previousObject = SelectObject(memoryDeviceContext, bitmapHandle);
+                if (previousObject == IntPtr.Zero || previousObject == new IntPtr(-1))
+                {
+                    throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
+                }
+
+                if (!BitBlt(
+                    memoryDeviceContext,
+                    0,
+                    0,
+                    width,
+                    height,
+                    screenDeviceContext,
+                    checked((int)area.X),
+                    checked((int)area.Y),
+                    TernaryRasterOperations.SRCCOPY))
+                {
+                    throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
+                }
+
+                var bitmapSource = Imaging.CreateBitmapSourceFromHBitmap(bitmapHandle, IntPtr.Zero, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
+                bitmapSource.Freeze();
+                return bitmapSource;
+            }
+            finally
+            {
+                if (memoryDeviceContext != IntPtr.Zero && previousObject != IntPtr.Zero && previousObject != new IntPtr(-1))
+                {
+                    SelectObject(memoryDeviceContext, previousObject);
+                }
+                if (bitmapHandle != IntPtr.Zero)
+                {
+                    DeleteObject(bitmapHandle);
+                }
+                if (memoryDeviceContext != IntPtr.Zero)
+                {
+                    DeleteDC(memoryDeviceContext);
+                }
+                if (screenDeviceContext != IntPtr.Zero)
+                {
+                    ReleaseDC(IntPtr.Zero, screenDeviceContext);
+                }
+            }
         }
 
         /// <summary>
@@ -191,7 +245,7 @@ namespace Snet.Windows.Controls.property.wpf
         /// <returns>
         /// The bit blt.
         /// </returns>
-        [DllImport("gdi32.dll")]
+        [DllImport("gdi32.dll", SetLastError = true)]
         private static extern bool BitBlt(
             IntPtr hdc,
             int nXDest,
@@ -227,7 +281,7 @@ namespace Snet.Windows.Controls.property.wpf
         /// <returns>
         /// The <see cref="IntPtr" />.
         /// </returns>
-        [DllImport("gdi32.dll")]
+        [DllImport("gdi32.dll", SetLastError = true)]
         private static extern IntPtr CreateCompatibleBitmap(IntPtr hdc, int nWidth, int nHeight);
 
         /// <summary>
@@ -239,6 +293,9 @@ namespace Snet.Windows.Controls.property.wpf
         /// </returns>
         [DllImport("gdi32.dll", SetLastError = true)]
         private static extern IntPtr CreateCompatibleDC(IntPtr hdc);
+
+        [DllImport("gdi32.dll", SetLastError = true)]
+        private static extern bool DeleteDC(IntPtr hdc);
 
         /// <summary>
         /// The delete object.
@@ -257,7 +314,7 @@ namespace Snet.Windows.Controls.property.wpf
         /// <returns>
         /// The <see cref="IntPtr" />.
         /// </returns>
-        [DllImport("user32.dll")]
+        [DllImport("user32.dll", SetLastError = true)]
         private static extern IntPtr GetDC(IntPtr hWnd);
 
         /// <summary>

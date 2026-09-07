@@ -166,9 +166,6 @@
   <data name="固定" xml:space="preserve">
     <value>Pin</value>
   </data>
-  <data name="调整" xml:space="preserve">
-    <value>Adjust</value>
-  </data>
   <data name="提取" xml:space="preserve">
     <value>Extract</value>
   </data>

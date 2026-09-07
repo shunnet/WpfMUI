@@ -354,8 +354,23 @@ namespace Snet.Windows.Core
         public override void OnApplyTemplate()
         {
             base.OnApplyTemplate();
-            _ = LoadAnimationAsync(LoadAnimationEnabled).ConfigureAwait(false);
+            _ = ObserveLoadAnimationAsync(LoadAnimationAsync(LoadAnimationEnabled));
             InitializeTemplateControls();
+        }
+
+        private static async Task ObserveLoadAnimationAsync(Task animationTask)
+        {
+            try
+            {
+                await animationTask;
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Error($"Window loading animation failed: {ex}", "Snet.Windows.Core", ex);
+            }
         }
 
         /// <summary>
@@ -424,6 +439,7 @@ namespace Snet.Windows.Core
         public async Task LoadAnimationAsync(bool status, CancellationToken cancellationToken = default)
         {
             if (!status) return;
+            Dispatcher.VerifyAccess();
 
             // 1. 获取模板中的元素
             if (GetTemplateChild("PART_ClientArea") is not UIElement clientArea ||
@@ -444,6 +460,8 @@ namespace Snet.Windows.Core
 
             var duration = TimeSpan.FromMilliseconds(AnimationTime);
 
+            try
+            {
             await Task.Delay(duration, cancellationToken);
 
             // 3. 转圈淡出（转圈为小面积元素，淡出开销可忽略）。
@@ -461,6 +479,15 @@ namespace Snet.Windows.Core
             animationArea.Opacity = 1; // 重置为默认，避免下一次动画不生效
             clientArea.Opacity = 1;
             clientArea.IsEnabled = true;
+            }
+            finally
+            {
+                animationArea.BeginAnimation(UIElement.OpacityProperty, null);
+                animationArea.Visibility = Visibility.Collapsed;
+                animationArea.Opacity = 1;
+                clientArea.Opacity = 1;
+                clientArea.IsEnabled = true;
+            }
         }
 
         /// <summary>
@@ -473,7 +500,7 @@ namespace Snet.Windows.Core
         /// <param name="cancellationToken">可选的取消标记</param>
         private Task AnimateAsync(DependencyObject target, DependencyProperty property, DoubleAnimation animation, bool setFinalValue = false, CancellationToken cancellationToken = default)
         {
-            var tcs = new TaskCompletionSource<object?>();
+            var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             // 1. 判空处理
             if (target == null || property == null || animation == null)
@@ -495,8 +522,24 @@ namespace Snet.Windows.Core
             {
                 ctr = cancellationToken.Register(() =>
                 {
+                    if (!target.Dispatcher.CheckAccess())
+                    {
+                        if (target.Dispatcher.HasShutdownStarted)
+                        {
+                            tcs.TrySetCanceled(cancellationToken);
+                            return;
+                        }
+
+                        target.Dispatcher.BeginInvoke(new Action(() =>
+                        {
+                            animatable.BeginAnimation(property, null);
+                            tcs.TrySetCanceled(cancellationToken);
+                        }), DispatcherPriority.Send);
+                        return;
+                    }
+
                     animatable.BeginAnimation(property, null); // 停止动画
-                    tcs.TrySetCanceled();
+                    tcs.TrySetCanceled(cancellationToken);
                 });
             }
 

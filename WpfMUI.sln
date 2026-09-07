@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Snet.Windows.Test", "Snet.W
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Snet.Windows.Core", "Snet.Windows.Core\Snet.Windows.Core.csproj", "{0B2638C6-46CC-18DD-38D6-B961B7B0E64B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Snet.Windows.Tests", "Snet.Windows.Tests\Snet.Windows.Tests.csproj", "{9A6DAF6B-8EE7-4E69-AF92-18A0E5D31945}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{0B2638C6-46CC-18DD-38D6-B961B7B0E64B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0B2638C6-46CC-18DD-38D6-B961B7B0E64B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0B2638C6-46CC-18DD-38D6-B961B7B0E64B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9A6DAF6B-8EE7-4E69-AF92-18A0E5D31945}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9A6DAF6B-8EE7-4E69-AF92-18A0E5D31945}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9A6DAF6B-8EE7-4E69-AF92-18A0E5D31945}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9A6DAF6B-8EE7-4E69-AF92-18A0E5D31945}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
