@@ -3,8 +3,6 @@
 // Copyright (C) Leszek Pomianowski and WPF UI Contributors.
 // All Rights Reserved.
 
-using System.Windows;
-
 namespace Snet.Windows.Controls.tray.Interop;
 
 // ReSharper disable IdentifierTypo
@@ -18,6 +16,15 @@ namespace Snet.Windows.Controls.tray.Interop;
 /// </summary>
 internal static class User32
 {
+    [StructLayout(LayoutKind.Sequential)]
+    public struct RECT
+    {
+        public int Left;
+        public int Top;
+        public int Right;
+        public int Bottom;
+    }
+
     /// <summary>
     /// SetWindowPos options
     /// </summary>
@@ -853,7 +860,7 @@ internal static class User32
     [DllImport(Libraries.User32, CharSet = CharSet.Auto, SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static extern bool AdjustWindowRectEx(
-        [In] ref Rect lpRect,
+        [In] ref RECT lpRect,
         [In] WS dwStyle,
         [In][MarshalAs(UnmanagedType.Bool)] bool bMenu,
         [In] WS_EX dwExStyle
@@ -1323,7 +1330,7 @@ internal static class User32
     /// <returns>If the function succeeds, the return value is nonzero.</returns>
     [DllImport(Libraries.User32, SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
-    public static extern bool GetWindowRect([In] IntPtr hWnd, [Out] out Rect lpRect);
+    public static extern bool GetWindowRect([In] IntPtr hWnd, [Out] out RECT lpRect);
 
     /// <summary>
     /// Determines the visibility state of the specified window.

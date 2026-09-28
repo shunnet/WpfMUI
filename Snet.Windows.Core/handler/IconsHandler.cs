@@ -147,6 +147,8 @@ namespace Snet.Windows.Core.handler
         {
             var app = Application.Current;
             if (app == null) return Task.CompletedTask;
+            if (!app.Dispatcher.CheckAccess())
+                return app.Dispatcher.InvokeAsync(HandlerAsync).Task.Unwrap();
 
             var mergedDictionaries = app.Resources.MergedDictionaries;
 

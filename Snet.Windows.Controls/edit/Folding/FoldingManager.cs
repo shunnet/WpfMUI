@@ -269,25 +269,25 @@ namespace Snet.Windows.Controls.edit.Folding
                 int startOffset = newFolding.StartOffset.CoerceValue(0, document.TextLength);
                 int endOffset = newFolding.EndOffset.CoerceValue(0, document.TextLength);
 
-                if (newFolding.StartOffset == newFolding.EndOffset)
+                if (startOffset >= endOffset)
                     continue; // ignore zero-length foldings
 
                 // remove old foldings that were skipped
-                while (oldFoldingIndex < oldFoldings.Length && newFolding.StartOffset > oldFoldings[oldFoldingIndex].StartOffset)
+                while (oldFoldingIndex < oldFoldings.Length && startOffset > oldFoldings[oldFoldingIndex].StartOffset)
                 {
                     this.RemoveFolding(oldFoldings[oldFoldingIndex++]);
                 }
                 FoldingSection section;
                 // reuse current folding if its matching:
-                if (oldFoldingIndex < oldFoldings.Length && newFolding.StartOffset == oldFoldings[oldFoldingIndex].StartOffset)
+                if (oldFoldingIndex < oldFoldings.Length && startOffset == oldFoldings[oldFoldingIndex].StartOffset)
                 {
                     section = oldFoldings[oldFoldingIndex++];
-                    section.Length = newFolding.EndOffset - newFolding.StartOffset;
+                    section.Length = endOffset - startOffset;
                 }
                 else
                 {
                     // no matching current folding; create a new one:
-                    section = this.CreateFolding(newFolding.StartOffset, newFolding.EndOffset);
+                    section = this.CreateFolding(startOffset, endOffset);
                     // auto-close #regions only when opening the document
                     if (isFirstUpdate)
                     {

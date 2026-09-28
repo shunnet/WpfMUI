@@ -65,10 +65,8 @@ namespace Snet.Windows.Core.localize.wpf.TypeConverters
         /// <inheritdoc/>
         public override object ConvertTo(ITypeDescriptorContext context, CultureInfo culture, object value, Type destinationType)
         {
-            var source = value as BitmapSource;
-
-            if (value == null)
-                return null;
+            if (value is not BitmapSource source)
+                throw new NotSupportedException($"Cannot convert {value?.GetType().FullName ?? "null"} to {destinationType.FullName}.");
 
             var bmp = new Bitmap(
                 source.PixelWidth,

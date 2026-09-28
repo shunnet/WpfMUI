@@ -99,10 +99,12 @@ namespace Snet.Windows.Controls.edit.Document
             // keep the first document line
             DocumentLine ls = documentLineTree.GetByNumber(1);
             // but mark all other lines as deleted, and detach them from the other nodes
-            for (DocumentLine line = ls.NextLine; line != null; line = line.NextLine)
+            for (DocumentLine line = ls.NextLine; line != null;)
             {
+                DocumentLine nextLine = line.NextLine;
                 line.isDeleted = true;
                 line.parent = line.left = line.right = null;
+                line = nextLine;
             }
             // Reset the first line to detach it from the deleted lines
             ls.ResetLine();

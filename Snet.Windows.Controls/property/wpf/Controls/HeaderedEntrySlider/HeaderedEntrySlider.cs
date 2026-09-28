@@ -169,7 +169,7 @@ namespace Snet.Windows.Controls.property.wpf
 
             set
             {
-                this.SetValue(EntryStringFormatProperty, value);
+                this.SetValue(EntryContentAlignmentProperty, value);
             }
         }
 

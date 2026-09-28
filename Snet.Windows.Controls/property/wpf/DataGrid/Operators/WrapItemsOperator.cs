@@ -31,7 +31,12 @@ namespace Snet.Windows.Controls.property.wpf
         public override int GetRowCount()
         {
             var m = this.Owner.PropertyDefinitions.Count;
-            var n = this.Owner.ItemsSource.Count / m;
+            if (m == 0 || this.Owner.ItemsSource == null)
+            {
+                return 0;
+            }
+
+            var n = (this.Owner.ItemsSource.Count + m - 1) / m;
             return this.Owner.ItemsInRows ? n : m;
         }
 
@@ -44,7 +49,12 @@ namespace Snet.Windows.Controls.property.wpf
         public override int GetColumnCount()
         {
             var m = this.Owner.PropertyDefinitions.Count;
-            var n = this.Owner.ItemsSource.Count / m;
+            if (m == 0 || this.Owner.ItemsSource == null)
+            {
+                return 0;
+            }
+
+            var n = (this.Owner.ItemsSource.Count + m - 1) / m;
             return this.Owner.ItemsInRows ? m : n;
         }
 

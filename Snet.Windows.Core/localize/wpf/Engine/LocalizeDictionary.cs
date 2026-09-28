@@ -927,27 +927,35 @@ namespace Snet.Windows.Core.localize.wpf.Engine
             {
                 if (_isInDesignMode.HasValue)
                     return _isInDesignMode.Value;
+            }
 
-                if (Dispatcher?.Thread == null || !Dispatcher.Thread.IsAlive)
+            bool isInDesignMode;
+            if (Dispatcher?.Thread == null || !Dispatcher.Thread.IsAlive)
+            {
+                isInDesignMode = false;
+            }
+            else if (!Dispatcher.CheckAccess())
+            {
+                try
                 {
-                    _isInDesignMode = false;
-                    return _isInDesignMode.Value;
+                    isInDesignMode = (bool)Dispatcher.Invoke(
+                        DispatcherPriority.Normal,
+                        TimeSpan.FromMilliseconds(100),
+                        new Func<bool>(() => DesignerProperties.GetIsInDesignMode(this)));
                 }
-
-                if (!Dispatcher.CheckAccess())
+                catch (Exception)
                 {
-                    try
-                    {
-                        _isInDesignMode = (bool)Dispatcher.Invoke(DispatcherPriority.Normal, TimeSpan.FromMilliseconds(100), new Func<bool>(GetIsInDesignMode));
-                    }
-                    catch (Exception)
-                    {
-                        _isInDesignMode = default(bool);
-                    }
-
-                    return _isInDesignMode.Value;
+                    isInDesignMode = false;
                 }
-                _isInDesignMode = DesignerProperties.GetIsInDesignMode(this);
+            }
+            else
+            {
+                isInDesignMode = DesignerProperties.GetIsInDesignMode(this);
+            }
+
+            lock (SyncRoot)
+            {
+                _isInDesignMode ??= isInDesignMode;
                 return _isInDesignMode.Value;
             }
         }

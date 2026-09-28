@@ -3284,12 +3284,12 @@ namespace Snet.Windows.Controls.property.wpf
             var maxColumn = this.Columns > 0 ? this.Columns - 1 : 0;
             if (this.CurrentCell.Column > maxColumn)
             {
-                this.CurrentCell = new CellRef(maxColumn, this.CurrentCell.Column);
+                this.CurrentCell = new CellRef(this.CurrentCell.Row, maxColumn);
             }
 
             if (this.SelectionCell.Column > maxColumn)
             {
-                this.SelectionCell = new CellRef(maxColumn, this.SelectionCell.Column);
+                this.SelectionCell = new CellRef(this.SelectionCell.Row, maxColumn);
             }
 
             this.ScrollIntoView(this.CurrentCell);

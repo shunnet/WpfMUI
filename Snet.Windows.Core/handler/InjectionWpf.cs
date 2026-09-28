@@ -15,17 +15,56 @@ namespace Snet.Windows.Core.handler
         /// <summary>
         /// 窗口缓存（使用 Type 作为 Key，引用比较 O(1)，比 GUID 更高效）
         /// </summary>
-        private static readonly ConcurrentDictionary<Type, System.Windows.Window> WindowCache = new();
+        private static readonly ConcurrentDictionary<Type, System.Windows.FrameworkElement> WindowCache = new();
 
         /// <summary>
         /// 页面缓存（使用 Type 作为 Key，引用比较 O(1)，比 GUID 更高效）
         /// </summary>
-        private static readonly ConcurrentDictionary<Type, System.Windows.Controls.Page> PageCache = new();
+        private static readonly ConcurrentDictionary<Type, System.Windows.FrameworkElement> PageCache = new();
 
         /// <summary>
         /// 用户控件缓存（使用 Type 作为 Key，引用比较 O(1)，比 GUID 更高效）
         /// </summary>
-        private static readonly ConcurrentDictionary<Type, System.Windows.Controls.UserControl> UserControlCache = new();
+        private static readonly ConcurrentDictionary<Type, System.Windows.FrameworkElement> UserControlCache = new();
+
+        private static T CreateSynchronously<T, M>(
+            bool cache,
+            ConcurrentDictionary<Type, System.Windows.FrameworkElement> instanceCache)
+            where T : System.Windows.FrameworkElement
+            where M : class
+        {
+            if (!ExistService<T>())
+            {
+                if (cache)
+                    AddService(services => services.AddSingleton<T>());
+                else
+                    AddService(services => services.AddTransient<T>());
+            }
+            if (!ExistService<M>())
+            {
+                if (cache)
+                    AddService(services => services.AddSingleton<M>());
+                else
+                    AddService(services => services.AddTransient<M>());
+            }
+
+            if (cache && instanceCache.TryGetValue(typeof(T), out var cached))
+                return (T)cached;
+
+            ServiceProvider serviceProvider = GetProvider();
+            M viewModel = ActivatorUtilities.CreateInstance<M>(serviceProvider);
+            T instance = ActivatorUtilities.CreateInstance<T>(serviceProvider);
+            instance.DataContext = viewModel;
+
+            if (cache)
+            {
+                instanceCache[typeof(T)] = instance;
+                AddService(services => services.AddSingleton(instance));
+                AddService(services => services.AddSingleton(viewModel));
+            }
+
+            return instance;
+        }
 
         /// <summary>
         /// 注入窗口
@@ -42,7 +81,7 @@ namespace Snet.Windows.Core.handler
         /// <returns>对应的实例</returns>
         public static T Window<T, M>(bool cache = false) where T : System.Windows.Window where M : class
         {
-            return WindowAsync<T, M>(cache).GetAwaiter().GetResult();
+            return CreateSynchronously<T, M>(cache, WindowCache);
         }
 
         /// <summary>
@@ -140,7 +179,7 @@ namespace Snet.Windows.Core.handler
         /// <returns>对应的实例</returns>
         public static T UserControl<T, M>(bool cache = false) where T : System.Windows.Controls.UserControl where M : class
         {
-            return UserControlAsync<T, M>(cache).GetAwaiter().GetResult();
+            return CreateSynchronously<T, M>(cache, UserControlCache);
         }
 
         /// <summary>
@@ -238,7 +277,7 @@ namespace Snet.Windows.Core.handler
         /// <returns>对应的实例</returns>
         public static T Page<T, M>(bool cache = true) where T : System.Windows.Controls.Page where M : class
         {
-            return PageAsync<T, M>(cache).GetAwaiter().GetResult();
+            return CreateSynchronously<T, M>(cache, PageCache);
         }
 
         /// <summary>
