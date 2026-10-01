@@ -153,7 +153,7 @@ internal static class Shell32
         [Out, MarshalAs(UnmanagedType.Interface)] out object ppv
     );
 
-    [DllImport(Libraries.Shell32)]
+    [DllImport(Libraries.Shell32, EntryPoint = "Shell_NotifyIconW", CharSet = CharSet.Unicode, ExactSpelling = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static extern bool Shell_NotifyIcon([In] NIM dwMessage, [In] NOTIFYICONDATA lpdata);
 

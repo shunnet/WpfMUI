@@ -27,7 +27,11 @@ public class NotifyIconService : INotifyIconService
     public string TooltipText
     {
         get => internalNotifyIconManager.TooltipText;
-        set => internalNotifyIconManager.TooltipText = value;
+        set
+        {
+            internalNotifyIconManager.TooltipText = value;
+            _ = internalNotifyIconManager.ModifyToolTip();
+        }
     }
 
     public ContextMenu? ContextMenu

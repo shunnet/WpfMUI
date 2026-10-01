@@ -17,6 +17,7 @@
         <Setter Property="AllowsTransparency" Value="False" />
         <Setter Property="Window.WindowStyle" Value="SingleBorderWindow" />
         <Setter Property="Background" Value="{DynamicResource WindowBackgroundBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource MaterialDesign.Brush.Foreground}" />
         <Setter Property="MinHeight" Value="235" />
         <Setter Property="MinWidth" Value="235" />
         <Setter Property="WindowChrome.WindowChrome">

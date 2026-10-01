@@ -16,6 +16,9 @@ namespace Snet.Windows.Controls.drag
     /// </summary>
     public class DragControlsBase : Adorner
     {
+        internal static readonly DependencyProperty OperationContextMenuProperty = DependencyProperty.RegisterAttached(
+            "OperationContextMenu", typeof(ContextMenu), typeof(DragControlsBase), new PropertyMetadata(null));
+
         /// <summary>
         /// 构造函数
         /// </summary>
@@ -157,7 +160,36 @@ namespace Snet.Windows.Controls.drag
         /// <summary>
         /// 鼠标按下控件的Margin
         /// </summary>
-        Thickness MouseDownMargin;
+        Point MouseDownLayoutPosition;
+        Point resizeStartMouse;
+        Rect resizeStartBounds;
+
+        private FrameworkElement CoordinateContainer =>
+            (Controls as FrameworkElement)?.Parent as FrameworkElement ?? LlayoutContainer;
+
+        private static Point GetLayoutPosition(FrameworkElement control)
+        {
+            if (control.Parent is Canvas)
+            {
+                double x = Canvas.GetLeft(control);
+                double y = Canvas.GetTop(control);
+                return new Point(double.IsNaN(x) ? 0 : x, double.IsNaN(y) ? 0 : y);
+            }
+            return new Point(control.Margin.Left, control.Margin.Top);
+        }
+
+        private static void SetLayoutPosition(FrameworkElement control, Point position)
+        {
+            if (control.Parent is Canvas)
+            {
+                Canvas.SetLeft(control, position.X);
+                Canvas.SetTop(control, position.Y);
+                return;
+            }
+            var margin = control.Margin;
+            control.Margin = new Thickness(position.X, position.Y,
+                margin.Right - (position.X - margin.Left), margin.Bottom - (position.Y - margin.Top));
+        }
         #endregion
 
         #region 重写方法
@@ -350,6 +382,7 @@ namespace Snet.Windows.Controls.drag
                         thumb.Background = ThumbInnerColor;
                         thumb.BorderBrush = ThumbOuterColor;
                         thumb.DragDelta += Control_DragDeltaCentre;
+                        thumb.PreviewMouseRightButtonUp += Thumb_PreviewMouseRightButtonUp;
                         AnimateInteractiveThumb(thumb, 0.1);   //呼吸动画
                     }
                     else if (ReferenceEquals(thumb, RotateThumb))
@@ -359,6 +392,7 @@ namespace Snet.Windows.Controls.drag
                         thumb.Background = ThumbInnerColor;
                         thumb.BorderBrush = ThumbOuterColor;
                         thumb.DragDelta += Control_DragDeltaRotate;
+                        thumb.PreviewMouseRightButtonUp += Thumb_PreviewMouseRightButtonUp;
                         AnimateInteractiveThumb(thumb, 0.0);   //呼吸动画
                     }
                     else
@@ -368,6 +402,7 @@ namespace Snet.Windows.Controls.drag
                         thumb.Background = SurroundInnerColor;
                         thumb.BorderBrush = SurroundOuterColor;
                         thumb.DragDelta += Control_DragDelta;
+                        thumb.DragStarted += Control_ResizeStarted;
                         AnimatePopIn(thumb);
                     }
                 }
@@ -425,6 +460,24 @@ namespace Snet.Windows.Controls.drag
             Controls.MouseLeftButtonDown -= Control_MouseLeftButtonDown;
             Controls.MouseLeftButtonUp -= Control_MouseLeftButtonUp;
             Controls.MouseMove -= Control_MouseMove;
+            if (CentreThumb != null) CentreThumb.PreviewMouseRightButtonUp -= Thumb_PreviewMouseRightButtonUp;
+            if (RotateThumb != null) RotateThumb.PreviewMouseRightButtonUp -= Thumb_PreviewMouseRightButtonUp;
+        }
+
+        private void Thumb_PreviewMouseRightButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            if (Controls is FrameworkElement control)
+                OpenControlContextMenu(control, e);
+        }
+
+        internal static void OpenControlContextMenu(FrameworkElement control, MouseButtonEventArgs e)
+        {
+            // 每次读取当前菜单，语言切换替换菜单后装饰点无需重新绑定。
+            if (control.GetValue(OperationContextMenuProperty) is not ContextMenu menu) return;
+            menu.PlacementTarget = control;
+            menu.Placement = PlacementMode.MousePoint;
+            menu.IsOpen = true;
+            e.Handled = true;
         }
         #endregion
 
@@ -436,56 +489,50 @@ namespace Snet.Windows.Controls.drag
         /// </summary>
         private void Control_DragDelta(object sender, DragDeltaEventArgs e)
         {
-            FrameworkElement Control = Controls as FrameworkElement;  //要拖动的控件
-            FrameworkElement Thumb = sender as FrameworkElement;  //哪个装饰被拖动
-            double Left, Top, Right, Bottom, Width, Height;   //左，上，右，下，宽，高
-            if (Thumb.HorizontalAlignment == System.Windows.HorizontalAlignment.Left)
-            {
-                Right = Control.Margin.Right;
-                Left = Control.Margin.Left + e.HorizontalChange;
-                Width = (double.IsNaN(Control.Width) ? Control.ActualWidth : Control.Width) - e.HorizontalChange;
-            }
-            else
-            {
-                Left = Control.Margin.Left;
-                Right = Control.Margin.Right - e.HorizontalChange;
-                Width = (double.IsNaN(Control.Width) ? Control.ActualWidth : Control.Width) + e.HorizontalChange;
-            }
-            if (Thumb.VerticalAlignment == VerticalAlignment.Top)
-            {
-                Bottom = Control.Margin.Bottom;
-                Top = Control.Margin.Top + e.VerticalChange;
-                Height = (double.IsNaN(Control.Height) ? Control.ActualHeight : Control.Height) - e.VerticalChange;
-            }
-            else
-            {
-                Top = Control.Margin.Top;
-                Bottom = Control.Margin.Bottom - e.VerticalChange;
-                Height = (double.IsNaN(Control.Height) ? Control.ActualHeight : Control.Height) + e.VerticalChange;
-            }
+            // 使用固定的父容器坐标，避免尺寸变化后 Thumb 的局部原点移动导致增量重复累计。
+            Vector delta = Mouse.GetPosition(CoordinateContainer) - resizeStartMouse;
+            double radians = Angle * Math.PI / 180;
+            var localDelta = new Vector(
+                delta.X * Math.Cos(radians) + delta.Y * Math.Sin(radians),
+                -delta.X * Math.Sin(radians) + delta.Y * Math.Cos(radians));
+            ApplyResize((Thumb)sender, localDelta);
+            e.Handled = true;
+        }
 
-            if (Thumb.HorizontalAlignment != System.Windows.HorizontalAlignment.Center)
-            {
-                if (Width >= 0)
-                {
-                    if (Width >= MinWidths && Width <= MaxWidths)
-                    {
-                        Control.Margin = new Thickness(Left, Control.Margin.Top, Right, Control.Margin.Bottom);
-                        Control.Width = Width;
-                    }
-                }
-            }
-            if (Thumb.VerticalAlignment != VerticalAlignment.Center)
-            {
-                if (Height >= 0)
-                {
-                    if (Height >= MinHeights && Height <= MaxHeights)
-                    {
-                        Control.Margin = new Thickness(Control.Margin.Left, Top, Control.Margin.Right, Bottom);
-                        Control.Height = Height;
-                    }
-                }
-            }
+        private void Control_ResizeStarted(object sender, DragStartedEventArgs e)
+        {
+            var control = (FrameworkElement)Controls;
+            resizeStartMouse = Mouse.GetPosition(CoordinateContainer);
+            resizeStartBounds = new Rect(GetLayoutPosition(control), new Size(
+                double.IsNaN(control.Width) ? control.ActualWidth : control.Width,
+                double.IsNaN(control.Height) ? control.ActualHeight : control.Height));
+            e.Handled = true;
+        }
+
+        private void ApplyResize(Thumb thumb, Vector localDelta)
+        {
+            var control = (FrameworkElement)Controls;
+            int sx = thumb.HorizontalAlignment == HorizontalAlignment.Left ? -1
+                : thumb.HorizontalAlignment == HorizontalAlignment.Right ? 1 : 0;
+            int sy = thumb.VerticalAlignment == VerticalAlignment.Top ? -1
+                : thumb.VerticalAlignment == VerticalAlignment.Bottom ? 1 : 0;
+            double width = sx == 0 ? resizeStartBounds.Width : Math.Clamp(
+                resizeStartBounds.Width + sx * localDelta.X,
+                Math.Max(MinWidths, control.MinWidth), Math.Min(MaxWidths, control.MaxWidth));
+            double height = sy == 0 ? resizeStartBounds.Height : Math.Clamp(
+                resizeStartBounds.Height + sy * localDelta.Y,
+                Math.Max(MinHeights, control.MinHeight), Math.Min(MaxHeights, control.MaxHeight));
+            double dw = width - resizeStartBounds.Width;
+            double dh = height - resizeStartBounds.Height;
+            double radians = Angle * Math.PI / 180;
+            // 中心沿旋转后的局部方向移动一半尺寸变化，使对侧边/角保持不动。
+            double dx = (sx * dw * Math.Cos(radians) - sy * dh * Math.Sin(radians)) / 2;
+            double dy = (sx * dw * Math.Sin(radians) + sy * dh * Math.Cos(radians)) / 2;
+            control.Width = width;
+            control.Height = height;
+            SetLayoutPosition(control, new Point(
+                resizeStartBounds.X + dx - dw / 2,
+                resizeStartBounds.Y + dy - dh / 2));
         }
 
         /// <summary>
@@ -496,16 +543,12 @@ namespace Snet.Windows.Controls.drag
         /// </summary>
         private void Control_DragDeltaCentre(object sender, DragDeltaEventArgs e)
         {
-            if (Controls is not FrameworkElement control || LlayoutContainer is not FrameworkElement container) return;
+            if (Controls is not FrameworkElement control) return;
+            var container = CoordinateContainer;
             var center = control.TranslatePoint(new Point(control.ActualWidth / 2, control.ActualHeight / 2), container);
             var pos = Mouse.GetPosition(container);
             var delta = pos - center;
-            var margin = control.Margin;
-            control.Margin = new Thickness(
-                margin.Left + delta.X,
-                margin.Top + delta.Y,
-                margin.Right - delta.X,
-                margin.Bottom - delta.Y);
+            SetLayoutPosition(control, GetLayoutPosition(control) + delta);
         }
 
         /// <summary>
@@ -514,7 +557,8 @@ namespace Snet.Windows.Controls.drag
         /// </summary>
         private void Control_DragDeltaRotate(object sender, DragDeltaEventArgs e)
         {
-            if (Controls is not FrameworkElement control || LlayoutContainer is not FrameworkElement container) return;
+            if (Controls is not FrameworkElement control) return;
+            var container = CoordinateContainer;
             var center = control.TranslatePoint(new Point(control.ActualWidth / 2, control.ActualHeight / 2), container);
             var pos = Mouse.GetPosition(container);
             double angle = Math.Atan2(pos.Y - center.Y, pos.X - center.X) * 180 / Math.PI + 90;
@@ -548,8 +592,8 @@ namespace Snet.Windows.Controls.drag
         {
             var c = sender as FrameworkElement;
             IsMouseDown = true;
-            MouseDownPosition = e.GetPosition(LlayoutContainer);
-            MouseDownMargin = c.Margin;
+            MouseDownPosition = e.GetPosition(CoordinateContainer);
+            MouseDownLayoutPosition = GetLayoutPosition(c);
             c.CaptureMouse();
         }
         /// <summary>
@@ -571,14 +615,9 @@ namespace Snet.Windows.Controls.drag
             if (IsMouseDown)
             {
                 var c = sender as FrameworkElement;
-                var pos = e.GetPosition(LlayoutContainer);
+                var pos = e.GetPosition(CoordinateContainer);
                 var dp = pos - MouseDownPosition;
-                double Left, Top, Right, Bottom;  //设置控件坐标
-                Left = MouseDownMargin.Left + dp.X;
-                Top = MouseDownMargin.Top + dp.Y;
-                Right = MouseDownMargin.Right - dp.X;
-                Bottom = MouseDownMargin.Bottom - dp.Y;
-                c.Margin = new Thickness(Left, Top, Right, Bottom);
+                SetLayoutPosition(c, MouseDownLayoutPosition + dp);
 
                 //GeneralTransform generalTransform = c.TransformToAncestor(LlayoutContainer);
                 //Point point = generalTransform.Transform(new Point(0, 0));

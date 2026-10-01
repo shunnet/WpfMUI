@@ -42,6 +42,34 @@ namespace Snet.Windows.Test
         /// <summary>取本地化字符串</summary>
         private string Loc(string key) => App.LanguageOperate.GetLanguageValue(key) ?? key;
 
+        private void MainWindow_Loaded(object sender, RoutedEventArgs e)
+        {
+            if (!TrayIcon.IsRegistered)
+            {
+                TrayIcon.Register();
+            }
+        }
+
+        private void TrayShowWindow_Click(object sender, RoutedEventArgs e)
+        {
+            Show();
+            if (WindowState == WindowState.Minimized)
+            {
+                WindowState = WindowState.Normal;
+            }
+            Activate();
+        }
+
+        private void TrayHideWindow_Click(object sender, RoutedEventArgs e) => Hide();
+
+        private void TrayExit_Click(object sender, RoutedEventArgs e) => Application.Current.Shutdown();
+
+        protected override void OnClosed(EventArgs e)
+        {
+            TrayIcon.Dispose();
+            base.OnClosed(e);
+        }
+
         /// <summary>
         /// 拖拽演示页首次显示时初始化：创建 DragControlsAnimate（新库接口：直接传入控件集合初始化）。<br/>
         /// 说明：控件离开/回到可视树原样保留（元素与事件都在），仅首次需要初始化。
@@ -230,12 +258,18 @@ namespace Snet.Windows.Test
                 if (copy is null) continue;
 
                 // 统一应用位置/尺寸（CreateBySourceName 只克隆控件，不设置 X/Y/宽高）
+                copy.Margin = new Thickness(0);
                 Canvas.SetLeft(copy, item.X);
                 Canvas.SetTop(copy, item.Y);
                 if (!double.IsNaN(item.Width)) copy.Width = item.Width;
                 if (!double.IsNaN(item.Height)) copy.Height = item.Height;
+                ApplyText(copy, item.Text);
+                if (copy is ToggleButton toggle) toggle.IsChecked = item.IsChecked;
+                if (item.Fill != null && copy is Shape shape) shape.Fill = ParseBrush(item.Fill);
+                DragControlsAnimate.SetSourceName(copy, item.SourceName);
 
                 DragCanvas.Children.Add(copy);
+                copy.UpdateLayout();
                 dragAnimate?.MoveAndDragSizeInsert(copy, this, CkDragMove.IsChecked == true, CkDragResize.IsChecked == true, CkDragRotate.IsChecked == true);
                 dragAnimate?.AttachCopyMenu(copy);   // 挂内置右键菜单
                 dragAnimate?.SetRotation(copy, item.Angle);   // 恢复旋转角度
@@ -255,8 +289,8 @@ namespace Snet.Windows.Test
                 SourceName = DragControlsAnimate.GetSourceName(el),
                 SN = DragControlsAnimate.GetSN(el),
                 ExtensionData = DragControlsAnimate.GetExtensionData(el),
-                X = Canvas.GetLeft(el),
-                Y = Canvas.GetTop(el),
+                X = (double.IsNaN(Canvas.GetLeft(el)) ? 0 : Canvas.GetLeft(el)) + el.Margin.Left,
+                Y = (double.IsNaN(Canvas.GetTop(el)) ? 0 : Canvas.GetTop(el)) + el.Margin.Top,
                 Width = double.IsNaN(el.Width) ? el.ActualWidth : el.Width,
                 Height = double.IsNaN(el.Height) ? el.ActualHeight : el.Height,
                 Angle = dragAnimate?.GetRotation(el) ?? 0,

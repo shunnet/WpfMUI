@@ -127,6 +127,10 @@ namespace Snet.Windows.Controls.drag
                 clone,
                 "Color");
 
+            CopyCommonProperty(source, clone, "IsOn");
+            CopyCommonProperty(source, clone, "IsFlat");
+            CopyCommonProperty(source, clone, "OffLightness");
+
             CopyCommonProperty(
                 source,
                 clone,
@@ -205,6 +209,10 @@ namespace Snet.Windows.Controls.drag
                 {
                     var value = sourceDp.GetValue(dp);
 
+                    // UserControl.Content 是构造函数创建的内部界面，不能转移给副本。
+                    if (value is UIElement)
+                        return;
+
                     if (value != null)
                     {
                         try
@@ -242,6 +250,9 @@ namespace Snet.Windows.Controls.drag
                     return;
 
                 var value2 = sourceProperty.GetValue(source);
+
+                if (value2 is UIElement)
+                    return;
 
                 if (value2 == null)
                     return;
@@ -452,7 +463,10 @@ namespace Snet.Windows.Controls.drag
                         // 固定状态的弹提示同步刷新
                         copy.ToolTip = Loc("已固定");
                     }
-                    copy.ContextMenu = BuildCopyContextMenu(copy);
+                    var oldMenu = copy.GetValue(DragControlsBase.OperationContextMenuProperty);
+                    var newMenu = BuildCopyContextMenu(copy);
+                    copy.SetValue(DragControlsBase.OperationContextMenuProperty, newMenu);
+                    if (oldMenu is ContextMenu && ReferenceEquals(copy.ContextMenu, oldMenu)) copy.ContextMenu = newMenu;
                 }
             });
         }
@@ -464,8 +478,12 @@ namespace Snet.Windows.Controls.drag
         /// <param name="copy">拖出的副本控件</param>
         public void AttachCopyMenu(FrameworkElement copy)
         {
-            if (!EnableContextMenu || copy == null || copy.ContextMenu != null) return;
-            copy.ContextMenu = BuildCopyContextMenu(copy);
+            if (!EnableContextMenu || copy == null || menuCopies.Contains(copy)) return;
+            var menu = BuildCopyContextMenu(copy);
+            copy.SetValue(DragControlsBase.OperationContextMenuProperty, menu);
+            // 编辑控件和 UserControl 保留自身及内部控件的原生右键菜单。
+            if (copy.ContextMenu == null && copy is not System.Windows.Controls.Primitives.TextBoxBase && copy is not UserControl)
+                copy.ContextMenu = menu;
             menuCopies.Add(copy);
             EnsureLanguageSubscription();
         }
@@ -703,6 +721,7 @@ namespace Snet.Windows.Controls.drag
             if (copy == null) return;
             fixedCopies.Remove(copy);
             menuCopies.Remove(copy);
+            copy.ClearValue(DragControlsBase.OperationContextMenuProperty);
             dragControlsHelper.Remove(copy);
             if (LlayoutContainer is Canvas canvas)
             {
@@ -972,6 +991,7 @@ namespace Snet.Windows.Controls.drag
             if (ControlsObj == null) return;
             dragControlsHelper.Remove(ControlsObj);
             menuCopies.Remove(ControlsObj);
+            ControlsObj.ClearValue(DragControlsBase.OperationContextMenuProperty);
             if (LlayoutContainer is Canvas canvas)
             {
                 canvas.Children.Remove(ControlsObj);
@@ -1017,6 +1037,7 @@ namespace Snet.Windows.Controls.drag
         /// </summary>
         private void ControlsShow_LostMouseCapture(object sender, MouseEventArgs e)
         {
+            if (_isStartingDrag || !ReferenceEquals(e.OriginalSource, sender)) return;
             if (!IsMouseDown) return;
             IsMouseDown = false;
             if (ControlsObj == null) return;
@@ -1039,6 +1060,20 @@ namespace Snet.Windows.Controls.drag
         /// </summary>
         private FrameworkElement? _pendingDragSource;
         private Point _pendingDragStart;
+        private bool _isStartingDrag;
+
+        private void CaptureDragMouse(UIElement source)
+        {
+            _isStartingDrag = true;
+            try
+            {
+                source.CaptureMouse();
+            }
+            finally
+            {
+                _isStartingDrag = false;
+            }
+        }
 
         /// <summary>
         /// 鼠标左键按下事件处理。<br/>
@@ -1061,6 +1096,8 @@ namespace Snet.Windows.Controls.drag
                 Canvas layout = LlayoutContainer as Canvas;
                 (FrameworkElement element, bool IsMove, bool IsDragSize, bool IsRotate) = DragEvenTrigger(source);
                 ControlsObj = element;
+                if (ControlsObj == null)
+                    throw new InvalidOperationException("拖拽工厂未返回控件副本。");
                 if (!layout.Children.Contains(ControlsObj))
                 {
                     IsMouseDown = true;
@@ -1072,7 +1109,7 @@ namespace Snet.Windows.Controls.drag
                     // 捕获鼠标：拖出源控件边界后继续跟随，直到左键松开
                     if (source is UIElement uiSource)
                     {
-                        uiSource.CaptureMouse();
+                        CaptureDragMouse(uiSource);
                         // 关键：终止后续路由 —— 源控件内部（如 TextBox/TextBoxControl）若再捕获鼠标，
                         // 会覆盖源控件的捕获，导致 PreviewMouseMove 收不到、副本不跟随鼠标
                         e.Handled = true;
@@ -1107,6 +1144,8 @@ namespace Snet.Windows.Controls.drag
                 Grid layout = LlayoutContainer as Grid;
                 (FrameworkElement element, bool IsMove, bool IsDragSize, bool IsRotate) = DragEvenTrigger(source);
                 ControlsObj = element;
+                if (ControlsObj == null)
+                    throw new InvalidOperationException("拖拽工厂未返回控件副本。");
                 if (!layout.Children.Contains(ControlsObj))
                 {
                     IsMouseDown = true;
@@ -1118,7 +1157,7 @@ namespace Snet.Windows.Controls.drag
                     // 捕获鼠标：拖出源控件边界后继续跟随，直到左键松开
                     if (source is UIElement uiSource)
                     {
-                        uiSource.CaptureMouse();
+                        CaptureDragMouse(uiSource);
                         // 关键：终止后续路由 —— 源控件内部（如 TextBox/TextBoxControl）若再捕获鼠标，
                         // 会覆盖源控件的捕获，导致 PreviewMouseMove 收不到、副本不跟随鼠标
                         e.Handled = true;
