@@ -4,7 +4,7 @@
     <AccelerateBuildsInVisualStudio>True</AccelerateBuildsInVisualStudio>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Version>26.282.1</Version>
+    <Version>1.0.0.0</Version>
     <Authors>Shun</Authors>
     <UseWPF>true</UseWPF>
     <AuthorsName>Shun</AuthorsName>
@@ -23,7 +23,7 @@
     <None Include="..\README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Snet.Windows.Core" Version="26.282.1" />
+    <ProjectReference Include="..\Snet.Windows.Core\Snet.Windows.Core.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Resource Include="property\wpf\Controls\ColorPicker\ColorPicker.png" />
@@ -45,7 +45,6 @@
     <None Remove="edit\Highlighting\Resources\*" />
     <EmbeddedResource Include="edit\Highlighting\Resources\*" />
     <EmbeddedResource Remove="edit\Highlighting\Resources\Resources.cs" />
-    <!--<ProjectReference Include="..\Snet.Windows.Core\Snet.Windows.Core.csproj" />-->
     <Resource Include="edit\Highlighting\Resources\Resources.cs" />
   </ItemGroup>
   <ItemGroup>
