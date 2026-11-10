@@ -253,14 +253,22 @@ namespace Snet.Windows.Controls.edit.Folding
                 for (int i = markers.Count - 1; i >= 0; i--)
                 {
                     FoldingMarginMarker m = markers[i];
-                    FoldingSection currentSection = FoldingManager.GetNextFolding(m.VisualLine.FirstDocumentLine.Offset);
-                    // Removed or replaced folding sections are no longer returned by GetNextFolding,
-                    // so the reference comparison detects both deletion and re-creation.
                     // 注意：滚动时 VisualLine 每次重建为新实例，必须同时检查"行已不在视口内"，
                     // 否则旧标记永远不会被移除（section 引用未变），每次滚动都会为同一折叠段
                     // 新增一个标记，markers/markerByVisualLine 无限积累并钉住旧 VisualLine（内存泄漏）。
-                    if (!TextView.VisualLines.Contains(m.VisualLine)
-                        || currentSection == null || currentSection != m.FoldingSection)
+                    // 必须先判断 VisualLine 是否仍在当前视图中、再访问它的 FirstDocumentLine：
+                    // 旧标记引用的文档行可能已被编辑删除（合并行、删除多行、整篇替换），
+                    // 读取已删除 DocumentLine 的 Offset 会抛 InvalidOperationException，
+                    // 而此处在布局过程中（TextView.MeasureOverride）执行，异常会使程序崩溃。
+                    bool stale = !TextView.VisualLines.Contains(m.VisualLine);
+                    if (!stale)
+                    {
+                        FoldingSection currentSection = FoldingManager.GetNextFolding(m.VisualLine.FirstDocumentLine.Offset);
+                        // Removed or replaced folding sections are no longer returned by GetNextFolding,
+                        // so the reference comparison detects both deletion and re-creation.
+                        stale = currentSection == null || currentSection != m.FoldingSection;
+                    }
+                    if (stale)
                     {
                         RemoveVisualChild(m);
                         markerByVisualLine.Remove(m.VisualLine);

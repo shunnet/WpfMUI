@@ -35,6 +35,9 @@ public class NotifyIcon : System.Windows.FrameworkElement, IDisposable
     /// </summary>
     protected bool Disposed { get; set; } = false;
 
+    /// <summary>
+    /// Gets the identifier of the icon within the shell notification area.
+    /// </summary>
     public int Id => internalNotifyIconManager.Id;
 
     /// <summary>
@@ -42,8 +45,14 @@ public class NotifyIcon : System.Windows.FrameworkElement, IDisposable
     /// </summary>
     public bool IsRegistered => internalNotifyIconManager.IsRegistered;
 
+    /// <summary>
+    /// Gets or sets the hook window (<see cref="HwndSource"/>) that receives the icon's window messages.
+    /// </summary>
     public HwndSource? HookWindow { get; set; }
 
+    /// <summary>
+    /// Gets or sets the handle of the window that owns the icon.
+    /// </summary>
     public IntPtr ParentHandle { get; set; }
 
     /// <summary>Identifies the <see cref="TooltipText"/> dependency property.</summary>
@@ -91,9 +100,12 @@ public class NotifyIcon : System.Windows.FrameworkElement, IDisposable
         nameof(MenuFontSize),
         typeof(double),
         typeof(NotifyIcon),
-        new PropertyMetadata(14d)
+        new PropertyMetadata(14d, OnMenuFontSizeChanged)
     );
 
+    /// <summary>
+    /// Gets or sets the tooltip text shown when the pointer hovers over the tray icon.
+    /// </summary>
     public string TooltipText
     {
         get => (string)GetValue(TooltipTextProperty);
@@ -118,6 +130,9 @@ public class NotifyIcon : System.Windows.FrameworkElement, IDisposable
         set => SetValue(FocusOnLeftClickProperty, value);
     }
 
+    /// <summary>
+    /// Gets or sets the image displayed in the notification area.
+    /// </summary>
     public ImageSource Icon
     {
         get => (ImageSource)GetValue(IconProperty);
@@ -133,6 +148,9 @@ public class NotifyIcon : System.Windows.FrameworkElement, IDisposable
         set => SetValue(MenuProperty, value);
     }
 
+    /// <summary>
+    /// Gets or sets the font size of the tray context menu items.
+    /// </summary>
     public double MenuFontSize
     {
         get => (double)GetValue(MenuFontSizeProperty);
@@ -241,6 +259,9 @@ public class NotifyIcon : System.Windows.FrameworkElement, IDisposable
         remove => RemoveHandler(MiddleDoubleClickEvent, value);
     }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="NotifyIcon"/> class.
+    /// </summary>
     public NotifyIcon()
     {
         internalNotifyIconManager = new Snet.Windows.Controls.tray.Internal.InternalNotifyIconManager();
@@ -266,6 +287,9 @@ public class NotifyIcon : System.Windows.FrameworkElement, IDisposable
     /// </summary>
     public void Unregister() => internalNotifyIconManager.Unregister();
 
+    /// <summary>
+    /// Releases the tray icon and the resources held by this instance.
+    /// </summary>
     public void Dispose()
     {
         Dispose(true);
@@ -426,7 +450,9 @@ public class NotifyIcon : System.Windows.FrameworkElement, IDisposable
             return;
         }
 
-        notifyIcon.FocusOnLeftClick = newValue;
+        // 把新值同步给 manager：以前这里只是把属性重新赋成它自己的值，manager 只在 InitializeIcon 里读取过一次初值，
+        // 运行时修改 FocusOnLeftClick 永远不生效
+        notifyIcon.internalNotifyIconManager.FocusOnLeftClick = newValue;
     }
 
     private static void OnMenuOnRightClickChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
@@ -442,7 +468,8 @@ public class NotifyIcon : System.Windows.FrameworkElement, IDisposable
             return;
         }
 
-        notifyIcon.MenuOnRightClick = newValue;
+        // 同 OnFocusOnLeftClickChanged：新值必须同步给 manager，否则运行时修改 MenuOnRightClick 不生效
+        notifyIcon.internalNotifyIconManager.MenuOnRightClick = newValue;
     }
 
     private static void OnMenuChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
@@ -454,10 +481,23 @@ public class NotifyIcon : System.Windows.FrameworkElement, IDisposable
 
         if (e.NewValue is not ContextMenu contextMenu)
         {
+            // Menu 被置为 null：必须同时清掉 manager 里的旧菜单，否则右键仍会弹出已经被移除的旧菜单
+            notifyIcon.internalNotifyIconManager.ContextMenu = null;
             return;
         }
 
         notifyIcon.OnMenuChanged(contextMenu);
+    }
+
+    private static void OnMenuFontSizeChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is not NotifyIcon notifyIcon)
+        {
+            return;
+        }
+
+        // 字号此前只在设置 Menu 时应用一次，之后修改 MenuFontSize 对已设置的菜单不生效
+        notifyIcon.internalNotifyIconManager.ContextMenu?.SetCurrentValue(Control.FontSizeProperty, (double)e.NewValue);
     }
 
     private void InitializeIcon()

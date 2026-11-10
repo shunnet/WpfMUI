@@ -18,12 +18,24 @@ public class NotifyIconService : INotifyIconService
 {
     private readonly Internal.InternalNotifyIconManager internalNotifyIconManager;
 
+    /// <summary>
+    /// Gets the window that owns the tray icon (set by <see cref="SetParentWindow"/>).
+    /// </summary>
     public Window ParentWindow { get; internal set; } = null!;
 
+    /// <summary>
+    /// Gets the identifier of the icon within the shell notification area.
+    /// </summary>
     public int Id => internalNotifyIconManager.Id;
 
+    /// <summary>
+    /// Gets a value indicating whether the icon is currently registered in the notification area.
+    /// </summary>
     public bool IsRegistered => internalNotifyIconManager.IsRegistered;
 
+    /// <summary>
+    /// Gets or sets the tooltip text; setting it refreshes the tray icon immediately.
+    /// </summary>
     public string TooltipText
     {
         get => internalNotifyIconManager.TooltipText;
@@ -34,18 +46,33 @@ public class NotifyIconService : INotifyIconService
         }
     }
 
+    /// <summary>
+    /// Gets or sets the context menu shown for the tray icon.
+    /// </summary>
     public ContextMenu? ContextMenu
     {
         get => internalNotifyIconManager.ContextMenu;
         set => internalNotifyIconManager.ContextMenu = value;
     }
 
+    /// <summary>
+    /// Gets or sets the image displayed in the notification area; setting it refreshes the tray icon immediately.
+    /// </summary>
     public ImageSource? Icon
     {
         get => internalNotifyIconManager.Icon;
-        set => internalNotifyIconManager.Icon = value;
+        set
+        {
+            internalNotifyIconManager.Icon = value;
+
+            // 与 TooltipText 一致：设置后立即刷新托盘图标（NotifyIcon 控件的 OnIconChanged 也是这样做的）
+            _ = internalNotifyIconManager.ModifyIcon();
+        }
     }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="NotifyIconService"/> class and hooks the icon's click events to the <c>On*Click</c> virtual methods.
+    /// </summary>
     public NotifyIconService()
     {
         internalNotifyIconManager = new Internal.InternalNotifyIconManager();
@@ -53,6 +80,10 @@ public class NotifyIconService : INotifyIconService
         RegisterHandlers();
     }
 
+    /// <summary>
+    /// Registers the icon in the notification area (owned by <see cref="ParentWindow"/> when one was set).
+    /// </summary>
+    /// <returns><see langword="true"/> when the icon was registered.</returns>
     public bool Register()
     {
         if (ParentWindow is not null)
@@ -63,6 +94,10 @@ public class NotifyIconService : INotifyIconService
         return internalNotifyIconManager.Register();
     }
 
+    /// <summary>
+    /// Removes the icon from the notification area.
+    /// </summary>
+    /// <returns><see langword="true"/> when the icon was removed.</returns>
     public bool Unregister()
     {
         return internalNotifyIconManager.Unregister();
@@ -73,11 +108,14 @@ public class NotifyIconService : INotifyIconService
     {
         if (ParentWindow is not null)
         {
-            ParentWindow.Closing -= OnParentWindowClosing;
+            ParentWindow.Closed -= OnParentWindowClosed;
         }
 
         ParentWindow = parentWindow;
-        ParentWindow.Closing += OnParentWindowClosing;
+
+        // 必须订阅 Closed 而不是 Closing：Closing 可以被取消（"关闭到托盘"模式下 e.Cancel = true 再隐藏窗口），
+        // 在 Closing 里释放会在窗口并没有真正关闭时就删除托盘图标并清空事件
+        ParentWindow.Closed += OnParentWindowClosed;
     }
 
     /// <summary>
@@ -110,7 +148,7 @@ public class NotifyIconService : INotifyIconService
     /// </summary>
     protected virtual void OnMiddleDoubleClick() { }
 
-    private void OnParentWindowClosing(object? sender, CancelEventArgs e)
+    private void OnParentWindowClosed(object? sender, EventArgs e)
     {
         internalNotifyIconManager.Dispose();
     }

@@ -56,13 +56,14 @@ namespace Snet.Windows.Controls.button
         /// 内容文本依赖属性<br/>
         /// 按钮上显示的文字内容
         /// </summary>
-        public static readonly DependencyProperty ContentProperty =
+        // new：有意隐藏 ContentControl.ContentProperty / Content（此处是 string 类型的同名依赖属性，XAML 中的 Content="文字" 解析到它）
+        public new static readonly DependencyProperty ContentProperty =
             DependencyProperty.Register(nameof(Content), typeof(string), typeof(ButtonControl), new PropertyMetadata(string.Empty));
 
         /// <summary>
         /// 获取或设置按钮显示的文本内容
         /// </summary>
-        public string Content
+        public new string Content
         {
             get => (string)GetValue(ContentProperty);
             set => SetValue(ContentProperty, value);

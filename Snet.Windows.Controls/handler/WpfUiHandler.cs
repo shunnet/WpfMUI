@@ -306,11 +306,20 @@ namespace Snet.Windows.Controls.handler
             }
         }
 
-        private static void Navigation_SelectionChanged(NavigationView sender, RoutedEventArgs args)
+        private static async void Navigation_SelectionChanged(NavigationView sender, RoutedEventArgs args)
         {
             //让其只触发一次
             sender.SelectionChanged -= Navigation_SelectionChanged;
-            LanguageHandler_OnLanguageEventAsync(sender, null, sender, languageModel);
+
+            // async void 仅限事件边界，且必须自己观察异常：以前这里不等待（CS4014），失败会无声丢失
+            try
+            {
+                await LanguageHandler_OnLanguageEventAsync(sender, null, sender, languageModel);
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Error($"Language update failed on first selection: {ex}", "Snet.Windows.Core", ex);
+            }
         }
 
 
@@ -328,7 +337,9 @@ namespace Snet.Windows.Controls.handler
             // 先获取 Dispatcher（navigation 是 UI 元素，肯定有）
             var dispatcher = navigation.Dispatcher;
 
-            // 切换到 UI 线程执行所有 UI 操作
+            // 切换到 UI 线程执行所有 UI 操作。
+            // InvokeAsync(async lambda) 得到的是 Task<Task>：必须 Unwrap 才会等待内层异步工作完成并观察其中的异常，
+            // 否则只等到 lambda 第一次让出，之后的失败既不会被外层 try/catch 捕获也无法被调用方等待
             await dispatcher.InvokeAsync(async () =>
             {
                 foreach (NavigationViewItem item in navigation.MenuItems)
@@ -368,7 +379,7 @@ namespace Snet.Windows.Controls.handler
                         }
                     }
                 }
-            });
+            }).Task.Unwrap();
         }
 
         /// <summary>

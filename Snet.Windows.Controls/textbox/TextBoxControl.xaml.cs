@@ -25,16 +25,18 @@ namespace Snet.Windows.Controls.textbox
         /// 必须保留此依赖属性（默认 30），否则绑定会解析到 FrameworkElement.Height（NaN/Auto），
         /// 导致控件默认高度变为内容自适应，界面高度错乱。
         /// </summary>
-        public double Height
+        public new double Height
         {
             get => (double)GetValue(HeightProperty);
             set => SetValue(HeightProperty, value);
         }
         /// <summary>
         /// 高度依赖属性<br/>
-        /// 控制文本框的高度，默认值为 30 像素
+        /// 控制文本框的高度，默认值为 30 像素。<br/>
+        /// 注意：它是与 FrameworkElement.HeightProperty 同名的另一个依赖属性（有意隐藏），XAML 中的 Height="…" 与样式 Setter 解析到本属性，
+        /// 不会改变 FrameworkElement.Height（布局系统读取的那个）；需要真正的布局高度请用 SetValue(FrameworkElement.HeightProperty, …)。
         /// </summary>
-        public static readonly DependencyProperty HeightProperty =
+        public new static readonly DependencyProperty HeightProperty =
             DependencyProperty.Register(nameof(Height), typeof(double), typeof(TextBoxControl), new PropertyMetadata(30d));
 
         /// <summary>

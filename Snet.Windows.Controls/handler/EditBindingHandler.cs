@@ -17,8 +17,10 @@ namespace Snet.Windows.Controls.handler
         /// <summary>
         /// 附加属性：可绑定的文本属性<br/>
         /// 类型：string<br/>
-        /// 默认值：string.Empty<br/>
-        /// 特性：双向绑定（BindsTwoWayByDefault）
+        /// 元数据默认值：null（<see cref="GetEditText"/> 仍以 string.Empty 返回，调用方永远拿不到 null）<br/>
+        /// 特性：双向绑定（BindsTwoWayByDefault）<br/>
+        /// 默认值刻意不用 string.Empty：属性变更回调只在有效值发生变化时触发，
+        /// 绑定源的初值恰好是空串时，值与默认值相同、回调不会触发，TextChanged 就永远不会被订阅，用户输入也就不会回写到绑定源。
         /// </summary>
         public static readonly DependencyProperty EditTextProperty =
             DependencyProperty.RegisterAttached(
@@ -26,7 +28,7 @@ namespace Snet.Windows.Controls.handler
                 typeof(string),
                 typeof(EditBindingHandler),
                 new FrameworkPropertyMetadata(
-                    string.Empty,
+                    null,
                     FrameworkPropertyMetadataOptions.BindsTwoWayByDefault,
                     OnEditTextChanged));
 
@@ -35,9 +37,9 @@ namespace Snet.Windows.Controls.handler
         /// 用于从 XAML 或后端代码中读取绑定值。
         /// </summary>
         /// <param name="obj">AvalonEdit 控件对象</param>
-        /// <returns>当前绑定的文本内容</returns>
+        /// <returns>当前绑定的文本内容；未设置时为 string.Empty</returns>
         public static string GetEditText(DependencyObject obj)
-            => (string)obj.GetValue(EditTextProperty);
+            => (string?)obj.GetValue(EditTextProperty) ?? string.Empty;
 
         /// <summary>
         /// 设置 AvalonEdit 控件的绑定文本值<br/>

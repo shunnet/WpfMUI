@@ -93,7 +93,14 @@ namespace Snet.Windows.Controls.edit.Search
                 if (offset <= index && endOffset >= resultEndOffset)
                 {
                     if (!matchWholeWords || (IsWordBorder(document, index) && IsWordBorder(document, resultEndOffset)))
-                        yield return new SearchResult { StartOffset = index, Length = literalSearchPattern.Length, Data = null };
+                        yield return new SearchResult
+                        {
+                            StartOffset = index,
+                            Length = literalSearchPattern.Length,
+                            Data = null,
+                            // 区分大小写时匹配文本就是模式本身（不分配）；忽略大小写时取文档中的实际文本，供 ReplaceWith 的 $& 等替换使用
+                            LiteralMatch = comparison == StringComparison.Ordinal ? literalSearchPattern : text.Substring(index, literalSearchPattern.Length)
+                        };
                 }
                 // 推进 searchOffset 到匹配之后（而非 +1），避免产生重叠匹配：
                 // "aa" 在 "aaa" 中应返回 1 个结果（与旧 Regex.Escape 实现一致），而非 2 个。
@@ -131,9 +138,20 @@ namespace Snet.Windows.Controls.edit.Search
     {
         public Match Data { get; set; }
 
+        /// <summary>
+        /// 字面量快速路径的匹配文本（此时 <see cref="Data"/> 为 null）。
+        /// </summary>
+        public string LiteralMatch { get; set; }
+
         public string ReplaceWith(string replacement)
         {
-            return Data.Result(replacement);
+            if (Data != null)
+                return Data.Result(replacement);
+
+            // 字面量快速路径没有 Match 对象（以前这里会抛 NullReferenceException）：
+            // 对已匹配的文本构造等价的转义正则并求值，保持与正则路径一致的 "$" 替换语义（$&、$$ 等）。
+            string matched = LiteralMatch ?? string.Empty;
+            return Regex.Match(matched, Regex.Escape(matched)).Result(replacement);
         }
     }
 }
