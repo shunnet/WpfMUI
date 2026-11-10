@@ -147,8 +147,13 @@ namespace Snet.Windows.Core.handler
         #region 公共方法
 
         /// <summary>
-        /// 设置指定皮肤类型的主题样式并保存
+        /// 设置指定皮肤类型的主题样式并保存。<br/>
+        /// 执行顺序：替换主题资源字典 → 更新 MaterialDesign / Wpf.Ui 主题 → 持久化到本地配置 → （notice 为 true 时）通知订阅者，
+        /// 因此订阅者回调中调用 <see cref="GetSkin"/> 读到的已是新皮肤。<br/>
+        /// MaterialDesign / Wpf.Ui 主题对象绑定 UI 线程，应在 UI 线程调用。
         /// </summary>
+        /// <param name="skinType">目标皮肤类型</param>
+        /// <param name="notice">是否触发 <see cref="OnSkinEvent"/> / <see cref="OnSkinEventAsync"/> 通知</param>
         public static void SetSkin(SkinType skinType, bool notice = true)
         {
             // 使用缓存的资源 URI，避免每次切换时重复拼接字符串
@@ -180,6 +185,18 @@ namespace Snet.Windows.Core.handler
             // 修改 Wpf.Ui 主题
             UpdateWpfUI(skinType);
 
+            // 先持久化、后通知（与 LanguageHandler.SetLanguage 的顺序一致）：事件订阅者在回调中通过 GetSkin() 读取配置，
+            // 通知先于保存时读到的仍是旧皮肤；同步订阅者抛出的异常也会跳过后面的保存，造成界面已切换而配置未更新。
+            // Save 失败（目录只读等）只记录日志，不能阻断订阅者收到主题切换通知。
+            try
+            {
+                Save(skinType);
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Error($"Skin save failed: {ex}", "Snet.Windows.Core", ex);
+            }
+
             //是否通知
             if (notice)
             {
@@ -188,17 +205,6 @@ namespace Snet.Windows.Core.handler
                     Snet.Core.handler.LanguageHandler.GetLanguageValue("皮肤设置成功", _skinLanguageModel) ?? string.Empty,
                     skinType);
                 ObserveSkinEvent(OnSkinEventHandlerAsync(skinType == SkinType.Dark ? "#505050" : "#F5F5F5", eventArgs));
-            }
-
-            // 持久化放在通知之后（与旧行为一致）：Save 失败不应阻断订阅者收到主题切换通知，
-            // 否则界面已切换但订阅者未更新，产生界面与持久化状态不一致。
-            try
-            {
-                Save(skinType);
-            }
-            catch (Exception ex)
-            {
-                LogHelper.Error($"Skin save failed: {ex}", "Snet.Windows.Core", ex);
             }
         }
 
@@ -226,7 +232,8 @@ namespace Snet.Windows.Core.handler
             if (oldDict != null && newSource == oldDict.Source)
                 return;
 
-            // 移除旧资源（若存在）
+            // 移除旧资源（若存在），并记住它所在的位置
+            int replaceIndex = -1;
             if (oldDict?.Source != null)
             {
                 for (int i = dictionaries.Count - 1; i >= 0; i--)
@@ -234,6 +241,7 @@ namespace Snet.Windows.Core.handler
                     if (dictionaries[i].Source == oldDict.Source)
                     {
                         dictionaries.RemoveAt(i);
+                        replaceIndex = i;
                         break; // 找到就退出
                     }
                 }
@@ -247,7 +255,13 @@ namespace Snet.Windows.Core.handler
                     if (dictionaries[i].Source == newSource)
                         return; // 已存在，直接退出
                 }
-                dictionaries.Add(newDict);
+
+                // 替换时保持旧字典原来的位置：合并字典靠后者优先，若追加到末尾，
+                // 换肤后主题会反过来覆盖宿主应用在它之后合并的资源字典（原先宿主的覆盖会失效）
+                if (replaceIndex >= 0 && replaceIndex <= dictionaries.Count)
+                    dictionaries.Insert(replaceIndex, newDict);
+                else
+                    dictionaries.Add(newDict);
             }
         }
 

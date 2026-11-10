@@ -11,13 +11,13 @@ namespace Snet.Windows.Core.data
     public class EventSkinResult : EventArgsAsync
     {
         /// <summary>
-        /// 事件语言结果；<br/>
+        /// 事件皮肤结果；<br/>
         /// 无参构造函数
         /// </summary>
         public EventSkinResult() { }
 
         /// <summary>
-        /// 事件语言结果；<br/>
+        /// 事件皮肤结果；<br/>
         /// 有参构造函数
         /// </summary>
         /// <param name="result">事件信息结果</param>
@@ -30,7 +30,7 @@ namespace Snet.Windows.Core.data
         }
 
         /// <summary>
-        /// 事件语言结果；<br/>
+        /// 事件皮肤结果；<br/>
         /// 有参构造函数
         /// </summary>
         /// <param name="status">状态</param>
@@ -53,7 +53,7 @@ namespace Snet.Windows.Core.data
         public string? Message { get; set; }
 
         /// <summary>
-        /// 语言类型
+        /// 皮肤类型
         /// </summary>
         [JsonConverter(typeof(JsonStringEnumConverter))]
         public SkinType? Skin { get; set; }

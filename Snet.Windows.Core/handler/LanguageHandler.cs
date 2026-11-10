@@ -1,4 +1,5 @@
 using Snet.Core.handler;
+using Snet.Log;
 using Snet.Model.@enum;
 using Snet.Utility;
 using Snet.Windows.Core.data;
@@ -183,18 +184,28 @@ namespace Snet.Windows.Core.handler
             // 设置当前线程文化
             Snet.Windows.Core.localize.wpf.Engine.LocalizeDictionary.Instance.Culture = CultureInfo.GetCultureInfo(languageType.ToString());
 
-            // 确保路径存在
-            if (!Directory.Exists(WindowHandler.BasePath))
+            // 保存配置到本地文件（必须在语言切换事件之前：事件订阅者通过 GetLanguage() 读取语言文件，
+            // 若文件最后写入会读到旧语言，导致属性框等界面显示滞后/错乱）。
+            // 持久化是"尽力而为"：配置目录不可写（只读安装目录、权限不足、路径被文件占用等）时，
+            // 不能让语言切换以及 WindowBase 构造函数抛出异常；此时语言只在本进程内生效。
+            try
             {
-                Directory.CreateDirectory(WindowHandler.BasePath);
+                // 确保路径存在
+                if (!Directory.Exists(WindowHandler.BasePath))
+                {
+                    Directory.CreateDirectory(WindowHandler.BasePath);
+                }
+
+                UseLanguageModel model = new UseLanguageModel(languageType);
+                File.WriteAllText(path_language, model.ToJson());
+            }
+            catch (Exception ex) when (IsPersistFailure(ex))
+            {
+                LogPersistFailure(ex);
             }
 
-            // 保存配置到本地文件（必须在语言切换事件之前：事件订阅者通过 GetLanguage() 读取语言文件，
-            // 若文件最后写入会读到旧语言，导致属性框等界面显示滞后/错乱）
-            UseLanguageModel model = new UseLanguageModel(languageType);
-            File.WriteAllText(path_language, model.ToJson());
-
-            // 写文件后同步更新缓存，避免下次 GetLanguage 重复读文件
+            // 同步更新缓存，避免下次 GetLanguage 重复读文件
+            // （文件未能写入时缓存记录的文件状态不变，本进程内 GetLanguage() 仍返回刚设置的语言）
             UpdateLanguageCache(languageType);
 
             // 最后通知核心语言模块更新语言（触发所有语言事件订阅者，此时文件与内存均已是新语言）
@@ -209,26 +220,70 @@ namespace Snet.Windows.Core.handler
         /// <returns>成功与失败</returns>
         public static async Task SetLanguageAsync(LanguageType languageType, CancellationToken token = default)
         {
-            // 设置当前线程文化
-            Snet.Windows.Core.localize.wpf.Engine.LocalizeDictionary.Instance.Culture = CultureInfo.GetCultureInfo(languageType.ToString());
-
-            // 确保路径存在
-            if (!Directory.Exists(WindowHandler.BasePath))
-            {
-                Directory.CreateDirectory(WindowHandler.BasePath);
-            }
+            // 先检查取消，再做任何有副作用的操作：已取消的调用不得改变当前文化
+            token.ThrowIfCancellationRequested();
 
             // 保存配置到本地文件（必须在语言切换事件之前：事件订阅者通过 GetLanguage() 读取语言文件，
-            // 若文件最后写入会读到旧语言，导致属性框等界面显示滞后/错乱）
-            UseLanguageModel model = new UseLanguageModel(languageType);
-            await File.WriteAllTextAsync(path_language, model.ToJson(), token);
+            // 若文件最后写入会读到旧语言，导致属性框等界面显示滞后/错乱）。
+            // 先持久化、再切换文化：写入过程中被取消时（OperationCanceledException 会继续向上传播）
+            // 不会留下"文化已切换、配置与事件却未更新"的半应用状态。
+            // 与同步版本一致，持久化是"尽力而为"，配置目录不可写时语言只在本进程内生效。
+            try
+            {
+                // 确保路径存在
+                if (!Directory.Exists(WindowHandler.BasePath))
+                {
+                    Directory.CreateDirectory(WindowHandler.BasePath);
+                }
+
+                UseLanguageModel model = new UseLanguageModel(languageType);
+                await File.WriteAllTextAsync(path_language, model.ToJson(), token);
+            }
+            catch (Exception ex) when (IsPersistFailure(ex))
+            {
+                LogPersistFailure(ex);
+            }
 
             // 写文件后同步更新缓存，避免下次 GetLanguage 重复读文件
             UpdateLanguageCache(languageType);
 
+            // 设置当前线程文化
+            Snet.Windows.Core.localize.wpf.Engine.LocalizeDictionary.Instance.Culture = CultureInfo.GetCultureInfo(languageType.ToString());
+
             // 最后通知核心语言模块更新语言（触发所有语言事件订阅者，此时文件与内存均已是新语言）
             await languageType.SetLanguageAsync(token);
         }
+
+        #region 持久化失败处理
+
+        /// <summary>
+        /// 是否已记录过"语言配置无法持久化"的错误（0 = 否，1 = 是）。
+        /// WindowBase 每次构造都会调用 SetLanguage，进程内只记录一次以免刷屏；通过 Interlocked 原子置位，无需加锁。
+        /// </summary>
+        private static int _persistFailureLogged;
+
+        /// <summary>
+        /// 判断异常是否属于"配置文件/目录无法写入"一类可恢复的环境问题。
+        /// OperationCanceledException、编程错误等其它异常不属于此类，必须继续向上传播。
+        /// </summary>
+        /// <param name="ex">捕获的异常</param>
+        /// <returns>是可恢复的持久化失败返回 true</returns>
+        private static bool IsPersistFailure(Exception ex) =>
+            ex is IOException or UnauthorizedAccessException or NotSupportedException or System.Security.SecurityException;
+
+        /// <summary>
+        /// 记录语言配置无法持久化的错误（进程内仅一次）。
+        /// </summary>
+        /// <param name="ex">导致持久化失败的异常</param>
+        private static void LogPersistFailure(Exception ex)
+        {
+            if (Interlocked.Exchange(ref _persistFailureLogged, 1) == 0)
+            {
+                LogHelper.Error($"Language setting could not be saved to '{path_language}'; the new language only applies to the current process: {ex.Message}", "Snet.Windows.Core", ex);
+            }
+        }
+
+        #endregion
 
         #region 语言缓存辅助方法
 

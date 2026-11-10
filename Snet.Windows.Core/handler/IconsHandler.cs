@@ -1,5 +1,7 @@
-﻿using Snet.Windows.Core.data;
+﻿using Snet.Log;
+using Snet.Windows.Core.data;
 using System.Collections.Concurrent;
+using System.Runtime.ExceptionServices;
 using System.Windows;
 using System.Windows.Media;
 
@@ -49,32 +51,41 @@ namespace Snet.Windows.Core.handler
         /// </summary>
         /// <param name="key">资源字典中的 Key</param>
         /// <param name="path">资源路径 (支持 pack://application 或本地绝对/相对路径)</param>
-        /// <returns>返回对应的 DrawingImage；若未找到则返回 null</returns>
+        /// <returns>返回对应的 DrawingImage；未找到时抛出 <see cref="KeyNotFoundException"/>，不会返回 null</returns>
         /// <exception cref="KeyNotFoundException">资源文件中不存在该 Key</exception>
+        /// <remarks>
+        /// 返回的 DrawingImage 含 DynamicResource 画刷，无法冻结，归创建它的线程所有（其它线程访问会抛出 InvalidOperationException）。<br/>
+        /// 因此共享缓存只服务 UI 线程：在 UI 线程调用时读写缓存；在其它线程调用时每次都会新建一份该线程私有的实例，
+        /// 不读取也不写入缓存，该实例只能在调用它的线程使用。这样后台线程的首次调用不会把"归后台线程所有"的对象
+        /// 放进缓存，使之后 UI 线程取到无法使用的图标。需要在界面上显示，请在 UI 线程调用。
+        /// </remarks>
         public static DrawingImage? GetIcon(string key, string? path = null)
         {
+            // 没有 WPF 应用程序（Application.Current 为 null）时按 UI 线程处理，保持原有行为
+            var app = Application.Current;
+            bool onUiThread = app == null || app.Dispatcher.CheckAccess();
+
             //使用默认路径
             path ??= resourcePath;
 
             // 组合缓存键（路径 + Key）
             string cacheKey = $"{path}|{key}";
 
-            // 1. 优先命中图标缓存（性能最佳路径）
-            if (cache.TryGetValue(cacheKey, out var cachedIcon))
+            // 1. 优先命中图标缓存（性能最佳路径）；缓存只属于 UI 线程
+            if (onUiThread && cache.TryGetValue(cacheKey, out var cachedIcon))
                 return cachedIcon;
 
-            // 2. 获取资源文件（若未加载则加载并缓存）
-            var dict = dictCache.GetOrAdd(path, p =>
-            {
-                var uri = new Uri(p, UriKind.RelativeOrAbsolute);
-                return new ResourceDictionary { Source = uri };
-            });
+            // 2. 获取资源文件（UI 线程：若未加载则加载并缓存；其它线程：使用线程私有的字典，不共享）
+            ResourceDictionary dict = onUiThread
+                ? dictCache.GetOrAdd(path, p => new ResourceDictionary { Source = new Uri(p, UriKind.RelativeOrAbsolute) })
+                : new ResourceDictionary { Source = new Uri(path, UriKind.RelativeOrAbsolute) };
 
             // 3. 直接索引查找（避免 Contains + 二次索引开销）
             if (dict[key] is DrawingImage icon)
             {
                 // 4. 命中后缓存图标，加速下次查找
-                cache[cacheKey] = icon;
+                if (onUiThread)
+                    cache[cacheKey] = icon;
                 return icon;
             }
 
@@ -105,7 +116,18 @@ namespace Snet.Windows.Core.handler
         {
             // 直接同步调用，避免 .GetAwaiter().GetResult() 在 UI 线程上造成死锁
             resourceFileCache[resourceFile] = resourceFile;
-            HandlerAsync();
+            Task task = HandlerAsync();
+
+            // 在 UI 线程调用时 HandlerAsync 同步执行，加载失败的异常直接抛给调用方；
+            // 在其他线程调用时工作被投递到 UI 线程、本方法不等待，必须观察失败，否则异常会无声丢失
+            if (!task.IsCompleted)
+            {
+                task.ContinueWith(
+                    t => LogHelper.Error($"IconsHandler 加载外部图标失败：{t.Exception?.GetBaseException().Message}", "Snet.Windows.Core", t.Exception),
+                    CancellationToken.None,
+                    TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously,
+                    TaskScheduler.Default);
+            }
         }
 
         /// <summary>
@@ -162,39 +184,62 @@ namespace Snet.Windows.Core.handler
             var oldResource = firstLevel.MergedDictionaries
                 .FirstOrDefault(d => d.Source != null && d.Source.OriginalString == resourcePath);
 
-            if (oldResource != null)
-            {
-                firstLevel.MergedDictionaries.Remove(oldResource);
-            }
-
-            // 构造新主资源字典
+            // 先在不触碰现有资源的前提下构造完整的新主资源字典，成功后再一次性替换旧字典：
+            // 原先"先移除旧字典、再解析外部文件"的顺序，会在外部资源文件缺失/损坏而抛异常时丢掉全部内置图标
             var mainDict = new ResourceDictionary
             {
                 Source = new Uri(resourcePath, UriKind.RelativeOrAbsolute)
             };
 
             // 将缓存资源合并入新主字典
+            Exception? firstFailure = null;
             foreach (var item in resourceFileCache)
             {
-                var tempDict = new ResourceDictionary
+                try
                 {
-                    Source = new Uri(item.Value, UriKind.RelativeOrAbsolute)
-                };
+                    var tempDict = new ResourceDictionary
+                    {
+                        Source = new Uri(item.Value, UriKind.RelativeOrAbsolute)
+                    };
 
-                foreach (var pair in GetAllDrawingImages(tempDict))
+                    foreach (var pair in GetAllDrawingImages(tempDict))
+                    {
+                        string key = pair.Key;
+                        DrawingImage image = pair.Value;
+
+                        // 使用索引覆盖写入更高效
+                        mainDict[key] = image;
+                    }
+                }
+                catch (Exception ex)
                 {
-                    string key = pair.Key;
-                    DrawingImage image = pair.Value;
-
-                    // 使用索引覆盖写入更高效
-                    mainDict[key] = image;
+                    // 无法加载的外部资源文件必须从缓存移除，否则这个"毒化条目"会让之后每一次换肤都失败
+                    resourceFileCache.TryRemove(item.Key, out _);
+                    firstFailure ??= ex;
                 }
             }
 
-            // 合并资源（只修改这一块资源，不影响全局）
+            // 合并资源（只修改这一块资源，不影响全局）：移除与添加放在同一对 BeginInit/EndInit 之间，
+            // 只触发一次资源失效，也不会出现"图标暂时消失"的中间状态
             app.Resources.BeginInit();
-            firstLevel.MergedDictionaries.Add(mainDict);
-            app.Resources.EndInit();
+            try
+            {
+                if (oldResource != null)
+                {
+                    firstLevel.MergedDictionaries.Remove(oldResource);
+                }
+                firstLevel.MergedDictionaries.Add(mainDict);
+            }
+            finally
+            {
+                app.Resources.EndInit();
+            }
+
+            // 内置图标已完整恢复；仍把外部文件的加载失败告知调用方（保持原异常类型与堆栈）
+            if (firstFailure != null)
+            {
+                ExceptionDispatchInfo.Capture(firstFailure).Throw();
+            }
 
             return Task.CompletedTask;
         }

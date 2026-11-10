@@ -59,11 +59,34 @@ namespace Snet.Windows.Core.handler
             if (cache)
             {
                 instanceCache[typeof(T)] = instance;
+                EvictWhenClosed(typeof(T), instance, instanceCache);
                 AddService(services => services.AddSingleton(instance));
                 AddService(services => services.AddSingleton(viewModel));
             }
 
             return instance;
+        }
+
+        /// <summary>
+        /// 缓存的窗口关闭后从缓存中移除。<br/>
+        /// 已关闭的 Window 无法再次 Show（抛出 InvalidOperationException），而缓存的强引用还会让整个视觉树与视图模型
+        /// 一直存活到进程结束；移除后再次以 cache = true 注入会得到新的窗口实例。非窗口类型（页面、用户控件）不受影响。
+        /// </summary>
+        /// <param name="key">缓存键（注入的目标类型）</param>
+        /// <param name="instance">刚写入缓存的实例</param>
+        /// <param name="instanceCache">所属缓存</param>
+        private static void EvictWhenClosed(Type key, System.Windows.FrameworkElement instance, ConcurrentDictionary<Type, System.Windows.FrameworkElement> instanceCache)
+        {
+            if (instance is not System.Windows.Window window) return;
+
+            void OnClosed(object? sender, EventArgs e)
+            {
+                window.Closed -= OnClosed;
+                // 只移除仍指向这个实例的条目：缓存可能已被同类型的新实例覆盖
+                instanceCache.TryRemove(new KeyValuePair<Type, System.Windows.FrameworkElement>(key, window));
+            }
+
+            window.Closed += OnClosed;
         }
 
         /// <summary>
@@ -148,8 +171,9 @@ namespace Snet.Windows.Core.handler
                 // 说明是第一次缓存，则设置缓存
                 if (cache)
                 {
-                    // 设置缓存
+                    // 设置缓存（窗口关闭后自动移除）
                     WindowCache[typeof(T)] = instance;
+                    EvictWhenClosed(typeof(T), instance, WindowCache);
                     //覆盖之前的注入
                     await AddServiceAsync(s => s.AddSingleton<T>(instance), token);
                     await AddServiceAsync(s => s.AddSingleton<M>(viewModel), token);
@@ -157,6 +181,11 @@ namespace Snet.Windows.Core.handler
 
                 //返回新的实例
                 return instance;
+            }
+            catch (OperationCanceledException)
+            {
+                // 取消必须保持 OperationCanceledException 语义，不能被包装成普通 Exception 而被调用方当成失败处理
+                throw;
             }
             catch (Exception ex)
             {
@@ -256,6 +285,11 @@ namespace Snet.Windows.Core.handler
                 //返回新的实例
                 return instance;
             }
+            catch (OperationCanceledException)
+            {
+                // 取消必须保持 OperationCanceledException 语义，不能被包装成普通 Exception 而被调用方当成失败处理
+                throw;
+            }
             catch (Exception ex)
             {
                 throw new Exception($"注入用户控件异常：{ex.Message}", ex);
@@ -353,6 +387,11 @@ namespace Snet.Windows.Core.handler
 
                 //返回新的实例
                 return instance;
+            }
+            catch (OperationCanceledException)
+            {
+                // 取消必须保持 OperationCanceledException 语义，不能被包装成普通 Exception 而被调用方当成失败处理
+                throw;
             }
             catch (Exception ex)
             {
