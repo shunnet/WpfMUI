@@ -200,7 +200,7 @@ namespace Snet.Windows.Test
         {
             control.ButtonVisibility = System.Windows.Visibility.Visible;
             control.SetBasics(basics);
-            if ((await DialogHost.Show(control, "DialogHost")).ToBool())
+            if ((await Snet.Windows.Core.handler.DialogHandler.ShowAsync(control)).ToBool())
             {
                 var data = control.GetBasics().GetSource<TcpServiceData.Basics>();
 

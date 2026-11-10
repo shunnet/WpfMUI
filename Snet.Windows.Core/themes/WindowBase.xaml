@@ -14,7 +14,11 @@
         x:Key="WindowBaseStyle"
         BasedOn="{StaticResource {x:Type Window}}"
         TargetType="{x:Type sv:WindowBase}">
-        <Setter Property="AllowsTransparency" Value="False" />
+        <!--
+            不在样式中设置 AllowsTransparency（其默认值本来就是 False）：以代码方式创建、未经 InitializeComponent 的窗口，
+            样式会在 Show() 创建窗口句柄之后才被应用，此时对 AllowsTransparency 的任何重新求值都会抛出
+            InvalidOperationException（Cannot change AllowsTransparency after a Window has been shown）。
+        -->
         <Setter Property="Window.WindowStyle" Value="SingleBorderWindow" />
         <Setter Property="Background" Value="{DynamicResource WindowBackgroundBrush}" />
         <Setter Property="Foreground" Value="{DynamicResource MaterialDesign.Brush.Foreground}" />
@@ -326,7 +330,7 @@
                                         CloseOnClickAway="False"
                                         DialogContentUniformCornerRadius="{DynamicResource WindowCornerRadius_Double}"
                                         DialogTheme="Inherit"
-                                        Identifier="DialogHost">
+                                        Identifier="{TemplateBinding DialogHostIdentifier}">
                                         <ui:DialogHost.InputBindings>
                                             <KeyBinding Key="Enter" Command="{x:Static ui:DialogHost.CloseDialogCommand}">
                                                 <KeyBinding.CommandParameter>
@@ -356,7 +360,7 @@
                                         CloseOnClickAway="True"
                                         DialogContentUniformCornerRadius="{DynamicResource WindowCornerRadius_Double}"
                                         DialogTheme="Inherit"
-                                        Identifier="DialogHost_ClickClose">
+                                        Identifier="{TemplateBinding DialogHostClickCloseIdentifier}">
                                         <ui:DialogHost.InputBindings>
                                             <KeyBinding Key="Enter" Command="{x:Static ui:DialogHost.CloseDialogCommand}">
                                                 <KeyBinding.CommandParameter>

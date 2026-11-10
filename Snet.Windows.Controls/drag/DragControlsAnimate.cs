@@ -665,7 +665,9 @@ namespace Snet.Windows.Controls.drag
                 }, ok);
                 cancel.Click += (_, _) => DialogHost.CloseDialogCommand.Execute(null, cancel);
 
-                var result = await DialogHost.Show(content, "DialogHost");
+                // 显示在副本所在窗口自己的 DialogHost 里（每个 WindowBase 的标识符各不相同，传统名称只属于最早的可见窗口），
+                // 并且与消息框等其它对话框共用同一个队列：这时已经有对话框打开的话排队等待，不再抛出 "DialogHost is already open"
+                var result = await Snet.Windows.Core.handler.DialogHandler.ShowAsync(content, copy);
                 if (result is not SettingsResult settings) return;
 
                 SetSN(copy, string.IsNullOrWhiteSpace(settings.SN) ? null : settings.SN);

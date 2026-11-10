@@ -76,6 +76,26 @@ namespace Snet.Windows.Core
         public static readonly DependencyProperty MaximizeBorderThicknessProperty =
             DependencyProperty.Register("MaximizeBorderThickness", typeof(Thickness), typeof(WindowBase), new UIPropertyMetadata(new Thickness(0)));
 
+        private static readonly DependencyPropertyKey DialogHostIdentifierPropertyKey =
+            DependencyProperty.RegisterReadOnly(nameof(DialogHostIdentifier), typeof(string), typeof(WindowBase),
+                new PropertyMetadata(DialogHostRegistry.LegacyIdentifier));
+
+        /// <summary>
+        /// 本窗口模板中主 DialogHost（不可点击空白处关闭）的标识符（只读依赖属性）。<br/>
+        /// 同时打开多个窗口时每个窗口都有各自唯一的标识符；传统名称 <c>DialogHost</c> 归最早创建且已加载并可见的窗口所有，
+        /// 它关闭或隐藏后自动移交（它的 DialogHost 里正开着对话框时暂不移交），所以该属性的值可能随时间变化——请在显示对话框时取值（或用 <see cref="GetDialogHostIdentifier"/>），不要缓存。
+        /// </summary>
+        public static readonly DependencyProperty DialogHostIdentifierProperty = DialogHostIdentifierPropertyKey.DependencyProperty;
+
+        private static readonly DependencyPropertyKey DialogHostClickCloseIdentifierPropertyKey =
+            DependencyProperty.RegisterReadOnly(nameof(DialogHostClickCloseIdentifier), typeof(string), typeof(WindowBase),
+                new PropertyMetadata(DialogHostRegistry.LegacyIdentifier + DialogHostRegistry.ClickCloseSuffix));
+
+        /// <summary>
+        /// 本窗口模板中第二个 DialogHost（点击空白处即关闭）的标识符（只读依赖属性），等于 <see cref="DialogHostIdentifier"/> 加 <c>_ClickClose</c>。
+        /// </summary>
+        public static readonly DependencyProperty DialogHostClickCloseIdentifierProperty = DialogHostClickCloseIdentifierPropertyKey.DependencyProperty;
+
         #endregion
 
         #region 控件字段
@@ -90,6 +110,7 @@ namespace Snet.Windows.Core
         private FrameworkElement? ver;            // 版本元素
         private HwndSource? _hwndSource;          // 窗口句柄源（用于设置合成背景色）
         private IntPtr _hBrush;                   // 缓存的 Win32 背景画刷句柄
+        private readonly string _dialogHostUniqueIdentifier; // 本窗口唯一的 DialogHost 标识符（见 DialogHostRegistry）
 
         #endregion
 
@@ -117,6 +138,14 @@ namespace Snet.Windows.Core
             SkinCommand = new AsyncRelayCommand(OnSkinCommandAsync);
             this.Loaded += OnLoaded;
             this.SourceInitialized += OnSourceInitialized;
+
+            // 每个窗口的 DialogHost 使用各自唯一的标识符，避免同时打开多个窗口时 DialogHost.Show 抛出 "Multiple viable DialogHosts"；
+            // 传统名称 "DialogHost" 在窗口加载/关闭/可见性变化时由 DialogHostRegistry 分配给最早的可见窗口
+            _dialogHostUniqueIdentifier = DialogHostRegistry.NewUniqueIdentifier();
+            ApplyDialogHostIdentifier(_dialogHostUniqueIdentifier);
+            DialogHostRegistry.Register(this);
+            this.IsVisibleChanged += (_, _) => DialogHostRegistry.Refresh();
+
             Application.Current.Dispatcher.InvokeAsync(() =>
             {
                 // 设置初始皮肤
@@ -192,13 +221,18 @@ namespace Snet.Windows.Core
         /// <param name="e">路由事件参数</param>
         private void OnLoaded(object sender, RoutedEventArgs e)
         {
-            //设置统一圆角
+            // 窗口已加载：重新分配 DialogHost 标识符（最早的可见窗口持有传统名称 "DialogHost"）
+            DialogHostRegistry.Refresh();
+
+            //设置统一圆角（资源缺失时保持主题默认值，不让加载事件因类型转换异常而失败）
             var resources = Application.Current.Resources;
-            double value = (double)resources["WindowCornerRadius_Double"];
-            resources["TopCornerRadius"] = new CornerRadius(value, value, 0, 0);
-            resources["DownCornerRadius"] = new CornerRadius(0, 0, value, value);
-            resources["CloseCornerRadius"] = new CornerRadius(0, value, 0, 0);
-            resources["WindowCornerRadius"] = new CornerRadius(value);
+            if (resources["WindowCornerRadius_Double"] is double value)
+            {
+                SetResourceIfChanged(resources, "TopCornerRadius", new CornerRadius(value, value, 0, 0));
+                SetResourceIfChanged(resources, "DownCornerRadius", new CornerRadius(0, 0, value, value));
+                SetResourceIfChanged(resources, "CloseCornerRadius", new CornerRadius(0, value, 0, 0));
+                SetResourceIfChanged(resources, "WindowCornerRadius", new CornerRadius(value));
+            }
 
             // 修改注册表优化显示效果
             UpdateRegistry();
@@ -230,6 +264,20 @@ namespace Snet.Windows.Core
             }
             LogHelper.Verbose(message);
 #endif
+        }
+
+        /// <summary>
+        /// 仅当值发生变化时才写入应用资源。<br/>
+        /// 每次写入应用级资源都会使整个应用的 DynamicResource 失效并重新求值，
+        /// 而这些圆角值对所有窗口相同，后续窗口加载时无需重复写入。
+        /// </summary>
+        /// <param name="resources">应用资源字典</param>
+        /// <param name="key">资源键</param>
+        /// <param name="value">目标圆角值</param>
+        private static void SetResourceIfChanged(ResourceDictionary resources, string key, CornerRadius value)
+        {
+            if (resources[key] is CornerRadius current && current == value) return;
+            resources[key] = value;
         }
 
         /// <summary>
@@ -311,9 +359,49 @@ namespace Snet.Windows.Core
             set => SetValue(MaximizeBorderThicknessProperty, value);
         }
 
+        /// <summary>
+        /// 获取本窗口主 DialogHost（不可点击空白处关闭）的标识符。<br/>
+        /// 同时打开多个窗口时每个窗口的标识符各不相同；传统名称 <c>DialogHost</c> 归最早创建且已加载并可见的窗口所有，
+        /// 它关闭或隐藏后自动移交给下一个窗口（它的 DialogHost 里正开着对话框时暂不移交），所以值可能随时间变化，请在显示对话框时取值，不要缓存。
+        /// </summary>
+        public string DialogHostIdentifier => (string)GetValue(DialogHostIdentifierProperty);
+
+        /// <summary>
+        /// 获取本窗口第二个 DialogHost（点击空白处即关闭）的标识符，等于 <see cref="DialogHostIdentifier"/> 加 <c>_ClickClose</c>。
+        /// </summary>
+        public string DialogHostClickCloseIdentifier => (string)GetValue(DialogHostClickCloseIdentifierProperty);
+
+        /// <summary>本窗口唯一的 DialogHost 标识符（不随传统名称的移交而变化）</summary>
+        internal string DialogHostUniqueIdentifier => _dialogHostUniqueIdentifier;
+
+        /// <summary>
+        /// 本窗口 DialogHost 的异步显示门（见 <see cref="DialogHandler"/>）：同一个窗口同一时刻只能显示一个对话框，显示请求在这里排队；窗口关闭时被关闭
+        /// </summary>
+        internal DialogGate ShowGate { get; } = new();
+
+        /// <summary>
+        /// 应用 DialogHost 标识符（由 <see cref="DialogHostRegistry"/> 调用）；同时更新点击空白关闭的那个 DialogHost 的标识符。
+        /// </summary>
+        /// <param name="identifier">主 DialogHost 的标识符</param>
+        internal void ApplyDialogHostIdentifier(string identifier)
+        {
+            SetValue(DialogHostIdentifierPropertyKey, identifier);
+            SetValue(DialogHostClickCloseIdentifierPropertyKey, identifier + DialogHostRegistry.ClickCloseSuffix);
+        }
+
         #endregion
 
         #region 公共方法
+
+        /// <summary>
+        /// 解析应使用的 DialogHost 标识符，用于 <c>DialogHost.Show(content, identifier)</c>。<br/>
+        /// <paramref name="element"/> 所在窗口是 WindowBase 时返回该窗口的标识符；否则回退到当前活动窗口，再回退到持有传统名称 <c>DialogHost</c> 的窗口；
+        /// 没有任何已加载的 WindowBase 时返回 <c>DialogHost</c>。必须在 UI 线程调用，并且每次显示对话框时都重新取值。<br/>
+        /// 要显示对话框请优先用 <see cref="DialogHandler.ShowAsync(object, DependencyObject?, CancellationToken)"/>：它在目标窗口里排队显示，不会抛出 “DialogHost is already open”。
+        /// </summary>
+        /// <param name="element">界面元素（如发起对话框的视图）；为 null 时使用活动窗口</param>
+        /// <returns>DialogHost 标识符</returns>
+        public static string GetDialogHostIdentifier(DependencyObject? element = null) => DialogHostRegistry.Resolve(element);
 
         /// <summary>
         /// 窗口抖动效果（用于提示用户注意，如输入错误时）。<br/>
@@ -392,36 +480,86 @@ namespace Snet.Windows.Core
             base.OnSourceInitialized(e);
         }
 
+        /// <summary>
+        /// 窗口所在显示器的 DPI 发生变化（跨显示器拖动、系统缩放比例变更；仅 Per-Monitor DPI 感知的进程会触发）时调用。<br/>
+        /// 同步缓存的 DPI 比例并重算最大化补偿内边距，否则 WM_GETMINMAXINFO（最小/最大尺寸）与吸附判断
+        /// 会一直使用窗口初始化时的缩放比例。
+        /// </summary>
+        /// <param name="oldDpi">变化前的 DPI 信息</param>
+        /// <param name="newDpi">变化后的 DPI 信息</param>
+        protected override void OnDpiChanged(DpiScale oldDpi, DpiScale newDpi)
+        {
+            base.OnDpiChanged(oldDpi, newDpi);
+            _dpiX = newDpi.DpiScaleX;
+            _dpiY = newDpi.DpiScaleY;
+            UpdateMaximizeBorderThickness();
+        }
+
+        /// <summary>
+        /// 窗口重新套用模板（换肤时窗口换了样式、或者调用方改了 Template/Style）会卸载旧模板里的 DialogHost，正在显示的对话框随之消失，
+        /// <c>DialogHost.Show</c> 返回的任务永远不会完成：通知显示门，让持有门的调用结束、放行排在后面的调用（见 <see cref="DialogHandler"/>）。
+        /// </summary>
+        /// <param name="oldTemplate">旧模板</param>
+        /// <param name="newTemplate">新模板</param>
+        protected override void OnTemplateChanged(ControlTemplate oldTemplate, ControlTemplate newTemplate)
+        {
+            base.OnTemplateChanged(oldTemplate, newTemplate);
+            ShowGate.HostReplaced();
+        }
+
+        /// <summary>
+        /// 窗口关闭后通知显示门、注销 DialogHost 标识符，并释放为窗口类背景创建的 GDI 画刷（每个窗口实例独占一个，见 <see cref="UpdateNativeBackground"/>）。
+        /// 即使 <c>Closed</c> 事件的处理程序抛出异常，这些清理也会执行：否则显示着的和排着队的对话框调用会永远等不到结果。
+        /// </summary>
+        /// <param name="e">事件参数</param>
+        protected override void OnClosed(EventArgs e)
+        {
+            try
+            {
+                base.OnClosed(e);
+            }
+            finally
+            {
+                ShowGate.Close();
+                DialogHostRegistry.Unregister(this);
+                ReleaseNativeBackgroundBrush();
+            }
+        }
+
         #endregion
 
         #region 私有方法
         /// <summary>
-        /// 根据 ResizeMode 更新按钮的可见性
+        /// 根据 ResizeMode 更新按钮的可见性。<br/>
+        /// 最大化/最小化按钮属于模板可选部件：用户自定义 ControlTemplate 可能不包含它们（参数为 null），
+        /// 此时对应按钮被跳过，不会抛出 <see cref="NullReferenceException"/>。
         /// </summary>
-        private void UpdateButtonVisibility(Button maximizeNormalButton, Button minimizeButton)
+        /// <param name="maximizeNormalButton">最大化/还原按钮；模板中不存在时为 null</param>
+        /// <param name="minimizeButton">最小化按钮；模板中不存在时为 null</param>
+        private void UpdateButtonVisibility(Button? maximizeNormalButton, Button? minimizeButton)
         {
+            bool showMaximize;
+            bool showMinimize;
             switch (this.ResizeMode)
             {
-                case ResizeMode.CanResize:
-                    maximizeNormalButton.Visibility = Visibility.Visible;
-                    minimizeButton.Visibility = Visibility.Visible;
-                    break;
                 case ResizeMode.CanMinimize:
-                    maximizeNormalButton.Visibility = Visibility.Collapsed;
-                    minimizeButton.Visibility = Visibility.Visible;
+                    showMaximize = false;
+                    showMinimize = true;
                     break;
                 case ResizeMode.NoResize:
-                    maximizeNormalButton.Visibility = Visibility.Collapsed;
-                    minimizeButton.Visibility = Visibility.Collapsed;
+                    showMaximize = false;
+                    showMinimize = false;
                     break;
-                case ResizeMode.CanResizeWithGrip:
-                    if (maximizeNormalButton != null && minimizeButton != null)
-                    {
-                        maximizeNormalButton.Visibility = Visibility.Visible;
-                        minimizeButton.Visibility = Visibility.Visible;
-                    }
+                default: // CanResize / CanResizeWithGrip
+                    showMaximize = true;
+                    showMinimize = true;
                     break;
             }
+
+            if (maximizeNormalButton != null)
+                maximizeNormalButton.Visibility = showMaximize ? Visibility.Visible : Visibility.Collapsed;
+            if (minimizeButton != null)
+                minimizeButton.Visibility = showMinimize ? Visibility.Visible : Visibility.Collapsed;
         }
 
         /// <summary>
@@ -733,6 +871,11 @@ namespace Snet.Windows.Core
         private static readonly string registrieIni = $"{WindowHandler.BasePath}\\registrie.ini";
 
         /// <summary>
+        /// 本进程是否已尝试过修改注册表（0 = 否，1 = 是）；通过 Interlocked 原子置位，无需加锁。
+        /// </summary>
+        private static int registryAttempted;
+
+        /// <summary>
         /// 需要修改的注册表项集合（所有实例共享，优化拖拽窗口显示效果）
         /// </summary>
         private static readonly List<RegistryModel> registries = new()
@@ -754,6 +897,9 @@ namespace Snet.Windows.Core
         private void UpdateRegistry()
         {
             if (File.Exists(registrieIni)) return;
+
+            // 同一进程内只尝试一次：标记文件无法写入（只读安装目录等）时，避免后续每个窗口加载都重复写注册表并广播 WM_SETTINGCHANGE
+            if (Interlocked.Exchange(ref registryAttempted, 1) != 0) return;
 
             foreach (var item in registries)
             {
@@ -788,17 +934,26 @@ namespace Snet.Windows.Core
             const uint SPIF_SENDCHANGE = 0x02;
             SystemParametersInfo(SPI_SETDRAGFULLWINDOWS, 0, null, SPIF_UPDATEINIFILE | SPIF_SENDCHANGE);
 
-            //文件夹不存在则创建
-            if (!Directory.Exists(WindowHandler.BasePath))
+            // 标记文件属于"尽力而为"的持久化：配置目录不可写（只读安装目录、权限不足、路径被文件占用等）
+            // 不能让异常从 Loaded 事件处理器中抛出而使窗口加载失败
+            try
             {
-                Directory.CreateDirectory(WindowHandler.BasePath);
-            }
+                //文件夹不存在则创建
+                if (!Directory.Exists(WindowHandler.BasePath))
+                {
+                    Directory.CreateDirectory(WindowHandler.BasePath);
+                }
 
-            // 创建标记文件
-            File.WriteAllText(registrieIni,
-                "1. 修改注册表使软件呈现效果更佳\r\n" +
-                "2. 此文件存在代表注册表已修改成功\r\n" +
-                "3. 请勿删除!!!", Encoding.UTF8);
+                // 创建标记文件
+                File.WriteAllText(registrieIni,
+                    "1. 修改注册表使软件呈现效果更佳\r\n" +
+                    "2. 此文件存在代表注册表已修改成功\r\n" +
+                    "3. 请勿删除!!!", Encoding.UTF8);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
+            {
+                LogHelper.Error($"写入注册表标记文件失败（本进程不再重试）：{ex.Message}", exception: ex);
+            }
         }
 
         #endregion
@@ -953,6 +1108,23 @@ namespace Snet.Windows.Core
             // 3. 设置 DWM 标题栏/边框颜色（Windows 11 22H2+，低版本静默忽略）
             DwmSetWindowAttribute(hwnd, DWMWA_CAPTION_COLOR, ref colorRef, sizeof(uint));
             DwmSetWindowAttribute(hwnd, DWMWA_BORDER_COLOR, ref colorRef, sizeof(uint));
+        }
+
+        /// <summary>
+        /// 释放缓存的 Win32 背景画刷（GDI 对象）。<br/>
+        /// 若窗口句柄仍有效，先让窗口类不再引用该画刷（hbrBackground 置空），再 DeleteObject，
+        /// 避免窗口销毁过程中的绘制使用已删除的句柄。可重复调用。
+        /// </summary>
+        private void ReleaseNativeBackgroundBrush()
+        {
+            IntPtr brush = _hBrush;
+            if (brush == IntPtr.Zero) return;
+            _hBrush = IntPtr.Zero;
+
+            var hwnd = new WindowInteropHelper(this).Handle;
+            if (hwnd != IntPtr.Zero)
+                SetClassLongPtr(hwnd, GCLP_HBRBACKGROUND, IntPtr.Zero);
+            DeleteObject(brush);
         }
 
         #endregion
