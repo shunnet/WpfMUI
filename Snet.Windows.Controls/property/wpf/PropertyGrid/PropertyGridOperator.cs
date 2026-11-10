@@ -60,14 +60,10 @@ namespace Snet.Windows.Controls.property.wpf
         private static readonly ConcurrentDictionary<Type, MetadataTypeAttribute> MetadataTypeAttributeCache = new ConcurrentDictionary<Type, MetadataTypeAttribute>();
 
         /// <summary>
-        /// 反射缓存：每个类型的可浏览属性描述符列表（保持原有顺序）。
+        /// 反射缓存：每个类型最近一次计算出的可浏览属性描述符列表（保持原有顺序）。<br/>
+        /// 条目附带计算它时用到的完整描述符集合，只有当前对象的描述符集合与之完全相同时才命中（见 <see cref="BrowsableCacheEntry.Matches"/>）。
         /// </summary>
-        private static readonly ConcurrentDictionary<Type, PropertyDescriptor[]> BrowsablePropertiesCache = new ConcurrentDictionary<Type, PropertyDescriptor[]>();
-
-        /// <summary>
-        /// 反射缓存：每个类型的 AreBrowsableAttributesJustTrue 结果。
-        /// </summary>
-        private static readonly ConcurrentDictionary<Type, bool> BrowsableJustTrueCache = new ConcurrentDictionary<Type, bool>();
+        private static readonly ConcurrentDictionary<Type, BrowsableCacheEntry> BrowsablePropertiesCache = new ConcurrentDictionary<Type, BrowsableCacheEntry>();
 
         /// <summary>
         /// 反射缓存：PropertyInfo（按 (类型, 属性名, 属性类型) 键，属性类型可为 null）。
@@ -339,9 +335,12 @@ namespace Snet.Windows.Controls.property.wpf
         }
 
         /// <summary>
-        /// 按类型缓存可浏览属性列表（保持原有顺序与过滤逻辑）。
-        /// ItemsBag 的属性集合是按实例生成的（取决于 BiggestType），不能按类型缓存；
-        /// 仅当类未被派生类重写时才启用缓存，避免改变派生类的行为。
+        /// 按类型缓存可浏览属性列表（保持原有顺序与过滤逻辑）。<br/>
+        /// 同一个 CLR 类型的不同实例可能暴露不同的描述符集合（<c>DataRowView</c>、<c>DbConnectionStringBuilder</c>、
+        /// 用 <c>TypeDescriptor.AddProvider(provider, instance)</c> 注册了实例级提供程序的对象、动态属性包等），
+        /// 所以缓存按"描述符实例是否完全相同"校验：普通对象的描述符由 TypeDescriptor 按类型缓存，每次拿到的是同一批实例，照常命中；
+        /// 实例级描述符不相同时重新计算，绝不会把第一个实例的属性列表用到第二个实例上。
+        /// ItemsBag 的属性集合取决于 BiggestType，不走缓存；仅当类未被派生类重写时才启用缓存，避免改变派生类的行为。
         /// </summary>
         /// <param name="instance">对象实例。</param>
         /// <param name="properties">属性描述符集合。</param>
@@ -354,9 +353,67 @@ namespace Snet.Windows.Controls.property.wpf
                 return this.GetBrowsableProperties(properties);
             }
 
-            bool justTrue = BrowsableJustTrueCache.GetOrAdd(instanceType, t => this.AreBrowsableAttributesJustTrue(properties));
-            PropertyDescriptor[] list = BrowsablePropertiesCache.GetOrAdd(instanceType, t => GetBrowsablePropertiesCore(properties, justTrue).ToArray());
-            return list;
+            if (BrowsablePropertiesCache.TryGetValue(instanceType, out var cached) && cached.Matches(properties))
+            {
+                return cached.Browsable;
+            }
+
+            var source = new PropertyDescriptor[properties.Count];
+            properties.CopyTo(source, 0);
+            bool justTrue = this.AreBrowsableAttributesJustTrue(properties);
+            var browsable = GetBrowsablePropertiesCore(properties, justTrue).ToArray();
+            BrowsablePropertiesCache[instanceType] = new BrowsableCacheEntry(source, browsable);
+            return browsable;
+        }
+
+        /// <summary>
+        /// 一个类型的可浏览属性缓存条目：过滤结果 + 计算它时用到的完整描述符集合（用于校验是否还适用）。
+        /// </summary>
+        private sealed class BrowsableCacheEntry
+        {
+            /// <summary>
+            /// Initializes a new instance of the <see cref="BrowsableCacheEntry"/> class.
+            /// </summary>
+            /// <param name="source">计算时用到的完整描述符集合。</param>
+            /// <param name="browsable">过滤后的可浏览描述符。</param>
+            public BrowsableCacheEntry(PropertyDescriptor[] source, PropertyDescriptor[] browsable)
+            {
+                this.Source = source;
+                this.Browsable = browsable;
+            }
+
+            /// <summary>
+            /// Gets the complete descriptor set the list was computed from.
+            /// </summary>
+            public PropertyDescriptor[] Source { get; }
+
+            /// <summary>
+            /// Gets the filtered browsable descriptors.
+            /// </summary>
+            public PropertyDescriptor[] Browsable { get; }
+
+            /// <summary>
+            /// 当前的描述符集合与计算缓存时用的是完全相同的一批描述符实例（逐个引用比较）才算命中。
+            /// </summary>
+            /// <param name="properties">当前对象的描述符集合。</param>
+            /// <returns>命中返回 <c>true</c>。</returns>
+            public bool Matches(PropertyDescriptorCollection properties)
+            {
+                if (properties.Count != this.Source.Length)
+                {
+                    return false;
+                }
+
+                for (int i = 0; i < this.Source.Length; i++)
+                {
+                    if (!ReferenceEquals(properties[i], this.Source[i]))
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
         }
 
         /// <summary>
@@ -623,7 +680,10 @@ namespace Snet.Windows.Controls.property.wpf
                     break;
                 case Model.@enum.LanguageType.en:
                     pi.DisplayName = this.GetLocalizedString(displayName, declaringType);
-                    pi.Description = this.GetLocalizedString(description, declaringType);
+
+                    // 描述必须走 GetLocalizedDescription：这是 ILocalizableOperator 里专门区分"名称/描述"的钩子，
+                    // 此前误用 GetLocalizedString，使自定义本地化实现里的 GetLocalizedDescription 永远不会被调用
+                    pi.Description = this.GetLocalizedDescription(description, declaringType);
                     if (pi.Description.IsNullOrWhiteSpace())
                     {
                         pi.Description = pi.PropertyName;
@@ -654,17 +714,14 @@ namespace Snet.Windows.Controls.property.wpf
         }
 
         /// <summary>
-        /// 语言变化事件处理器（静态只注册一次）：遍历当前活动的属性项并重新应用语言。
+        /// 语言变化事件处理器（静态只注册一次）：遍历当前活动的属性项并重新应用语言。<br/>
+        /// 语言切换完成时由 Snet.Core 发出。此处读取 Snet.Core 的内存态语言（事件触发时已是最新）：
+        /// 通过 Snet.Windows.Core.LanguageHandler 切换时会先写 language.json 再触发事件，两个来源一致；
+        /// 但调用方若直接使用 Snet.Core.handler.LanguageHandler 切换，文件不会更新，只有内存态才是准确的。
         /// </summary>
         /// <param name="sender">事件源。</param>
         /// <param name="e">事件参数。</param>
         /// <returns>已完成的任务。</returns>
-        /// <summary>
-        /// 语言事件触发（语言切换完成时由 Snet.Core 发出）。<br/>
-        /// 注意：此处必须读取 Snet.Core 的**内存态**语言（事件触发时已是最新），
-        /// 不能用 Snet.Windows.Core.LanguageHandler.GetLanguage()——它读 language.json 文件，
-        /// 而 SetLanguageAsync 中文件写入发生在语言切换事件之后，会导致读取到旧语言（属性框显示滞后）。
-        /// </summary>
         private static Task OnLanguageEvent(object sender, object e)
         {
             var language = Snet.Core.handler.LanguageHandler.GetLanguage();

@@ -489,6 +489,11 @@ namespace Snet.Windows.Controls.property.wpf
         private object lastControlsObject;
 
         /// <summary>
+        /// 模板被替换之前用户选中的页（由 <see cref="OnTemplateChanged"/> 记录，在随后的 <see cref="OnApplyTemplate"/> 里取走并清空）。
+        /// </summary>
+        private int? templateSelectedIndex;
+
+        /// <summary>
         /// The panel control.
         /// </summary>
         private StackPanel panelControl;
@@ -1244,7 +1249,45 @@ namespace Snet.Windows.Controls.property.wpf
             this.tabControl = this.Template.FindName(PartTabs, this) as TabControl;
             this.panelControl = this.Template.FindName(PartPanel, this) as StackPanel;
             this.scrollViewer = this.Template.FindName(PartScrollViewer, this) as ScrollViewer;
-            this.UpdateControls();
+
+            // 模板（重新）应用后拿到的是一套全新的、空的部件，必须强制重建一次：
+            // 否则 UpdateControls 的"对象引用与外观戳均未变化则跳过"会让新模板里什么都不生成（整块面板空白且没有异常）
+            this.lastControlsObject = null;
+
+            // 重建后恢复模板被替换之前用户选中的页（见 OnTemplateChanged）
+            int? restoredIndex = this.templateSelectedIndex;
+            this.templateSelectedIndex = null;
+            this.UpdateControls(restoredIndex);
+        }
+
+        /// <summary>
+        /// 模板被替换时（例如换肤使隐式样式重新解析）调用，此时旧模板的部件还没有被替换。
+        /// </summary>
+        /// <param name="oldTemplate">旧模板。</param>
+        /// <param name="newTemplate">新模板。</param>
+        protected override void OnTemplateChanged(ControlTemplate oldTemplate, ControlTemplate newTemplate)
+        {
+            base.OnTemplateChanged(oldTemplate, newTemplate);
+
+            if (this.tabControl == null)
+            {
+                return;
+            }
+
+            // 记下用户选中的页，等新模板的部件建好、页面重建之后恢复。必须现在记：
+            // 旧模板一被替换，旧 TabControl 的 SelectedIndex 绑定就被拆除并还原成 -1，
+            // 而新模板实例化时，新 TabControl（空的）的 SelectedIndex 双向绑定又会先把 SelectedTabIndex 也清成 -1，
+            // 到 OnApplyTemplate 时两处都读不到用户原来选的页了。此刻 SelectedTabIndex 里还留着它
+            int selectedIndex = this.tabControl.SelectedIndex;
+            if (selectedIndex < 0)
+            {
+                selectedIndex = this.SelectedTabIndex;
+            }
+
+            if (selectedIndex >= 0)
+            {
+                this.templateSelectedIndex = selectedIndex;
+            }
         }
 
         /// <summary>
@@ -1697,27 +1740,37 @@ namespace Snet.Windows.Controls.property.wpf
 
                                 // RenderOptions.SetBitmapScalingMode(descriptionIconImage, BitmapScalingMode.NearestNeighbor);
                                 labelPanel.Children.Add(descriptionIconImage);
-                                if (!string.IsNullOrWhiteSpace(pi.Description))
-                                {
-                                    descriptionIconImage.ToolTip = this.CreateToolTip(pi.Description);
-                                    ToolTipService.SetShowDuration(descriptionIconImage, this.ToolTipDuration);
-                                }
+
+                                // 两种布局统一：提示绑定到 PropertyItem.Description（语言切换后随之刷新），
+                                // 并仍然经由 CreateToolTip 生成（遵循 ToolTipTemplate，空描述不产生提示）
+                                descriptionIconImage.SetBinding(ToolTipService.ToolTipProperty, this.CreateDescriptionToolTipBinding(pi));
+                                ToolTipService.SetShowDuration(descriptionIconImage, this.ToolTipDuration);
                             }
                         }
                         else
                         {
-                            //labelPanel.ToolTip = this.CreateToolTip(pi.Description);
-                            Binding binding = new Binding("Description")
-                            {
-                                Source = pi,   // 明确数据源
-                                UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged
-                            };
-                            labelPanel.SetBinding(ToolTipService.ToolTipProperty, binding);
+                            labelPanel.SetBinding(ToolTipService.ToolTipProperty, this.CreateDescriptionToolTipBinding(pi));
                         }
                     }
 
                     break;
             }
+        }
+
+        /// <summary>
+        /// 创建描述提示的绑定：源为 <see cref="PropertyItem.Description"/>（语言切换时会更新），
+        /// 转换器经由 <see cref="CreateToolTip"/> 生成提示内容，因此仍遵循 <see cref="ToolTipTemplate"/>。
+        /// </summary>
+        /// <param name="pi">属性项。</param>
+        /// <returns>用于 <see cref="ToolTipService.ToolTipProperty"/> 的绑定。</returns>
+        private Binding CreateDescriptionToolTipBinding(PropertyItem pi)
+        {
+            return new Binding(nameof(PropertyItem.Description))
+            {
+                Source = pi,
+                Mode = BindingMode.OneWay,
+                Converter = new DescriptionToolTipConverter(this.CreateToolTip)
+            };
         }
 
         /// <summary>
@@ -1777,12 +1830,13 @@ namespace Snet.Windows.Controls.property.wpf
             {
                 var cb = new CheckBox
                 {
-                    Content = pi.DisplayName,
                     VerticalAlignment = VerticalAlignment.Center,
                     //snet 新增
                     HorizontalAlignment = HorizontalAlignment.Right,
                     Margin = new Thickness(5 + indentation, 0, 4, 0)
                 };
+                // 显示名用绑定而不是一次性赋值：语言切换时 PropertyItem.DisplayName 会更新，标签随之刷新
+                cb.SetBinding(ContentControl.ContentProperty, new Binding(nameof(PropertyItem.DisplayName)) { Source = pi });
                 cb.SetBinding(
                     ToggleButton.IsCheckedProperty,
                     pi.OptionalDescriptor != null ? new Binding(pi.OptionalDescriptor.Name) : new Binding(pi.Descriptor.Name) { Converter = NullToBoolConverter });
@@ -1800,6 +1854,8 @@ namespace Snet.Windows.Controls.property.wpf
                     VerticalAlignment = VerticalAlignment.Center,
                     Margin = new Thickness(5 + indentation, 0, 4, 0)
                 };
+                // 单选按钮必须显示属性名（本地改动曾把上游的 Content = pi.DisplayName 删掉，标签位置只剩一个没有文字的单选按钮）
+                rb.SetBinding(ContentControl.ContentProperty, new Binding(nameof(PropertyItem.DisplayName)) { Source = pi });
 
                 var converter = new EnumToBooleanConverter { EnumType = pi.RadioDescriptor.PropertyType };
                 rb.SetBinding(ToggleButton.IsCheckedProperty, new Binding(pi.RadioDescriptor.Name) { Converter = converter, ConverterParameter = pi.RadioValue });
@@ -1817,9 +1873,11 @@ namespace Snet.Windows.Controls.property.wpf
                     VerticalAlignment = VerticalAlignment.Center,
                     Margin = new Thickness(indentation, 0, 4, 0)
                 };
-                propertyLabel.DataContext = pi;
-                Binding binding = new Binding("DisplayName")
+                // 用显式 Source 绑定显示名，而不是把标签的 DataContext 改成 PropertyItem：
+                // 否则标签上基于被编辑对象的绑定（如 IsEnabled 的 Is{0}Enabled / [EnableBy] 约定）会解析到 PropertyItem 而失效
+                Binding binding = new Binding(nameof(PropertyItem.DisplayName))
                 {
+                    Source = pi,
                     UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged
                 };
                 propertyLabel.SetBinding(Label.ContentProperty, binding);
@@ -1938,7 +1996,8 @@ namespace Snet.Windows.Controls.property.wpf
         /// <summary>
         /// Updates the controls.
         /// </summary>
-        private void UpdateControls()
+        /// <param name="restoredIndex">模板被替换之前用户选中的页；只在随模板重新应用的那一次重建里使用，其它情况为 <c>null</c>。</param>
+        private void UpdateControls(int? restoredIndex = null)
         {
             if (this.Operator == null)
             {
@@ -1957,7 +2016,7 @@ namespace Snet.Windows.Controls.property.wpf
                 return;
             }
 
-            var oldIndex = this.tabControl != null ? this.tabControl.SelectedIndex : -1;
+            var oldIndex = restoredIndex ?? (this.tabControl != null ? this.tabControl.SelectedIndex : -1);
 
             var tabs = this.Operator.CreateModel(this.CurrentObject, false, this);
             var tabsArray = tabs != null ? tabs.ToArray() : null;

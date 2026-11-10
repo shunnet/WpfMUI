@@ -26,6 +26,11 @@ namespace Snet.Windows.Controls.property.wpf.Shell32
         private BROWSEINFOW browseInfo;
 
         /// <summary>
+        /// 上一次 <c>ShowDialog(owner)</c> 由本类写进 <c>hwndOwner</c> 的句柄（见 <see cref="ApplyOwner"/>）。
+        /// </summary>
+        private IntPtr assignedOwner;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="BrowseForFolderDialog" /> class.
         /// Constructs a BrowseForFolderDialog with default BrowseInfoFlags set to BIF_NEWDIALOGSTYLE.
         /// </summary>
@@ -354,7 +359,9 @@ namespace Snet.Windows.Controls.property.wpf.Shell32
         /// <returns>
         /// The sh get path from id list.
         /// </returns>
-        [DllImport("shell32.dll")]
+        // 必须使用 Unicode 版：不指定 CharSet 时默认走 ANSI 版（SHGetPathFromIDListA），
+        // 当前 ANSI 代码页无法表示的字符（例如在中文代码页下选择日文/特殊符号目录）会被替换成 '?'，得到错误的路径
+        [DllImport("shell32.dll", CharSet = CharSet.Unicode, EntryPoint = "SHGetPathFromIDListW", ExactSpelling = true)]
         private static extern bool SHGetPathFromIDList(IntPtr pidl, StringBuilder path);
 
         /// <summary>
@@ -436,6 +443,31 @@ namespace Snet.Windows.Controls.property.wpf.Shell32
         }
 
         /// <summary>
+        /// 把本次显示的 owner 写入 <c>hwndOwner</c>。<br/>
+        /// 此前只在传入 owner 时赋值、之后永不重置：同一个实例先 <c>ShowDialog(owner)</c> 再 <c>ShowDialog()</c> 时，
+        /// 旧的（可能已销毁的）owner 句柄仍留在 hwndOwner 里。所以没有 owner 时，如果 hwndOwner 还是上一次由本类写入的那个句柄就复位；
+        /// 调用方通过公开的 <see cref="BrowseInfo"/> 自己设置的 hwndOwner（例如非 WPF 窗口的句柄）不是本类写入的，保持不动。
+        /// </summary>
+        /// <param name="owner">本次显示的 owner，可以为 <c>null</c>。</param>
+        private void ApplyOwner(Window owner)
+        {
+            if (null != owner)
+            {
+                IntPtr handle = new WindowInteropHelper(owner).Handle;
+                this.BrowseInfo.hwndOwner = handle;
+                this.assignedOwner = handle;
+                return;
+            }
+
+            if (this.assignedOwner != IntPtr.Zero && this.BrowseInfo.hwndOwner == this.assignedOwner)
+            {
+                this.BrowseInfo.hwndOwner = IntPtr.Zero;
+            }
+
+            this.assignedOwner = IntPtr.Zero;
+        }
+
+        /// <summary>
         /// The p invoke sh browse for folder.
         /// </summary>
         /// <param name="owner">The owner.</param>
@@ -444,27 +476,32 @@ namespace Snet.Windows.Controls.property.wpf.Shell32
         /// </returns>
         private bool? PInvokeSHBrowseForFolder(Window owner)
         {
-            WindowInteropHelper windowhelper;
-            if (null != owner)
-            {
-                windowhelper = new WindowInteropHelper(owner);
-                this.BrowseInfo.hwndOwner = windowhelper.Handle;
-            }
+            this.ApplyOwner(owner);
 
             IntPtr pidl = SHBrowseForFolderW(this.browseInfo);
 
-            if (IntPtr.Zero != pidl)
+            if (IntPtr.Zero == pidl)
+            {
+                return false;
+            }
+
+            // SHBrowseForFolder 返回的 PIDL 归调用方所有，任何路径都必须释放：
+            // 选中的是没有文件系统路径的虚拟文件夹时 SHGetPathFromIDList 返回 false，原先这条路径不释放 PIDL
+            try
             {
                 var pathsb = new StringBuilder(260);
                 if (SHGetPathFromIDList(pidl, pathsb))
                 {
                     this.SelectedFolder = pathsb.ToString();
-                    Marshal.FreeCoTaskMem(pidl);
                     return true;
                 }
-            }
 
-            return false;
+                return false;
+            }
+            finally
+            {
+                Marshal.FreeCoTaskMem(pidl);
+            }
         }
 
         /// <summary>

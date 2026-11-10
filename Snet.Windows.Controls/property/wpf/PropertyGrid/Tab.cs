@@ -266,7 +266,7 @@ namespace Snet.Windows.Controls.property.wpf
         /// <param name="ndei">数据错误通知实例。</param>
         /// <param name="propertyName">属性名。</param>
         /// <returns><c>true</c> 表示有错误。</returns>
-        private static bool HasPropertyErrors(INotifyDataErrorInfo ndei, string propertyName)
+        internal static bool HasPropertyErrors(INotifyDataErrorInfo ndei, string propertyName)
         {
             var errors = ndei.GetErrors(propertyName);
             if (errors == null)

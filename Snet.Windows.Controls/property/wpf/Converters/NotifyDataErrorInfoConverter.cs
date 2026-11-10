@@ -55,14 +55,16 @@ namespace Snet.Windows.Controls.property.wpf
         /// </returns>
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
+            // 逐属性判断：可见性与内容必须描述同一个属性。此前 bool/Visibility 用的是对象级的 instance.HasErrors，
+            // 只要对象上任意一个属性出错，所有行的错误控件都可见（内容为空），与内容列的逐属性语义不一致
             switch (targetType)
             {
                 case object _ when targetType == typeof(bool):
-                    return this.instance.HasErrors;
+                    return Tab.HasPropertyErrors(this.instance, this.columnName);
                 case object _ when targetType == typeof(Visibility):
-                    return this.instance.HasErrors ? Visibility.Visible : Visibility.Collapsed;
+                    return Tab.HasPropertyErrors(this.instance, this.columnName) ? Visibility.Visible : Visibility.Collapsed;
                 default:
-                    return this.instance.GetErrors(this.columnName).Cast<object>().FirstOrDefault();
+                    return this.instance.GetErrors(this.columnName)?.Cast<object>().FirstOrDefault();
             }
         }
 

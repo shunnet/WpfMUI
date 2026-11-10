@@ -63,7 +63,9 @@ namespace Snet.Windows.Controls.property.wpf
             formatString = formatString.Replace("\t", @"\t");
             formatString = formatString.Replace(" ", @"\s");
 
-            this.Expression = new Regex(formatString, RegexOptions.Compiled);
+            // 必须匹配整个输入（允许首尾空白）：没有锚定时只要字符串里"含有"一段匹配就被接受，
+            // "123:45:67" 会被读成 23:45:67、"x01:02:03abc" 的尾随内容被丢弃——和"不匹配就静默变成零"是同一类静默错误
+            this.Expression = new Regex(@"^\s*" + formatString + @"\s*$", RegexOptions.Compiled);
         }
 
         /// <summary>
@@ -78,9 +80,36 @@ namespace Snet.Windows.Controls.property.wpf
         /// <returns>
         /// A time span.
         /// </returns>
+        /// <exception cref="FormatException">The value does not match the format string (an input that does not match used to be returned as <see cref="TimeSpan.Zero"/> silently).</exception>
         public TimeSpan Parse(string value)
         {
+            if (this.TryParse(value, out TimeSpan result))
+            {
+                return result;
+            }
+
+            throw new FormatException(string.Format("Invalid TimeSpan value '{0}'.", value));
+        }
+
+        /// <summary>
+        /// Tries to parse the specified time span string.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <param name="result">The parsed time span.</param>
+        /// <returns><c>true</c> if the value matches the format string and fits into a <see cref="TimeSpan"/>; otherwise, <c>false</c>.</returns>
+        public bool TryParse(string value, out TimeSpan result)
+        {
+            result = default;
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return false;
+            }
+
             var r = this.Expression.Match(value);
+            if (!r.Success)
+            {
+                return false;
+            }
 
             int days = 0;
             int hours = 0;
@@ -96,7 +125,10 @@ namespace Snet.Windows.Controls.property.wpf
                 if (group.Success)
                 {
                     // Console.WriteLine("Match on " + name + ": '" + group.Value + "'");
-                    int v = int.Parse(group.Value);
+                    if (!int.TryParse(group.Value, NumberStyles.None, CultureInfo.InvariantCulture, out int v))
+                    {
+                        return false;
+                    }
                     switch (name)
                     {
                         case "DD":
@@ -132,7 +164,16 @@ namespace Snet.Windows.Controls.property.wpf
                 }
             }
 
-            return new TimeSpan(days, hours, minutes, seconds, milliseconds);
+            try
+            {
+                result = new TimeSpan(days, hours, minutes, seconds, milliseconds);
+                return true;
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                // 天数等超出 TimeSpan 可表示范围
+                return false;
+            }
         }
     }
 }

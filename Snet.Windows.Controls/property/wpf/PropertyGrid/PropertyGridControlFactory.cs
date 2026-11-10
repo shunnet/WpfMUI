@@ -19,12 +19,14 @@ namespace Snet.Windows.Controls.property.wpf
     using System.Linq;
     using System.Runtime.CompilerServices;
     using System.Security;
+    using System.Threading;
     using System.Windows;
     using System.Windows.Controls;
     using System.Windows.Controls.Primitives;
     using System.Windows.Data;
     using System.Windows.Input;
     using System.Windows.Media;
+    using System.Windows.Threading;
 
     /// <summary>
     /// Provides a control factory for the <see cref="PropertyGrid" /> control.
@@ -58,24 +60,34 @@ namespace Snet.Windows.Controls.property.wpf
         }
 
         /// <summary>
-        /// 订阅实例的 ErrorsChanged 事件（每个实例只订阅一次），并登记 (Tab, 属性名) 弱引用。
+        /// 登记表超过该数量后，下一次登记时顺带清理失效条目（避免对长寿命模型反复重建网格造成缓慢增长）。
+        /// </summary>
+        private const int InitialRegistrationPruneThreshold = 256;
+
+        /// <summary>
+        /// 订阅实例的 ErrorsChanged 事件（每个实例只订阅一次），并登记 (Tab, 属性名, 错误控件) 弱引用。<br/>
+        /// 登记表是不可变数组快照，可以在任意线程上登记、读取（无锁）；每条登记记录自己的错误控件所在的 UI 线程，
+        /// 所以同一个模型实例可以同时被多个 UI 线程上的属性网格显示。
         /// </summary>
         /// <param name="instance">实现 <see cref="INotifyDataErrorInfo"/> 的实例。</param>
         /// <param name="tab">所属 Tab。</param>
         /// <param name="propertyName">属性名。</param>
-        private static void SubscribeErrorsChanged(INotifyDataErrorInfo instance, Tab tab, string propertyName)
+        /// <param name="errorControl">该属性行的错误控件，错误变化时需要强制刷新它的绑定。</param>
+        private static void SubscribeErrorsChanged(INotifyDataErrorInfo instance, Tab tab, string propertyName, ContentControl errorControl)
         {
             var entry = ErrorSubscriptions.GetOrCreateValue(instance);
-            entry.Registrations.Add(new ErrorRegistration(tab, propertyName));
-            if (!entry.Subscribed)
+            entry.Add(new ErrorRegistration(tab, propertyName, errorControl));
+            if (entry.TryMarkSubscribed())
             {
                 instance.ErrorsChanged += OnErrorsChanged;
-                entry.Subscribed = true;
             }
         }
 
         /// <summary>
-        /// 统一的 ErrorsChanged 处理器：只更新与发生错误属性相关的活动 Tab（增量更新）。
+        /// 统一的 ErrorsChanged 处理器：更新与发生错误属性相关的活动 Tab（增量更新），并强制刷新这些属性行的错误控件。<br/>
+        /// <see cref="INotifyDataErrorInfo.ErrorsChanged"/> 可能在任意线程触发（例如异步校验之后），
+        /// 而 Tab 与错误控件只能在创建它们的 UI 线程上访问：命中的登记按各自控件所在的调度器分组，每一组在自己的 UI 线程上处理
+        /// （已经结束的调度器上的那一组被丢弃，不影响其它线程上的网格）。
         /// </summary>
         /// <param name="sender">事件源。</param>
         /// <param name="e">事件参数。</param>
@@ -87,57 +99,158 @@ namespace Snet.Windows.Controls.property.wpf
                 return;
             }
 
-            List<Tab> tabs = null;
-            for (int i = entry.Registrations.Count - 1; i >= 0; i--)
+            string? propertyName = e.PropertyName;
+            Dictionary<Dispatcher, List<ErrorRegistration>>? groups = null;
+            foreach (var registration in entry.Registrations)
             {
-                var registration = entry.Registrations[i];
-                if (registration.TabReference.Target is Tab tab)
+                // PropertyName 为空表示对象整体错误变化，需要全量重算
+                if (!string.IsNullOrEmpty(propertyName) && registration.PropertyName != propertyName)
                 {
-                    // PropertyName 为空表示对象整体错误变化，需要全量重算
-                    if (string.IsNullOrEmpty(e.PropertyName) || registration.PropertyName == e.PropertyName)
-                    {
-                        if (tabs == null)
-                        {
-                            tabs = new List<Tab>();
-                        }
+                    continue;
+                }
 
-                        tabs.Add(tab);
-                    }
+                groups ??= new Dictionary<Dispatcher, List<ErrorRegistration>>();
+                if (!groups.TryGetValue(registration.Dispatcher, out var group))
+                {
+                    group = new List<ErrorRegistration>();
+                    groups.Add(registration.Dispatcher, group);
+                }
+
+                group.Add(registration);
+            }
+
+            if (groups == null)
+            {
+                return;
+            }
+
+            foreach (var pair in groups)
+            {
+                var registrations = pair.Value;
+                if (pair.Key.CheckAccess())
+                {
+                    ApplyErrorsChanged(instance, registrations, propertyName);
                 }
                 else
                 {
-                    // Tab 已销毁，移除失效登记
-                    entry.Registrations.RemoveAt(i);
-                }
-            }
-
-            if (tabs != null)
-            {
-                foreach (var tab in tabs)
-                {
-                    tab.UpdateHasErrors(instance, e.PropertyName);
+                    pair.Key.BeginInvoke(new Action(() => ApplyErrorsChanged(instance, registrations, propertyName)));
                 }
             }
         }
 
         /// <summary>
-        /// 记录一个实例的 ErrorsChanged 订阅状态及关联的 Tab（弱引用）列表。
+        /// 在登记所属的 UI 线程上处理一次 ErrorsChanged：更新 Tab 的错误状态，并强制刷新各行的错误控件。
+        /// </summary>
+        /// <param name="instance">事件源。</param>
+        /// <param name="registrations">同一个 UI 线程上的、与这次错误变化相关的登记。</param>
+        /// <param name="propertyName">发生错误变化的属性名，空表示对象整体。</param>
+        private static void ApplyErrorsChanged(INotifyDataErrorInfo instance, List<ErrorRegistration> registrations, string? propertyName)
+        {
+            var tabs = new HashSet<Tab>();
+            var errorControls = new List<ContentControl>();
+            foreach (var registration in registrations)
+            {
+                // Tab 已被回收：这条登记失效（登记表在下次登记超过阈值时清理）
+                if (registration.TabReference.Target is not Tab tab)
+                {
+                    continue;
+                }
+
+                tabs.Add(tab);
+                if (registration.ErrorControlReference.Target is ContentControl errorControl)
+                {
+                    errorControls.Add(errorControl);
+                }
+            }
+
+            foreach (var tab in tabs)
+            {
+                tab.UpdateHasErrors(instance, propertyName);
+            }
+
+            // 错误控件的绑定源是 Tab.HasErrors，它只在 false↔true 翻转时才通知；
+            // 同一个 Tab 里第二个属性出错、或其中一个属性改好而另一个仍然出错时 HasErrors 不变，必须手工刷新，
+            // 否则提示会缺失（后出错的属性）或陈旧（已经改好的属性）
+            foreach (var errorControl in errorControls)
+            {
+                errorControl.GetBindingExpression(UIElement.VisibilityProperty)?.UpdateTarget();
+                errorControl.GetBindingExpression(ContentControl.ContentProperty)?.UpdateTarget();
+            }
+        }
+
+        /// <summary>
+        /// 记录一个实例的 ErrorsChanged 订阅状态及关联的 (Tab, 属性名, 错误控件)（弱引用）登记表。
         /// </summary>
         private sealed class ErrorSubscriptionEntry
         {
             /// <summary>
-            /// Gets the registrations.
+            /// 登记表：不可变数组，整体替换（<see cref="Interlocked.CompareExchange{T}(ref T, T, T)"/>），所以任何线程都可以无锁读取。
             /// </summary>
-            public readonly List<ErrorRegistration> Registrations = new List<ErrorRegistration>();
+            private ErrorRegistration[] registrations = Array.Empty<ErrorRegistration>();
 
             /// <summary>
-            /// Gets or sets a value indicating whether the ErrorsChanged event is subscribed.
+            /// 登记表条目数达到该值时，下一次登记先清理失效条目（避免对长寿命模型反复重建网格造成缓慢增长）。
             /// </summary>
-            public bool Subscribed;
+            private int pruneThreshold = InitialRegistrationPruneThreshold;
+
+            /// <summary>
+            /// 是否已订阅 ErrorsChanged（0/1，用 <see cref="Interlocked"/> 置位）。
+            /// </summary>
+            private int subscribed;
+
+            /// <summary>
+            /// Gets the current snapshot of the registrations.
+            /// </summary>
+            public ErrorRegistration[] Registrations => Volatile.Read(ref this.registrations);
+
+            /// <summary>
+            /// 登记一条记录（复制整个数组后用 CAS 替换；条目数超过阈值时顺带丢掉 Tab 已被回收的失效条目）。
+            /// </summary>
+            /// <param name="registration">要登记的记录。</param>
+            public void Add(ErrorRegistration registration)
+            {
+                while (true)
+                {
+                    var current = Volatile.Read(ref this.registrations);
+                    ErrorRegistration[] next;
+                    if (current.Length >= Volatile.Read(ref this.pruneThreshold))
+                    {
+                        var alive = new List<ErrorRegistration>(current.Length + 1);
+                        foreach (var existing in current)
+                        {
+                            if (existing.TabReference.IsAlive)
+                            {
+                                alive.Add(existing);
+                            }
+                        }
+
+                        alive.Add(registration);
+                        next = alive.ToArray();
+                        Volatile.Write(ref this.pruneThreshold, Math.Max(InitialRegistrationPruneThreshold, next.Length * 2));
+                    }
+                    else
+                    {
+                        next = new ErrorRegistration[current.Length + 1];
+                        Array.Copy(current, next, current.Length);
+                        next[current.Length] = registration;
+                    }
+
+                    if (ReferenceEquals(Interlocked.CompareExchange(ref this.registrations, next, current), current))
+                    {
+                        return;
+                    }
+                }
+            }
+
+            /// <summary>
+            /// 标记已订阅。
+            /// </summary>
+            /// <returns>第一次调用返回 <c>true</c>（调用方负责订阅事件），之后都返回 <c>false</c>。</returns>
+            public bool TryMarkSubscribed() => Interlocked.Exchange(ref this.subscribed, 1) == 0;
         }
 
         /// <summary>
-        /// 记录 (Tab, 属性名) 对，Tab 使用弱引用，避免订阅持有整个属性网格。
+        /// 记录 (Tab, 属性名, 错误控件) 三元组，Tab 与错误控件使用弱引用，避免订阅持有整个属性网格。
         /// </summary>
         private sealed class ErrorRegistration
         {
@@ -146,11 +259,19 @@ namespace Snet.Windows.Controls.property.wpf
             /// </summary>
             /// <param name="tab">所属 Tab。</param>
             /// <param name="propertyName">属性名。</param>
-            public ErrorRegistration(Tab tab, string propertyName)
+            /// <param name="errorControl">该属性行的错误控件。</param>
+            public ErrorRegistration(Tab tab, string propertyName, ContentControl errorControl)
             {
                 this.TabReference = new WeakReference(tab);
                 this.PropertyName = propertyName;
+                this.ErrorControlReference = new WeakReference(errorControl);
+                this.Dispatcher = errorControl.Dispatcher;
             }
+
+            /// <summary>
+            /// Gets the dispatcher of the UI thread that owns the error control (and the tab).
+            /// </summary>
+            public Dispatcher Dispatcher { get; }
 
             /// <summary>
             /// Gets the weak reference to the tab.
@@ -161,6 +282,11 @@ namespace Snet.Windows.Controls.property.wpf
             /// Gets the property name.
             /// </summary>
             public string PropertyName { get; }
+
+            /// <summary>
+            /// Gets the weak reference to the error control of the property row.
+            /// </summary>
+            public WeakReference ErrorControlReference { get; }
         }
 
         /// <summary>
@@ -363,7 +489,7 @@ namespace Snet.Windows.Controls.property.wpf
                 propertyPath = nameof(tab.HasErrors);
                 source = tab;
                 // 弱引用注册 + 每实例只订阅一次，避免每行订阅且永不退订导致的泄漏
-                SubscribeErrorsChanged(notifyDataErrorInfoInstance, tab, pi.PropertyName);
+                SubscribeErrorsChanged(notifyDataErrorInfoInstance, tab, pi.PropertyName, errorControl);
             }
 
             var visibilityBinding = new Binding(propertyPath)
@@ -422,7 +548,8 @@ namespace Snet.Windows.Controls.property.wpf
         {
             if (errorInfo is INotifyDataErrorInfo ndei)
             {
-                tab.HasErrors = tab.Groups.Any(g => g.Properties.Any(p => ndei.HasErrors));
+                // 逐属性判断（与 Tab.UpdateHasErrors 的语义一致）：对象上别的 Tab 里的属性出错，不应让本 Tab 显示错误标记
+                tab.HasErrors = tab.Groups.Any(g => g.Properties.Any(p => Tab.HasPropertyErrors(ndei, p.PropertyName)));
             }
             else if (errorInfo is IDataErrorInfo dei)
             {

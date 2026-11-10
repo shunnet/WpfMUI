@@ -45,7 +45,10 @@ namespace Snet.Windows.Controls.property.wpf.Operators
                 return this.customLocalizableOperator.GetLocalizedDescription(key, declaringType);
             }
 
-            return key;
+            // 没有自定义本地化器时回退到字符串本地化（默认实现下两者都原样返回 key）：
+            // PropertyGridOperator.SetLang 现在通过 GetLocalizedDescription 本地化描述，
+            // 只重写了 GetLocalizedString 的子类（此前描述就是经由它本地化的）因此不会丢掉描述的本地化
+            return this.GetLocalizedString(key, declaringType);
         }
 
         /// <summary>

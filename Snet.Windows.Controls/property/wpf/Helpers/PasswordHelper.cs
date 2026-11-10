@@ -27,6 +27,11 @@ namespace Snet.Windows.Controls.property.wpf
         /// <summary>
         /// Identifies the Password attached dependency property.
         /// </summary>
+        /// <remarks>
+        /// 注意：该属性以明文 <see cref="string"/> 形式保存口令（每次按键都会把 <see cref="PasswordBox.Password"/> 复制进来，
+        /// 与绑定的源属性一起留在内存中），绕开了 <see cref="PasswordBox"/> 内部的 <see cref="SecureString"/>。
+        /// 不适合高敏感场景；这类场景请直接使用 <see cref="PasswordBox.SecurePassword"/>。
+        /// </remarks>
         public static readonly DependencyProperty PasswordProperty = DependencyProperty.RegisterAttached(
             "Password",
             typeof(string),
@@ -125,7 +130,12 @@ namespace Snet.Windows.Controls.property.wpf
         /// <param name="e">The e.</param>
         private static void OnPasswordPropertyChanged(DependencyObject sender, DependencyPropertyChangedEventArgs e)
         {
-            var passwordBox = sender as PasswordBox;
+            // 附加到非 PasswordBox 的元素上时直接忽略（此前这里会抛出 NullReferenceException）
+            if (sender is not PasswordBox passwordBox)
+            {
+                return;
+            }
+
             passwordBox.PasswordChanged -= PasswordChanged;
 
             if (!GetIsUpdating(passwordBox))
@@ -150,10 +160,17 @@ namespace Snet.Windows.Controls.property.wpf
         /// <param name="e">The e.</param>
         private static void PasswordChanged(object sender, RoutedEventArgs e)
         {
-            var passwordBox = sender as PasswordBox;
+            var passwordBox = (PasswordBox)sender;
             SetIsUpdating(passwordBox, true);
-            SetPassword(passwordBox, passwordBox.Password);
-            SetIsUpdating(passwordBox, false);
+            try
+            {
+                SetPassword(passwordBox, passwordBox.Password);
+            }
+            finally
+            {
+                // 无论写回是否抛出异常都要复位，否则 IsUpdating 永久为 true，之后外部对 Password 的修改再也不会同步到输入框
+                SetIsUpdating(passwordBox, false);
+            }
         }
 
         /// <summary>

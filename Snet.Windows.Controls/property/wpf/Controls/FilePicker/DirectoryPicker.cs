@@ -189,8 +189,9 @@ namespace Snet.Windows.Controls.property.wpf
             else
             {
                 // use default win32 dialog
+                // 传入所属窗口：否则对话框没有 owner，不会禁用主窗口，用户可以在对话框打开期间继续操作它（重入）
                 var d = new BrowseForFolderDialog { InitialFolder = this.Directory };
-                if (true == d.ShowDialog())
+                if (true == d.ShowDialog(Window.GetWindow(this)))
                 {
                     this.Directory = d.SelectedFolder;
                 }

@@ -1883,7 +1883,10 @@ namespace Snet.Windows.Controls.property.wpf
             this.Focus();
             base.OnMouseLeftButtonDown(e);
 
-            this.mouseDownPositionOnScreen = this.PointToScreen(e.GetPosition(this));
+            // 控件尚未连接到 PresentationSource（合成的鼠标事件、控件正被移除等）时 PointToScreen 会抛出 InvalidOperationException
+            this.mouseDownPositionOnScreen = PresentationSource.FromVisual(this) != null
+                ? this.PointToScreen(e.GetPosition(this))
+                : (Point?)null;
             this.isRangeSelectionDrag = false;
 
             var pos = e.GetPosition(this.sheetGrid);
