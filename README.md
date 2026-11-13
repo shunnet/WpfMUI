@@ -9,8 +9,8 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/.NET-8.0-blue?logo=dotnet"/>
   <img src="https://img.shields.io/badge/.NET-10.0-blue?logo=dotnet"/>
+  <img src="https://img.shields.io/badge/.NET-11.0-blue?logo=dotnet"/>
   <img src="https://img.shields.io/badge/license-MIT-green"/>
   <img src="https://img.shields.io/nuget/v/Snet.Windows.Controls?color=blue"/>
   <img src="https://img.shields.io/github/stars/shunnet/WpfMUI?style=social"/>
